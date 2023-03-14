@@ -1,6 +1,6 @@
 <template>
   <div class="canyon-bg">
-    <div style="top:36%; position: relative;">
+    <div style="top:30%; position: relative;">
       <h1>Jonathan Simmons</h1>
       <h2>Live Portfolio</h2>
     </div>
@@ -28,7 +28,7 @@ h2 {
   clip-path: polygon(0 0, 100% 0, 100% 86%, 0 100%);
   margin-top: 79px;
   width: 100%;
-  height: 36rem;
+  height: 24rem;
 }
 
 @keyframes on-awake {

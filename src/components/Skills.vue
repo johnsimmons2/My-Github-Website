@@ -1,6 +1,10 @@
+<!-- 
+  Grabs the skills from the skills json file
+-->
+
 <template>
   <div class="main-container">
-    <h1 class="skill-header">Related technologies</h1>
+    <h1 class="skill-header">Related Technologies</h1>
     <div class="skills-container">
       <div v-if="!loaded">
         Hi there! I'm still fetching this data. Please wait while I load.
@@ -24,33 +28,39 @@
 <script>
 export default {
   name: 'Skills',
+
   data() {
     return {
       skills: {},
+
       loaded: {
         default: false,
         type: Boolean,
       },
+
       activeId: {
         default: -1,
         type: Boolean,
       },
+
       firstBoxClick: {
         default: false,
         type: Boolean,
       },
+
       windowWidth: {
         default: 0,
         type: Number,
       }
     };
   },
+
   methods: {
     getSkills() {
       this.$http
         .get('skills.json')
         .then(function(data) {
-          this.skills = data.body;
+          this.skills = data.body['skills'];
           this.loaded = true;
           console.log(this.skills);
         })
@@ -58,9 +68,11 @@ export default {
           console.log(err);
         });
     },
+
     getImgUrl(name) {
       return '/assets/' + name.replace(/[\s\\.]/, '').toLowerCase() + '.png';
     },
+
     setActive(id) {
       if (this.activeId === id) {
         this.activeId = -1;
@@ -72,6 +84,7 @@ export default {
         }
       }
     },
+
     getLeft(id) {
       // Calculate CSS rem to px, plus an adjustment for the padding of the div.
       let overlap = this.$refs.skills[id].getBoundingClientRect().left + 28 * parseFloat(getComputedStyle(document.documentElement).fontSize);
@@ -88,9 +101,11 @@ export default {
       this.windowWidth = window.innerWidth;
     }
   },
+
   beforeDestroy() {
     window.removeEventListener('resize', this.onResize);
   },
+
   mounted: function() {
     this.activeId = -1;
     this.firstBoxClick = false;
@@ -102,6 +117,7 @@ export default {
     })
   },
 };
+
 </script>
 
 <style scoped>
@@ -116,6 +132,7 @@ export default {
   box-shadow: 5px 7px 7px rgba(0, 0, 0, 0.6);
   padding: 12px;
   margin-right: auto;
+  user-select: none;
 }
 
 .main-container {

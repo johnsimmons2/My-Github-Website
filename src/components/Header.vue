@@ -1,11 +1,10 @@
 <template>
   <div class="header-wrapper">
     <h2 class="site-title">
-      About me
     </h2>
     <div>
       <ul>
-        <li>Jonathan Simmons</li>
+        <li><b>Jonathan Simmons</b></li>
         <li><a href="https://www.linkedin.com/in/jdsimmons1/" target="_blank"><img class='logo-image' alt='Linkedin' src='/assets/linkedin.png'/></a></li>
         <li><a href="https://github.com/johnsimmons2" target="_blank"><img class='logo-image' alt='Github' src='/assets/github.png'/></a></li>
         <li><a href="mailto:jsim247@gmail.com"><img class='logo-image' alt='Email me' src='/assets/gmail.png'/></a></li>

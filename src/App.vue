@@ -13,16 +13,18 @@
     </div>
 
     <skills-component />
+    <hr/>
+    <jobs-component />
 
     <div class="background-2">
-      <div style="top:36%; position: relative;">
+      <div style="top:36%; position: relative; z-index: 1;">
         <h1>Contact Me</h1>
       </div>
     </div>
 
     <div class="contact-me">
       Follow the links in the header to my email, linkedin, and github. My cell phone number
-      and professional references are available on request.
+      and professional references are available on request. This website is still under active construction.
       <div class="contact-box">
         <div>
           <a href="mailto:jsim247@gmail.com">Gmail</a>
@@ -44,6 +46,7 @@ import Header from './components/Header.vue';
 import Welcome from './components/Welcome.vue';
 import Bio from './components/Bio.vue';
 import Skills from './components/Skills.vue';
+import Jobs from './components/Jobs.vue';
 import Vue from 'vue';
 import VueResource from 'vue-resource';
 import VueAlertify from 'vue-alertify';
@@ -58,6 +61,7 @@ export default {
     'welcome-component': Welcome,
     'bio-component': Bio,
     'skills-component': Skills,
+    'jobs-component': Jobs,
   },
 };
 </script>
@@ -75,7 +79,7 @@ hr {
 }
 
 a {
-  color: darkblue;
+  color: rgb(201, 201, 255);
 }
 
 .contact-me {
@@ -83,9 +87,10 @@ a {
   background-color: var(--js-primary);
   box-shadow: 5px 7px 7px rgba(0, 0, 0, 0.6);
   color: var(--js-white);
-  width: 60%;
+  width: 70%;
   margin: 30px auto;
   padding: 20px;
+  text-align: center;
 }
 
 h1,

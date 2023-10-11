@@ -1,0 +1,152 @@
+{
+  "skills": [
+    {
+      "name": "Vuejs",
+      "description": "This website and some of my professional web development have been made in Vue for its lightweight structure and quick turnaround."
+    },
+    {
+      "name": "React",
+      "description": "I have used React.js while developing and maintaining websites with my employment and previous internship with aWhere."
+    },
+    {
+      "name": "Angular",
+      "description": "I have been working with Angular since 2019 professionally."
+    },
+    {
+      "name": "Ruby",
+      "description": "Ruby is my favorite scripting language. I worked with it to automate tasks during my internship at CGI and the Fikes Companies. It is not my primary scripting language currently, but I have the most fun with it."
+    },
+    {
+      "name": "SQL",
+      "description": "I have worked with Microsoft SQL Server, Postgres SQL databases, and MySQL all professionally and academically, since 2016."
+    },
+    {
+      "name": "JavaScript",
+      "description": "As a full-stack engineer, I have developed and maintained many systems in javascript professionally, I have also re-made an entire API Developer portal site through Vue.js, JavaScript, and ASP.NET."
+    },
+    {
+      "name": "Java",
+      "description": "Java is the first programming language I learned and taught myself, as such I have been using it to many capacities including professionally since 2010."
+    },
+    {
+      "name": "DotNet",
+      "description": "I have been using ASP.NET as well as many affiliated libraries for full-stack Web / REST API development as a Software Engineer since 2019."
+    },
+    {
+      "name": "Python",
+      "description": "Python was a primary language of use during my undergraduate study at UMHB. Similarly, on a research trip to Brno, Czech Republic, our research group used Python. I personally use Python to create simulations and data analysis."
+    },
+    {
+      "name": "C++",
+      "description": "C++ was the language I used to learn data structures and algorithms during my undergraduate study. I have used this for several projects during those years in undergraduate study."
+    }
+  ],
+  "jobs": [
+    {
+      "name": "aWhere Inc",
+      "img": "awhere",
+      "positions": ["Software Engineer", "Lead Software Engineer"],
+      "descriptions": ["Full-stack Software Engineer with ASP.NET backend and Vue.js frontend.",
+                      "Maintained numerous ASP.NET and .NET Framework microservices and large SQL server distributed systems.",
+                      "Created a developer dashboard and login SSO framework for proprietary API access.",
+                      "Data validation and routine CI/CD tasks automated in Python and Ruby.",
+                      "Manage TeamCity CI/CD Pipeline and monitor daily builds."],
+      "duration": "Jan 2020 - Feb 2021",
+      "start": "01/05/2020",
+      "end": "02/28/2021",
+      "location": "Temple, TX.",
+      "order": 2
+    },
+    {
+      "name": "PDI Technologies",
+      "img": "pdi",
+      "positions": ["Software Engineer II"],
+      "descriptions": ["Develop and maintain software in .NET and Angular.", "Agile workflow with sprints and scrum meetings.",
+                      "Support high risk and escalated engineer-related support cases.",
+                      "Provide on-call assistance to support teams.",
+                      "Maintain large SQL Server databases with thousands of stored procedures."],
+      "duration": "Jul 2021 - Jul 2023",
+      "start": "07/01/2021",
+      "end": "07/28/2023",
+      "location": "Temple, TX.",
+      "order": 0
+    },
+    {
+      "name": "Q2",
+      "img": "q2",
+      "positions": ["Associate Product Support Engineer"],
+      "descriptions": ["Triaged support cases and communicated with customer status on their cases.",
+                      "Discovered and resolved bugs in large Java monolithic architecture.",
+                      "Met with customers to resolve technical issues."],
+      "duration": "Mar 2021 - Jul 2021",
+      "location": "Austin, TX.",
+      "start": "03/01/2021",
+      "end": "07/24/2021",
+      "order": 1
+    },
+    {
+      "name": "University of Mary Hardin-Baylor",
+      "img": "umhb",
+      "positions": ["Teaching Assistant", "Lab Assistant", "Tutor for Math/CompSci/Physics"],
+      "descriptions": ["Lab assistant in Physics labs.",
+                      "Created and graded student experiments for Physics labs.",
+                      "Taught lectures for Computer Science students with academic difficulties.",
+                      "Maintianed the 3D printers and computers in the labs.",
+                      "Tutored Linear Algebra, Calculus I - III, Differential Equations, Computer Science, Physics with Calculus I and II."],
+      "duration": "Aug 2016 - May 2019",
+      "start": "08/14/2016",
+      "end": "05/13/2019",
+      "location": "Belton, TX.",
+      "order": 4
+    },
+    {
+      "name": "Baylor University",
+      "img": "baylor",
+      "positions": ["Graduate Research Assistant"],
+      "descriptions": ["Published research on Java Enterprise Software (DOI: https://doi.org/10.1007/978-981-15-1465-4_38)",
+                      "Worked on site with Redhat in Brno, Czech Republic on code clone detection with Python.",
+                      "Worked with the Czech Technical University in Prague to analyze Enterprise Applications in Java.",
+                      "Created a proprietary library in Java to map uncompiled Java EE source code into a graphQL object representation of an abstract syntax tree."],
+      "duration": "Mar 2021 - Jul 2021",
+      "start": "03/01/2021",
+      "end": "12/15/2021",
+      "location": "Waco, TX.",
+      "order": 3
+    },
+    {
+      "name": "CGI Federal",
+      "img": "cgifed",
+      "positions": ["Technical Analyst Consultant"],
+      "descriptions": ["Managed server analytics on New Relic.",
+                      "Wrote automation testing scripts for E2E testing in Gherkin/Cucumber.",
+                      "Large daily database validation tasks automated in Ruby."],
+      "duration": "Jun 2017 - Aug 2017",
+      "start": "06/01/2017",
+      "end": "08/30/2017",
+      "location": "Belton, TX.",
+      "order": 5
+    }
+  ],
+  "hobbies": [
+    {
+      "name": "Programming",
+      "descriptions": ["I love to program in my spare time, making various projects such as physics simulators, simple games, visualization tools, and more.",
+                      "Currently I am working on a virtual tabletop and campaign manager for DnD 5e with Python, Flask, Alembic, Angular, Node, and Postgres.",
+                      "You can check out my github at github.com/johnsimmons2 to see what else I am working on."]
+    },
+    {
+      "name": "Reading / Learning",
+      "descriptions": ["I also love to spend a large portion of my free time reading and learning about various topics. I am currently trying to learn and experiment with novel evolutionary algorithms, based on HyperNEAT.",
+                      "I like to learn about new technologies and discoveries in the realms of Physics and Mathematics.",
+                      "I also enjoy reading some leisurely things, my favorite current being reading the works of Junji Ito."]
+    },
+    {
+      "name": "Videogames",
+      "descriptions": ["I am a passionate, nerdy gamer. My passion for programming and exploring the universe came from early memories of playing Majora's Mask and several SNES titles.",
+                      "I love indie games and particularly titles that encourage cooperation or collaborative play. Big fan of multiplayer.",
+                      "I also recently began being a Dungeon Master for a D&D campaign with friends, for which I have been writing lore, creating custom monsters and encounters, and even an app for users to interact with.",
+                      "Since before highschool it was my dream to make videogames, and I made several unfinished and small projects over the years. At one point making a 3D platformer with gravity mechanics \ndependent on individual platform's gravity well shapes as a project senior year in highschool.",
+                      "It is still my goal to one day develop videogames at some level or another, and to publish one of my own works."]
+    }
+  ]
+}

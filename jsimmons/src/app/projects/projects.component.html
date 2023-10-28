@@ -13,3 +13,6 @@
     </h3>
   </mat-card-content>
 </mat-card>
+
+<app-project-card *ngFor="let card of sortByNotEmpty(projects)" [name]="card.name" [description]="card.description" [forkUrl]="card.forkUrl" [languagesUrl]="card.languages" [url]="card.url">
+</app-project-card>

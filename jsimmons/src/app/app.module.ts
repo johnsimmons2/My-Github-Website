@@ -16,6 +16,11 @@ import { MatGridListModule } from '@angular/material/grid-list';
 import { AboutComponent } from './about/about.component';
 import { ContactComponent } from './contact/contact.component';
 import { ProjectsComponent } from './projects/projects.component'
+import { ProjectCardComponent } from './projects/project-card/project-card.component';
+import { MatIconModule } from '@angular/material/icon';
+import { MatBadgeModule } from '@angular/material/badge';
+import { MatChipsModule } from '@angular/material/chips';
+import { FlexLayoutModule } from '@angular/flex-layout';
 
 @NgModule({
   declarations: [
@@ -24,19 +29,25 @@ import { ProjectsComponent } from './projects/projects.component'
     NotFoundComponent,
     AboutComponent,
     ContactComponent,
-    ProjectsComponent
+    ProjectsComponent,
+    ProjectCardComponent
   ],
   imports: [
     BrowserModule,
     AppRoutingModule,
     BrowserAnimationsModule,
+    HttpClientModule,
     MatToolbarModule,
     MatButtonModule,
+    MatBadgeModule,
     MatCardModule,
     MatExpansionModule,
     MatListModule,
     HttpClientModule,
-    MatGridListModule
+    MatGridListModule,
+    MatIconModule,
+    MatChipsModule,
+    FlexLayoutModule
   ],
   providers: [],
   bootstrap: [AppComponent]

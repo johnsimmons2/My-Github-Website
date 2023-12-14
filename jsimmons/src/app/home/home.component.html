@@ -1,164 +1,158 @@
 <!-- Homepage for my live portfolio website. -->
 <!-- Already has my name in the toolbar, so I do not need it here. -->
-<div fxLayout="row" fxLayout.xs="column" fxLayout="row wrap" fxLayoutGap="0.1%" fxLayoutAlign="center">
-  <mat-card fxFlex="28%">
-    <mat-card-header>
-      <mat-card-title>
-        <h1>Who am I?</h1>
-      </mat-card-title>
-      <mat-card-subtitle>
-        <h2>Full-Stack Software Engineer</h2>
-        <h3>University of Mary Hardin-Baylor <a>Graduate</a></h3>
-        <h3>Math, Physics, and AI enthusiast</h3>
-        <h3>Nerd and Gamer</h3>
-      </mat-card-subtitle>
-    </mat-card-header>
-    <mat-card-content>
-      <!-- Placeholder -->
-      <p>I am a full-stack software engineer with a passion for math, physics, and AI. I am a graduate of the University of Mary Hardin-Baylor with a Bachelor of Science in Computer Science.
-        My favorite programming languages are Python, JavaScript, and C++. I am also familiar with Java, C#, and PHP. I have experience with the following frameworks: Angular, React, Node.js, Express, Flask, and Django.
-        My favorite math topics are linear algebra, calculus, and differential equations. I am also interested in topology, abstract algebra, and number theory.</p>
-        <p>My favorite physics topics are classical mechanics, quantum mechanics, and electromagnetism. I am also interested in thermodynamics, statistical mechanics, and general relativity.
-          My favorite AI topics are machine learning, deep learning, and reinforcement learning. I am also interested in natural language processing, computer vision, and robotics.
-          <p>My favorite hobbies are playing video games, watching movies, and reading books.</p>
-    </mat-card-content>
-  </mat-card>
+<mat-card class="mainCard">
+  <mat-card-header>
+    <mat-card-title>
+      <h1>Who am I?</h1>
+    </mat-card-title>
+    <mat-card-subtitle>
+      <h3>Full-Stack Software Engineer</h3>
+      <h3>University of Mary Hardin-Baylor Graduate</h3>
+      <h3>Math, Physics, and AI enthusiast</h3>
+      <h3>Nerd and Gamer</h3>
+    </mat-card-subtitle>
+  </mat-card-header>
+  <mat-card-content>
+    <!-- Placeholder -->
+    <p>I am a full-stack software engineer with a passion for math, physics, and AI. I am a graduate of the University of Mary Hardin-Baylor with a Bachelor of Science in Computer Science.
+      My favorite programming languages are Python, JavaScript, and C++. I am also familiar with Java, C#, and PHP. I have experience with the following frameworks: Angular, React, Node.js, Express, Flask, and Django.
+      My favorite math topics are linear algebra, calculus, and differential equations. I am also interested in topology, abstract algebra, and number theory.</p>
+      <p>My favorite physics topics are classical mechanics, quantum mechanics, and electromagnetism. I am also interested in thermodynamics, statistical mechanics, and general relativity.
+        My favorite AI topics are machine learning, deep learning, and reinforcement learning. I am also interested in natural language processing, computer vision, and robotics.
+        <p>My favorite hobbies are playing video games, watching movies, and reading books.</p>
+  </mat-card-content>
+</mat-card>
 
-  <mat-card fxFlex="40%">
-    <mat-card-header>
-      <mat-card-title>
-        <h1>What do I do?</h1>
-      </mat-card-title>
-      <mat-card-subtitle>
-        <h2>
-          My Experience and Education:
-        </h2>
-      </mat-card-subtitle>
-    </mat-card-header>
-    <mat-card-content>
-      <h3>
-        Education:
-      </h3>
-      <mat-accordion>
-        <mat-expansion-panel hideToggle (opened)="educationOpen = true" (closed)="educationOpen = false">
-          <mat-expansion-panel-header>
-            <mat-panel-title>
-              University of Mary-Hardin Baylor
-            </mat-panel-title>
-            <mat-panel-description>
-              <p>{{summary}}</p>
-            </mat-panel-description>
-          </mat-expansion-panel-header>
-          <p>
-            I graduated from UMHB May of 2019 with a 4.0 GPA, majoring in Computer Science with a minor in Mathematics. I took a heavy focus in my mathematics courses toward Differential Equations and Partial Equations.
-            If you are interested in what courses I have taken, check the <a href="/about">about me</a> page. I also spent my time here as a tutor for Physics, Math, and Programming. I would help set up computer labs for professors,
-            and even taught a few remedial lectures as a teaching assistant for the Computer Science department. During my senior year, I briefly spent time working with the department in developing and training AI RC cars.
-          </p>
-          <p>
-            I was involved with the following honor societies and received awards:
-            <mat-list>
-              <mat-list-item>
-                <a href="https://alphachihonor.org/member-faq" matListItemTitle>Alpha Chi</a>
-                <span matListItemLine>Membership is limited to the top 10% of juniors, seniors, and graduate students at colleges and universities that have an established chapter.</span>
-              </mat-list-item>
-              <mat-list-item>
-                <a href="https://www.kappamuepsilon.org" matListItemTitle>Kappa Mu Epsilon</a>
-                <span matListItemLine>Recommended for maintained standards of scholarship, professional merit, and academic distinction</span>
-              </mat-list-item>
-              <mat-list-item>
-                <span matListItemTitle>The Provost's Medal</span>
-                <span matListItemLine>Given at commencement to the senior(s) with the highest overall grade point average for four years.</span>
-              </mat-list-item>
-              <mat-list-item>
-                <span matListItemTitle>The Provost's List (x8)</span>
-                <span matListItemLine>Given to students each semester who achieve 3.85 or higher GPA.</span>
-              </mat-list-item>
-            </mat-list>
-          </p>
-        </mat-expansion-panel>
-      </mat-accordion>
-      <br/>
-      <h3>
-        Work Experience:
-      </h3>
-      <mat-accordion>
-        <mat-expansion-panel *ngFor="let job of jobExperience" hideToggle (opened)="workOpen = true" (closed)="workOpen = false">
-          <mat-expansion-panel-header>
-            <mat-panel-title>
-              <p>
-                {{job.name}}
-              </p>
-              <hr/>
-              <p>
-                {{getJobDuration(job.start, job.end)}}
-              </p>
-            </mat-panel-title>
-            <mat-panel-description>
-              {{job.positions.join(', ')}}
-            </mat-panel-description>
-          </mat-expansion-panel-header>
-          <p><i>Employed from <b>{{job.start}}</b> to <b>{{job.end}}</b></i></p>
-          <hr/>
-          <p *ngFor="let description of job.descriptions">
-            {{description}}
-          </p>
-        </mat-expansion-panel>
-      </mat-accordion>
-      <br/>
+<mat-card>
+  <mat-card-header>
+    <mat-card-title>
+      <h1>What do I do?</h1>
+    </mat-card-title>
+    <mat-card-subtitle>
       <h2>
-        {{getTotalExperience()}} of experience in, or related to the field.
+        My Experience and Education:
       </h2>
-      <!--The table of work experience -->
-    </mat-card-content>
-  </mat-card>
+    </mat-card-subtitle>
+  </mat-card-header>
+  <mat-card-content>
+    <h3>
+      Education:
+    </h3>
+    <mat-accordion>
+      <mat-expansion-panel hideToggle (opened)="educationOpen = true" (closed)="educationOpen = false">
+        <mat-expansion-panel-header [collapsedHeight]="'60px'" [expandedHeight]="'100px'">
+          <mat-panel-title>
+            University of Mary-Hardin Baylor
+          </mat-panel-title>
+          <mat-panel-description>
+            <p>{{summary}}</p>
+          </mat-panel-description>
+        </mat-expansion-panel-header>
+        <p>
+          I graduated from UMHB May of 2019 with a 4.0 GPA, majoring in Computer Science with a minor in Mathematics. I took a heavy focus in my mathematics courses toward Differential Equations and Partial Equations.
+          If you are interested in what courses I have taken, check the <a href="/about">about me</a> page. I also spent my time here as a tutor for Physics, Math, and Programming. I would help set up computer labs for professors,
+          and even taught a few remedial lectures as a teaching assistant for the Computer Science department. During my senior year, I briefly spent time working with the department in developing and training AI RC cars.
+        </p>
+        <p>
+          I was involved with the following honor societies and received awards:
+          <mat-list>
+            <mat-list-item>
+              <a href="https://alphachihonor.org/member-faq" matListItemTitle>Alpha Chi</a>
+              <span matListItemLine>Membership is limited to the top 10% of juniors, seniors, and graduate students at colleges and universities that have an established chapter.</span>
+            </mat-list-item>
+            <mat-list-item>
+              <a href="https://www.kappamuepsilon.org" matListItemTitle>Kappa Mu Epsilon</a>
+              <span matListItemLine>Recommended for maintained standards of scholarship, professional merit, and academic distinction</span>
+            </mat-list-item>
+            <mat-list-item>
+              <span matListItemTitle>The Provost's Medal</span>
+              <span matListItemLine>Given at commencement to the senior(s) with the highest overall grade point average for four years.</span>
+            </mat-list-item>
+            <mat-list-item>
+              <span matListItemTitle>The Provost's List (x8)</span>
+              <span matListItemLine>Given to students each semester who achieve 3.85 or higher GPA.</span>
+            </mat-list-item>
+          </mat-list>
+        </p>
+      </mat-expansion-panel>
+    </mat-accordion>
+    <br/>
+    <h3>
+      Work Experience:
+    </h3>
+    <mat-accordion>
+      <mat-expansion-panel *ngFor="let job of jobExperience" hideToggle (opened)="workOpen = true" (closed)="workOpen = false">
+        <mat-expansion-panel-header [collapsedHeight]="'60px'" fxLayout="row wrap" fxLayoutAlign="space-around">
+          <mat-panel-title fxFlex="1 1 40" >
+            <p>
+              {{job.name}}
+            </p>
+            <hr/>
+            <p fxShow fxHide.lt-sm>
+              {{getJobDuration(job.start, job.end)}}
+            </p>
+          </mat-panel-title>
+          <mat-panel-description fxFlex="2 2 60">
+            {{job.positions.join(', ')}}
+          </mat-panel-description>
+        </mat-expansion-panel-header>
+        <p><i>Employed from <b>{{job.start}}</b> to <b>{{job.end}}</b></i></p>
+        <hr/>
+        <p *ngFor="let description of job.descriptions">
+          {{description}}
+        </p>
+      </mat-expansion-panel>
+    </mat-accordion>
+    <br/>
+    <h2>
+      {{getTotalExperience()}} of experience in, or related to the field.
+    </h2>
+    <!--The table of work experience -->
+  </mat-card-content>
+</mat-card>
 
-  <mat-card fxFlex="28%">
-    <mat-card-header>
-      <mat-card-title>
-        <h1>Skillset and Technologies</h1>
-      </mat-card-title>
-      <mat-card-subtitle>
-        <h2>Programming:</h2>
-      </mat-card-subtitle>
-    </mat-card-header>
-    <mat-card-content>
-      <mat-accordion>
-        <mat-expansion-panel *ngFor="let skill of skills" class="skill-card">
-          <mat-expansion-panel-header>
-            <mat-panel-title>
-              <span mat-card-avatar [ngStyle]="{'background-image': 'url('+ skill.img + ')', 'background-size': 'cover', 'margin': 0 }"></span>
-              <h1>
-                {{skill.name}}
-              </h1>
-            </mat-panel-title>
-          </mat-expansion-panel-header>
-          <div>
-            {{skill.description}}
-          </div>
-        </mat-expansion-panel>
-      </mat-accordion>
-    </mat-card-content>
-  </mat-card>
-</div>
+<mat-card>
+  <mat-card-header>
+    <mat-card-title>
+      <h1>Skillset and Technologies</h1>
+    </mat-card-title>
+    <mat-card-subtitle>
+      <h2>Programming:</h2>
+    </mat-card-subtitle>
+  </mat-card-header>
+  <mat-card-content>
+    <mat-accordion>
+      <mat-expansion-panel *ngFor="let skill of skills" class="skill-card">
+        <mat-expansion-panel-header>
+          <mat-panel-title>
+            <span mat-card-avatar [ngStyle]="{'background-image': 'url('+ skill.img + ')', 'background-size': 'cover', 'margin': 0 }"></span>
+            <h1>
+              {{skill.name}}
+            </h1>
+          </mat-panel-title>
+        </mat-expansion-panel-header>
+        <div>
+          {{skill.description}}
+        </div>
+      </mat-expansion-panel>
+    </mat-accordion>
+  </mat-card-content>
+</mat-card>
 
-<div fxLayout="row" fxLayout.xs="column" fxLayoutWrap fxLayoutGap="0.5%" fxLayoutAlign="center">
-  <mat-card fxFlex="40%">
-    <mat-card-header>
-      <mat-card-title>
-        <h1>What are my interests and motivators?</h1>
-      </mat-card-title>
-      <mat-card-subtitle>
-        <h2>My Interests:</h2>
-        <mat-list>
-          <mat-list-item *ngFor="let hobby of hobbies">
-            <span matListItemTitle>{{hobby.name}}</span>
-            <div matListItemLine *ngFor="let desc of hobby.descriptions">
-              <span [textContent]="desc" style="white-space: normal;"></span>
-            </div>
-            <br/>
-          </mat-list-item>
-        </mat-list>
-      </mat-card-subtitle>
-    </mat-card-header>
-  </mat-card>
-</div>
+<mat-card>
+  <mat-card-header>
+    <mat-card-title>
+      <h1>What are my interests and motivators?</h1>
+    </mat-card-title>
+  </mat-card-header>
+  <mat-card-content>
+    <h2>My Interests:</h2>
+      <div *ngFor="let hobby of hobbies">
+        <h2>{{hobby.name}}</h2>
+        <div *ngFor="let desc of hobby.descriptions">
+          <p [textContent]="desc" style="white-space: normal;"></p>
+        </div>
+        <br/>
+      </div>
+  </mat-card-content>
+</mat-card>

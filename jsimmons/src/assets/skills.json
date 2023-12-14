@@ -2,15 +2,15 @@
   "skills": [
     {
       "name": "Vuejs",
-      "description": "This website and some of my professional web development have been made in Vue for its lightweight structure and quick turnaround."
+      "description": "My first foray into web-development was using Vue.js to create a developer portal for aWhere Inc. I have been using Vue.js since 2019 professionally."
     },
     {
       "name": "React",
-      "description": "I have used React.js while developing and maintaining websites with my employment and previous internship with aWhere."
+      "description": "I have used React.js while developing global weather data visualization tools for aWhere Inc. to show live and historic weather data overlayed with other data sets on top of topographical maps."
     },
     {
       "name": "Angular",
-      "description": "I have been working with Angular since 2019 professionally."
+      "description": "I have been using Angular professionally since 2020, and have used it to develop and maintain a large scale enterprise applications for PDI Technologies, as well as this website and other such projects."
     },
     {
       "name": "Ruby",
@@ -26,7 +26,7 @@
     },
     {
       "name": "Java",
-      "description": "Java is the first programming language I learned and taught myself, as such I have been using it to many capacities including professionally since 2010."
+      "description": "Java is the first programming language I learned and taught myself, as such I have been using it to many capacities including professionally since 2010. I enjoy messing around with Minecraft modding, and at one point made a graphics engine using OpenGL."
     },
     {
       "name": "DotNet",
@@ -85,7 +85,7 @@
       "order": 1
     },
     {
-      "name": "University of Mary Hardin-Baylor",
+      "name": "UMHB",
       "img": "umhb",
       "positions": ["Teaching Assistant", "Lab Assistant", "Tutor for Math/CompSci/Physics"],
       "descriptions": ["Lab assistant in Physics labs.",

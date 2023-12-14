@@ -1,14 +1,66 @@
 /* You can add global styles to this file, and also import other style files */
 
 
+@import './themes.scss';
+@include mat-core();
+@include angular-material-theme($app-theme);
+
 html, body { height: 100%; }
-body { margin: 0; font-family: Roboto, "Helvetica Neue", sans-serif; }
+body { margin: 0; font-family: 'Roboto', "Helvetica Neue", sans-serif; }
+
+.background {
+  background-image: linear-gradient(to bottom right, #ffffff, #eeeeee);
+}
 
 mat-card {
   padding: 20px;
   margin: 20px;
 }
 
+.mat-typography h3 {
+  font-size: 24px;
+  line-height: 32px;
+  font-weight: 400;
+  margin: 0;
+  padding: 8px;
+}
+
 hr {
   border-width: 0;
+}
+
+p {
+  font-size: 16px;
+  line-height: 24px;
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+  hyphens: auto;
+  color: gray;
+
+  @media screen and (min-width: 600px) {
+    font-size: 18px;
+    line-height: 30px;
+  }
+}
+
+/* Small Screen */
+@media only screen and (max-width: 850px) {
+  mat-card {
+    max-width: 90%;
+    padding: 0px;
+  }
+
+  mat-card-content {
+    padding: 0 5px;
+  }
+}
+
+/* Medium Screen */
+@media only screen and (min-width: 851px) {
+  mat-card {
+    max-width: 70%;
+    margin: auto auto 10px;
+    padding: 0px;
+  }
+
 }

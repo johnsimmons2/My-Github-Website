@@ -1,0 +1,20 @@
+/* You can add global styles to this file, and also import other style files */
+
+@use '@angular/material' as mat;
+@import '@angular/material/theming';
+
+$app-primary: mat-palette($mat-green, 600);
+$app-accent:  mat-palette($mat-yellow, 400, 300, 700);
+
+// The warn palette is optional (defaults to red).
+$app-warn: mat-palette($mat-red);
+// Create the theme object (a Sass map containing all of the palettes)
+$app-theme: mat-light-theme((
+  color: (
+    primary: $app-primary,
+    accent: $app-accent,
+    warn: $app-warn,
+  ),
+  typography: mat.define-typography-config(),
+  density: 0,
+));

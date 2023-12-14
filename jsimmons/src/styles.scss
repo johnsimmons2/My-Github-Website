@@ -44,7 +44,7 @@ p {
 }
 
 /* Small Screen */
-@media only screen and (max-width: 850px) {
+@media only screen and (max-width: 1000px) {
   mat-card {
     max-width: 90%;
     padding: 0px;
@@ -56,9 +56,9 @@ p {
 }
 
 /* Medium Screen */
-@media only screen and (min-width: 851px) {
+@media only screen and (min-width: 1000px) {
   mat-card {
-    max-width: 70%;
+    max-width: 80%;
     margin: auto auto 10px;
     padding: 0px;
   }

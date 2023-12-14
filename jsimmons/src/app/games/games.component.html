@@ -1,0 +1,16 @@
+<div class="engine-wrapper">
+  <div class="hud" style="position: absolute; top: 5%; z-index: 9999; display: inline; padding: 20px">
+    <mat-card>
+      <mat-card-header>
+        <mat-card-title>
+          Select a Game: {{games[selectedId].name}}
+        </mat-card-title>
+      </mat-card-header>
+      <mat-card-content>
+        <app-game-selector [games]="games" (selectedId)="changeSelection($event.valueOf())">
+        </app-game-selector>
+      </mat-card-content>
+    </mat-card>
+  </div>
+  <canvas #rendererCanvas id="renderCanvas"></canvas>
+</div>

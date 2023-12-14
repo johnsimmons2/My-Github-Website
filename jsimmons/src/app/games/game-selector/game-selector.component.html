@@ -1,0 +1,11 @@
+<div fxLayout="row wrap" fxLayoutGap="16px">
+  <div *ngFor="let game of games">
+    <button mat-raised-button
+            [color]="game.id===currentId ? 'accent' : 'warn'"
+            matTooltip="{{game.description}}"
+            (click)="select(game.id)">
+      {{game.name}}
+      <mat-icon *ngIf="currentId==game.id">arrow_right</mat-icon>
+    </button>
+  </div>
+</div>

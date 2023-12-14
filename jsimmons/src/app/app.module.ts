@@ -21,6 +21,9 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatBadgeModule } from '@angular/material/badge';
 import { MatChipsModule } from '@angular/material/chips';
 import { FlexLayoutModule } from '@angular/flex-layout';
+import { GamesComponent } from './games/games.component';
+import { MatTooltipModule } from '@angular/material/tooltip';
+import { GameSelectorComponent } from './games/game-selector/game-selector.component';
 
 @NgModule({
   declarations: [
@@ -30,7 +33,9 @@ import { FlexLayoutModule } from '@angular/flex-layout';
     AboutComponent,
     ContactComponent,
     ProjectsComponent,
-    ProjectCardComponent
+    GamesComponent,
+    ProjectCardComponent,
+    GameSelectorComponent
   ],
   imports: [
     BrowserModule,
@@ -47,7 +52,8 @@ import { FlexLayoutModule } from '@angular/flex-layout';
     MatGridListModule,
     MatIconModule,
     MatChipsModule,
-    FlexLayoutModule
+    FlexLayoutModule,
+    MatTooltipModule,
   ],
   providers: [],
   bootstrap: [AppComponent]

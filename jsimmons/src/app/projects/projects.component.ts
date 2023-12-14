@@ -1,5 +1,6 @@
 import { HttpClient } from '@angular/common/http';
 import { AfterViewInit, Component, OnInit } from '@angular/core';
+import { Router } from '@angular/router';
 
 export interface Project {
   url: string;
@@ -20,7 +21,7 @@ export class ProjectsComponent implements AfterViewInit {
 
   projects: Project[] = [];
 
-  constructor(private httpService: HttpClient) {
+  constructor(private httpService: HttpClient, public router: Router) {
   }
 
   /**

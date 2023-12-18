@@ -1,0 +1,21 @@
+::ng-deep mat-form-field > div {
+  background-color: #ffffff !important;
+
+}
+
+mat-form-field {
+  width: 100%;
+}
+
+::ng-deep .mat-mdc-select-arrow {
+  display: none;
+}
+
+::ng-deep mat-form-field::placeholder{
+  font-size: 205px;
+}
+
+// TODO: Need to fix this, currently I cant control the font size of the placeholder.
+::ng-deep mat-form-field .mat-form-field-label{
+  font-size: 2.8em !important;
+}

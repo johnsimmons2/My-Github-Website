@@ -24,6 +24,11 @@ import { FlexLayoutModule } from '@angular/flex-layout';
 import { GamesComponent } from './games/games.component';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { GameSelectorComponent } from './games/game-selector/game-selector.component';
+import { MatSelectModule } from '@angular/material/select';
+import {FormsModule} from '@angular/forms';
+import {MatInputModule} from '@angular/material/input';
+import {MatFormFieldModule} from '@angular/material/form-field';
+import { AppCarosel } from './home/carosel/carosel.component';
 
 @NgModule({
   declarations: [
@@ -35,7 +40,8 @@ import { GameSelectorComponent } from './games/game-selector/game-selector.compo
     ProjectsComponent,
     GamesComponent,
     ProjectCardComponent,
-    GameSelectorComponent
+    GameSelectorComponent,
+    AppCarosel
   ],
   imports: [
     BrowserModule,
@@ -54,6 +60,10 @@ import { GameSelectorComponent } from './games/game-selector/game-selector.compo
     MatChipsModule,
     FlexLayoutModule,
     MatTooltipModule,
+    MatSelectModule,
+    FormsModule,
+    MatInputModule,
+    MatFormFieldModule
   ],
   providers: [],
   bootstrap: [AppComponent]

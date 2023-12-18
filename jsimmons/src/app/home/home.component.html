@@ -1,16 +1,16 @@
 <!-- Homepage for my live portfolio website. -->
 <!-- Already has my name in the toolbar, so I do not need it here. -->
 <mat-card class="mainCard">
-  <mat-card-header>
-    <mat-card-title>
-      <h1>Who am I?</h1>
+  <mat-card-header fxLayout="column wrap">
+    <mat-card-title fxFlex="1 1 auto">
+      <h1>Jonathan Simmons</h1>
     </mat-card-title>
-    <mat-card-subtitle>
-      <h3>Full-Stack Software Engineer</h3>
-      <h3>University of Mary Hardin-Baylor Graduate</h3>
-      <h3>Math, Physics, and AI enthusiast</h3>
-      <h3>Nerd and Gamer</h3>
+    <mat-card-subtitle fxFlex="2 2 auto">
+      <app-carosel [data]="attributes" [interval]="3000"></app-carosel>
     </mat-card-subtitle>
+    <ng-template #testingTheory>
+      <div>hi</div>
+    </ng-template>
   </mat-card-header>
   <mat-card-content>
     <!-- Placeholder -->

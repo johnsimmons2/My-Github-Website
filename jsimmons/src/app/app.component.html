@@ -1,12 +1,14 @@
 <div class="background">
   <mat-toolbar color="primary" style="position: sticky; top: 0; z-index: 999;">
-    <mat-toolbar-row>
-      <a mat-button routerLink="">Home</a>
-      <a mat-button routerLink="/about">About</a>
-      <a mat-button routerLink="/projects">Projects</a>
-      <a mat-button routerLink="/contact">Contact</a>
-      <div style="flex: 1 1 auto"></div>
-      <span fxHide.lt-sm="">Jonathan Simmons</span>
+    <mat-toolbar-row fxLayout="row" fxLayoutAlign="center centern">
+      <div fxHide.lt-sm fxFlex="1 1 auto"></div>
+      <a class="toolbar-button" mat-button routerLink="" fxFlex>Home</a>
+      <a class="toolbar-button"mat-button routerLink="/about" fxFlex>About</a>
+      <a class="toolbar-button" mat-button routerLink="/projects" fxFlex>Projects</a>
+      <a class="toolbar-button" mat-button routerLink="/contact" fxFlex >Contact</a>
+      <div fxHide.lt-md fxFlex="2 2 auto"></div>
+      <span fxHide.lt-md>Jonathan Simmons</span>
+      <div fxHide.lt-sm fxFlex="1 1 auto"></div>
     </mat-toolbar-row>
   </mat-toolbar>
 

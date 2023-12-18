@@ -1,0 +1,13 @@
+<mat-form-field (mouseenter)="openAttrb(attributesSelect)" [autofocus]="false">
+  <mat-select [hideSingleSelectionIndicator]="false" #attributesSelect [(value)]="currentIndex" style="z-index: 999999" [placeholder]="data[currentIndex].name">
+    <span *ngFor="let attribute of data; index as i">
+      <mat-option *ngIf="i!==currentIndex" [value]="i">{{attribute.name}}</mat-option>
+    </span>
+  </mat-select>
+</mat-form-field>
+
+<span *ngFor="let d of data; index as i" style="width:50%; display: block; left: 0; position: absolute">
+  <div *ngIf="i===currentIndex" fxLayout="row wrap" fxLayoutAlign="center center" fxLayoutGap="10px">
+    <p fxFlex *ngFor="let text of d.descriptions">{{text}}</p>
+  </div>
+</span>

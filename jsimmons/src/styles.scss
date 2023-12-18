@@ -12,13 +12,16 @@ body { margin: 0; font-family: 'Roboto', "Helvetica Neue", sans-serif; }
   background-image: linear-gradient(to bottom right, #ffffff, #eeeeee);
 }
 
-mat-card {
-  padding: 20px;
-  margin: 20px;
-}
-
 .mat-typography h3 {
   font-size: 24px;
+  line-height: 32px;
+  font-weight: 400;
+  margin: 0;
+  padding: 8px;
+}
+
+.mat-typography h1 {
+  font-size: 28px;
   line-height: 32px;
   font-weight: 400;
   margin: 0;
@@ -60,7 +63,7 @@ p {
   mat-card {
     max-width: 80%;
     margin: auto auto 10px;
-    padding: 0px;
+    padding: 32px;
   }
 
 }

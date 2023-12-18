@@ -1,5 +1,7 @@
-import { Component } from '@angular/core';
+import { Component, OnInit } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
+import { MatSelect } from '@angular/material/select';
+import { CaroselData } from './carosel/carosel.component';
 
 interface JobExperience {
   name: string;
@@ -26,7 +28,7 @@ interface Hobby {
   templateUrl: './home.component.html',
   styleUrls: ['./home.component.scss']
 })
-export class HomeComponent {
+export class HomeComponent implements OnInit {
 
   educationOpen = false;
   workOpen = false;
@@ -34,13 +36,30 @@ export class HomeComponent {
   skills: Skill[] = [];
   hobbies: Hobby[] = [];
 
+  currentAttribute: number = 0;
+  attributesOpen: boolean = false;
+  attributes: CaroselData[] = [
+    {
+      name: "Software Engineer",
+      descriptions: ["Full Stack", "Front End", "Back End", "DevOps", "Cloud", "Mobile", "Desktop", "Embedded"]
+    },
+    {
+      name: "Dungeon Master",
+      descriptions: ["Check out 'Projects' for more..."]
+    }
+  ];
+
   constructor(private httpClient: HttpClient) {}
+
+  ngOnInit(): void {
+    this.getJobExperience();
+  }
 
   get summary(): string {
     return this.educationOpen ? "Bachelor of Science in Computer Science with a minor in Mathematics, Summa Cum Laude, 4.0" : "BS CS, Minor in Math";
   }
 
-  ngOnInit() {
+  private getJobExperience(): void {
     this.httpClient.get('../assets/skills.json').subscribe((data: any) => {
       data.jobs.forEach((job: any) => {
         const experience = {

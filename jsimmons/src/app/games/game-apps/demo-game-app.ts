@@ -23,7 +23,7 @@ export class DemoGame extends GameApp {
     return this.camera;
   }
 
-  override update(deltaTime?: number | undefined): void {
+  override update(deltaTime: number): void {
     for (const entity of this.entities) {
       entity.rotation.x += 0.01;
       entity.rotation.y += 0.01;

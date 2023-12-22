@@ -1,14 +1,14 @@
 <div class="background">
-  <mat-toolbar color="primary" style="position: sticky; top: 0; z-index: 999;">
-    <mat-toolbar-row fxLayout="row" fxLayoutAlign="center centern">
-      <div fxHide.lt-sm fxFlex="1 1 auto"></div>
-      <a class="toolbar-button" mat-button routerLink="" fxFlex>Home</a>
-      <a class="toolbar-button"mat-button routerLink="/about" fxFlex>About</a>
-      <a class="toolbar-button" mat-button routerLink="/projects" fxFlex>Projects</a>
-      <a class="toolbar-button" mat-button routerLink="/contact" fxFlex >Contact</a>
-      <div fxHide.lt-md fxFlex="2 2 auto"></div>
-      <span fxHide.lt-md>Jonathan Simmons</span>
-      <div fxHide.lt-sm fxFlex="1 1 auto"></div>
+  <mat-toolbar style="position: sticky; top: 0; z-index: 999;">
+    <mat-toolbar-row fxLayout="row" fxLayoutAlign="center center">
+      <div fxHide.lt-sm fxFlex="1 0 auto"></div>
+      <a fxHide.lt-md class="toolbar-button" mat-button disabled fxFlex="1 0 auto" [@fade]="sectionTitle">{{sectionTitle}}</a>
+      <div fxHide.lt-md fxFlex="2 0 auto"></div>
+      <a class="toolbar-button" mat-button routerLink="" fxFlex="1 0 auto">Home</a>
+      <a class="toolbar-button"mat-button routerLink="/about" fxFlex="1 0 auto">About</a>
+      <a class="toolbar-button" mat-button routerLink="/projects" fxFlex="1 0 auto">Projects</a>
+      <a class="toolbar-button" color="primary" mat-raised-button routerLink="/contact" fxFlex="1 0 auto" >Contact</a>
+      <div fxHide.lt-sm fxFlex="1 0 auto"></div>
     </mat-toolbar-row>
   </mat-toolbar>
 

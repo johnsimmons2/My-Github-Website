@@ -16,6 +16,7 @@ interface Skill {
   name: string;
   description: string;
   img: string;
+  rating?: number;
 }
 
 interface Hobby {
@@ -83,7 +84,8 @@ export class HomeComponent implements OnInit {
         const skillx = {
           name: skill.name,
           description: skill.description,
-          img: '/assets/' + skill.name.toString().toLowerCase() + '.png'
+          img: '/assets/' + skill.name.toString().toLowerCase() + '.png',
+          rating: skill.rating
         };
         this.skills.push(skillx);
       });
@@ -94,6 +96,18 @@ export class HomeComponent implements OnInit {
         };
         this.hobbies.push(hobbyx);
       });
+
+      this.skills = this.skills.sort((a, b) => {
+        if (a.rating && b.rating) {
+          if (a.rating > b.rating) {
+            return -1;
+          } else {
+            return 1;
+          }
+        } else {
+          return 0;
+        }
+      })
     });
   }
 

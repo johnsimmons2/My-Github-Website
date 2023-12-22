@@ -1,42 +1,52 @@
 {
   "skills": [
     {
+      "rating": 70,
       "name": "Vuejs",
       "description": "My first foray into web-development was using Vue.js to create a developer portal for aWhere Inc. I have been using Vue.js since 2019 professionally."
     },
     {
+      "rating": 75,
       "name": "React",
       "description": "I have used React.js while developing global weather data visualization tools for aWhere Inc. to show live and historic weather data overlayed with other data sets on top of topographical maps."
     },
     {
+      "rating": 85,
       "name": "Angular",
       "description": "I have been using Angular professionally since 2020, and have used it to develop and maintain a large scale enterprise applications for PDI Technologies, as well as this website and other such projects."
     },
     {
+      "rating": 60,
       "name": "Ruby",
       "description": "Ruby is my favorite scripting language. I worked with it to automate tasks during my internship at CGI and the Fikes Companies. It is not my primary scripting language currently, but I have the most fun with it."
     },
     {
+      "rating": 80,
       "name": "SQL",
       "description": "I have worked with Microsoft SQL Server, Postgres SQL databases, and MySQL all professionally and academically, since 2016."
     },
     {
+      "rating": 95,
       "name": "JavaScript",
       "description": "As a full-stack engineer, I have developed and maintained many systems in javascript professionally, I have also re-made an entire API Developer portal site through Vue.js, JavaScript, and ASP.NET."
     },
     {
+      "rating": 90,
       "name": "Java",
       "description": "Java is the first programming language I learned and taught myself, as such I have been using it to many capacities including professionally since 2010. I enjoy messing around with Minecraft modding, and at one point made a graphics engine using OpenGL."
     },
     {
+      "rating": 95,
       "name": "DotNet",
       "description": "I have been using ASP.NET as well as many affiliated libraries for full-stack Web / REST API development as a Software Engineer since 2019."
     },
     {
+      "rating": 90,
       "name": "Python",
       "description": "Python was a primary language of use during my undergraduate study at UMHB. Similarly, on a research trip to Brno, Czech Republic, our research group used Python. I personally use Python to create simulations and data analysis."
     },
     {
+      "rating": 70,
       "name": "C++",
       "description": "C++ was the language I used to learn data structures and algorithms during my undergraduate study. I have used this for several projects during those years in undergraduate study."
     }

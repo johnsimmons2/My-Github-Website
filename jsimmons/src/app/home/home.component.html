@@ -1,29 +1,22 @@
 <!-- Homepage for my live portfolio website. -->
 <!-- Already has my name in the toolbar, so I do not need it here. -->
-<mat-card class="mainCard">
-  <mat-card-header fxLayout="column wrap">
-    <mat-card-title fxFlex="1 1 auto">
-      <h1>Jonathan Simmons</h1>
-    </mat-card-title>
-    <mat-card-subtitle fxFlex="2 2 auto">
-      <app-carosel [data]="attributes" [interval]="3000"></app-carosel>
-    </mat-card-subtitle>
-    <ng-template #testingTheory>
-      <div>hi</div>
-    </ng-template>
-  </mat-card-header>
-  <mat-card-content>
-    <!-- Placeholder -->
-    <p>I am a full-stack software engineer with a passion for math, physics, and AI. I am a graduate of the University of Mary Hardin-Baylor with a Bachelor of Science in Computer Science.
-      My favorite programming languages are Python, JavaScript, and C++. I am also familiar with Java, C#, and PHP. I have experience with the following frameworks: Angular, React, Node.js, Express, Flask, and Django.
-      My favorite math topics are linear algebra, calculus, and differential equations. I am also interested in topology, abstract algebra, and number theory.</p>
-      <p>My favorite physics topics are classical mechanics, quantum mechanics, and electromagnetism. I am also interested in thermodynamics, statistical mechanics, and general relativity.
-        My favorite AI topics are machine learning, deep learning, and reinforcement learning. I am also interested in natural language processing, computer vision, and robotics.
-        <p>My favorite hobbies are playing video games, watching movies, and reading books.</p>
-  </mat-card-content>
-</mat-card>
 
-<mat-card>
+<div class="faux-card">
+  <div fxLayout="center center">
+    <app-carosel [label]="'Jonathan Simmons'" [data]="attributes" [interval]="8000"></app-carosel>
+  </div>
+    <!-- Placeholder -->
+  <p>I am a full-stack software engineer with a passion for math, physics, and AI. I am a graduate of the University of Mary Hardin-Baylor with a Bachelor of Science in Computer Science.
+    My favorite programming languages are Python, JavaScript, and C++. I am also familiar with Java, C#, and PHP. I have experience with the following frameworks: Angular, React, Node.js, Express, Flask, and Django.
+    My favorite math topics are linear algebra, calculus, and differential equations. I am also interested in topology, abstract algebra, and number theory.</p>
+  <p>My favorite physics topics are classical mechanics, quantum mechanics, and electromagnetism. I am also interested in thermodynamics, statistical mechanics, and general relativity.
+      My favorite AI topics are machine learning, deep learning, and reinforcement learning. I am also interested in natural language processing, computer vision, and robotics.
+  <p>My favorite hobbies are playing video games, watching movies, and reading books.</p>
+</div>
+
+<br/>
+
+<mat-card appearance="outlined">
   <mat-card-header>
     <mat-card-title>
       <h1>What do I do?</h1>
@@ -82,7 +75,7 @@
     </h3>
     <mat-accordion>
       <mat-expansion-panel *ngFor="let job of jobExperience" hideToggle (opened)="workOpen = true" (closed)="workOpen = false">
-        <mat-expansion-panel-header [collapsedHeight]="'60px'" fxLayout="row wrap" fxLayoutAlign="space-around">
+        <mat-expansion-panel-header fxLayout="row wrap" fxLayoutAlign="space-around">
           <mat-panel-title fxFlex="1 1 40" >
             <p>
               {{job.name}}
@@ -111,35 +104,39 @@
   </mat-card-content>
 </mat-card>
 
-<mat-card>
-  <mat-card-header>
-    <mat-card-title>
-      <h1>Skillset and Technologies</h1>
-    </mat-card-title>
-    <mat-card-subtitle>
-      <h2>Programming:</h2>
-    </mat-card-subtitle>
-  </mat-card-header>
-  <mat-card-content>
-    <mat-accordion>
-      <mat-expansion-panel *ngFor="let skill of skills" class="skill-card">
-        <mat-expansion-panel-header>
-          <mat-panel-title>
-            <span mat-card-avatar [ngStyle]="{'background-image': 'url('+ skill.img + ')', 'background-size': 'cover', 'margin': 0 }"></span>
-            <h1>
-              {{skill.name}}
-            </h1>
-          </mat-panel-title>
-        </mat-expansion-panel-header>
-        <div>
-          {{skill.description}}
-        </div>
-      </mat-expansion-panel>
-    </mat-accordion>
-  </mat-card-content>
-</mat-card>
+<br/>
 
-<mat-card>
+<div class="faux-card">
+  <h1>Skillset and Technologies</h1>
+  <h2>Programming:</h2>
+  <mat-accordion style="padding: 80px;">
+    <mat-expansion-panel *ngFor="let skill of skills; let i = index;" class="skill-card">
+      <mat-expansion-panel-header>
+        <mat-panel-title>
+          <span mat-card-avatar [ngStyle]="{'background-image': 'url('+ skill.img + ')', 'background-size': 'cover', 'margin': 0 }"></span>
+          <h2 style="font-size: 2em; margin-left: 20px;" >
+           {{skill.name}}
+          </h2>
+          <div [matBadge]="i+1" matBadgePosition="before" matBadgeColor="accent" matBadgeOverlap="true" style="margin-left: 10px;">
+          </div>
+        </mat-panel-title>
+      </mat-expansion-panel-header>
+      <h2>Description</h2>
+      <p style="font-size: 1.5em">
+        {{skill.description}}
+      </p>
+      <h2>Self Reported Rating</h2>
+      <div fxLayout="row" fxLayoutAlign="center center" fxLayoutGap="20px">
+        <mat-progress-bar fxFlex mode="determinate" [value]="skill.rating"></mat-progress-bar>
+        <h2 fxFlex>{{skill.rating}}/100</h2>
+      </div>
+    </mat-expansion-panel>
+  </mat-accordion>
+</div>
+
+<br/>
+
+<mat-card appearance="outlined">
   <mat-card-header>
     <mat-card-title>
       <h1>What are my interests and motivators?</h1>

@@ -17,6 +17,7 @@ export class AppCarosel implements OnInit {
 
   @Input() data!: CaroselData[];
   @Input() interval: number = 5000;
+  @Input() label: string = '';
 
   @Input() template: NgTemplateOutlet | undefined;
 

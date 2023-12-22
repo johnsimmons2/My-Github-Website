@@ -11,11 +11,17 @@ mat-form-field {
   display: none;
 }
 
-::ng-deep mat-form-field::placeholder{
+::ng-deep mat-select::placeholder{
   font-size: 205px;
 }
 
 // TODO: Need to fix this, currently I cant control the font size of the placeholder.
 ::ng-deep mat-form-field .mat-form-field-label{
   font-size: 2.8em !important;
+}
+
+:host::ng-deep {
+  .carosel-select .mat-select-placeholder {
+    color: red !important;
+  }
 }

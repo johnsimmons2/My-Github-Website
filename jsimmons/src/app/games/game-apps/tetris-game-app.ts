@@ -101,12 +101,13 @@ export class TetrisGame extends GameApp {
       const y = -box.position.y;
 
       box.position.x = (y);
-      box.position.y = (x-this.currentY);
+      box.position.y = x;
 
       newTetramino.push(box);
     }
     return newTetramino;
   }
+
   private createWalls(): void {
     const wall = this.createRectangleAt(-1, 9.5, 1, 20);
     const wall2 = this.createRectangleAt(10, 9.5, 1, 20);

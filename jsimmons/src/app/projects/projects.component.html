@@ -1,5 +1,5 @@
 <div>
-  <mat-card>
+  <mat-card style="margin-top: 50px;">
     <mat-card-header>
       <mat-card-title>
         <h1>Gismos</h1>
@@ -28,20 +28,7 @@
     </mat-card-content>
   </mat-card>
 
-  <mat-card>
-    <mat-card-header>
-      <mat-card-title>
-        <h1>Github Projects</h1>
-      </mat-card-title>
-      <mat-card-subtitle>
-        <h2>What kind of things have I made for you to see or fiddle with?</h2>
-      </mat-card-subtitle>
-    </mat-card-header>
-    <mat-card-content>
-      <app-project-card *ngFor="let card of sortByNotEmpty(projects)" [name]="card.name" [description]="card.description" [forkUrl]="card.forkUrl" [languagesUrl]="card.languages" [url]="card.url">
-      </app-project-card>
-    </mat-card-content>
-  </mat-card>
+  <br/>
 
   <mat-card>
     <mat-card-header>
@@ -54,28 +41,45 @@
         My current main projects that I am working on are <b>CytherNet, Mynt</b>, and a <b>particle simulation</b>/data visualization tool.
       </p>
       <p>
-        You can see the list of my github projects to the left, these projects mentioned below can also be found there.
+        You can see a list of my github projects below, but here are the ones I am working on the most right now.
         <mat-list>
-          <div mat-subheader>Projects</div>
-          <mat-list-item lines="3">
-            <mat-icon matListItemIcon>folder</mat-icon>
-            <div matListItemTitle><b>CytherNet</b></div>
-            <span>A VTT and character (CRUD) manager for a DnD campaign I run. Custom JWT authentication and authorization.</span>
-          </mat-list-item>
-          <mat-list-item lines="3">
-            <mat-icon matListItemIcon>folder</mat-icon>
-            <div matListItemTitle><b>Mynt</b></div>
-            <span>Parser/Lexer/Compiler for a scripting language to make minecraft datapacks.</span>
-          </mat-list-item>
-          <mat-list-item lines="3">
-            <mat-icon matListItemIcon>folder</mat-icon>
-            <div matListItemTitle><b>MathViz</b></div>
-            <span>Particle simulations, data visualization; number theory assistant tool.</span>
-          </mat-list-item>
+          <div mat-subheader>Current Projects</div>
+          <a mat-button style="height:100%;" href="https://github.com/johnsimmons2/CytherNet" target="_blank">
+            <mat-list-item lines="3">
+              <mat-icon matListItemIcon>folder</mat-icon>
+              <div matListItemTitle><b>CytherNet</b></div>
+              <span>A VTT and character (CRUD) manager for a DnD campaign I run. Custom JWT authentication and authorization.</span>
+            </mat-list-item>
+          </a>
+          <a mat-button style="height:100%;" href="https://github.com/johnsimmons2/CytherNet" target="_blank">
+            <mat-list-item lines="3">
+              <mat-icon matListItemIcon>folder</mat-icon>
+              <div matListItemTitle><b>Mynt</b></div>
+              <span>Parser/Lexer/Compiler for a scripting language to make minecraft datapacks.</span>
+            </mat-list-item>
+          </a>
+          <a mat-button style="height:100%;" href="https://github.com/johnsimmons2/CytherNet" target="_blank">
+            <mat-list-item lines="3">
+              <mat-icon matListItemIcon>folder</mat-icon>
+              <div matListItemTitle><b>MathViz</b></div>
+              <span>Particle simulations, data visualization; number theory assistant tool.</span>
+            </mat-list-item>
+          </a>
         </mat-list>
       </p>
     </mat-card-content>
   </mat-card>
+
+  <br/>
+
+  <div class="faux-card">
+    <h1>Github Projects</h1>
+    <h2>Check out my projects on github with their source code.</h2>
+    <div fxLayout="column warp" fxLayoutAlign="space-evenly start" >
+      <app-project-card fxFlex fxFill *ngFor="let card of sortByNotEmpty(projects)" [name]="card.name" [description]="card.description" [forkUrl]="card.forkUrl" [languagesUrl]="card.languages" [url]="card.url">
+      </app-project-card>
+    </div>
+  </div>
 </div>
 
 

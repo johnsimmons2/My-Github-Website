@@ -99,6 +99,7 @@
     <br/>
     <h2>
       {{getTotalExperience()}} of experience in, or related to the field.
+      <mat-icon [matTooltip]="'From ' + (firstWorkDay ? (firstWorkDay | date:'shortDate') : ' ') + ' to ' + (lastWorkDay ? (lastWorkDay | date:'shortDate') : '')">info</mat-icon>
     </h2>
     <!--The table of work experience -->
   </mat-card-content>

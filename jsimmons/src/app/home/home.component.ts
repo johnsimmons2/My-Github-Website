@@ -39,6 +39,10 @@ export class HomeComponent implements OnInit {
 
   currentAttribute: number = 0;
   attributesOpen: boolean = false;
+
+  firstWorkDay: Date = new Date();
+  lastWorkDay: Date = new Date();
+
   attributes: CaroselData[] = [
     {
       name: "Software Engineer",
@@ -131,16 +135,31 @@ export class HomeComponent implements OnInit {
 
   getTotalExperience(): string {
     let days = 0;
+    let start = new Date('4000-01-01');
+    let end = new Date();
     this.jobExperience.forEach((job: JobExperience) => {
       const date1 = new Date(job.start);
       const date2 = new Date(job.end);
-      const diffTime = Math.abs(date2.getTime() - date1.getTime());
-      const diffTimeInDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-      days += diffTimeInDays;
+
+      if (date1 < start) {
+        start = date1;
+      }
+
+      if (date2 > end) {
+        end = date2;
+      }
+
     });
+    const diffTime = Math.abs(start.getTime() - end.getTime());
+    const diffTimeInDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    days += diffTimeInDays;
 
     const diffTimeInYears = days / 365;
-    return diffTimeInYears.toFixed(2) + ' years';
+
+    this.lastWorkDay = end;
+    this.firstWorkDay = start;
+
+    return diffTimeInYears.toFixed(1) + ' years';
   }
 
 }

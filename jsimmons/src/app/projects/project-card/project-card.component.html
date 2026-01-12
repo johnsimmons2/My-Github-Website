@@ -1,16 +1,23 @@
-<mat-card>
-  <mat-card-header fxLayout="row" fxLayout.xs="column" fxLayoutWrap fxLayoutGap="0.5%" fxLayoutAlign="center">
-    <h1 fxFlex="60%" class="project-name">{{name}}</h1>
-    <mat-chip-list aria-label="Languages" fxFlex="40%" >
-      <mat-chip *ngFor="let language of orderByCount(languages); let first = first" color="primary" [highlighted]="first">{{language.language}}</mat-chip>
-    </mat-chip-list>
+<mat-card class="project-card">
+  <mat-card-header>
+    <div class="project-card__title">
+      <p class="eyebrow">Open source</p>
+      <h3>{{ name }}</h3>
+    </div>
+    <mat-chip-set *ngIf="languages.length" aria-label="Languages" class="language-chips">
+      <mat-chip *ngFor="let language of orderByCount(languages); let first = first" color="primary" [highlighted]="first">
+        {{ language.language }}
+      </mat-chip>
+    </mat-chip-set>
   </mat-card-header>
   <mat-card-content>
-    {{description}}
-    <hr>
-    <button mat-stroked-button color="primary" (click)="navigate()">
-      <a>View</a>
-      <mat-icon>arrow_right</mat-icon>
-    </button>
+    <p class="muted" *ngIf="!description">No description provided yet.</p>
+    <p *ngIf="description">{{ description }}</p>
+    <div class="card-actions">
+      <button mat-stroked-button color="primary" (click)="navigate()">
+        View repository
+        <mat-icon>arrow_right</mat-icon>
+      </button>
+    </div>
   </mat-card-content>
 </mat-card>

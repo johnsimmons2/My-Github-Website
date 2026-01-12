@@ -1,46 +1,42 @@
-<mat-card>
-  <mat-card-header>
-    <mat-card-title>
-      <h1>About me</h1>
-    </mat-card-title>
-    <mat-card-subtitle>
-      <h2>What courses have I taken, More Info etc.</h2>
-    </mat-card-subtitle>
-  </mat-card-header>
-  <mat-card-content>
-    <h3>
-      This part of the site is still under construction, please check back later for more information. For now, to see information relating to my skillsets please check out my <a href="https://www.linkedin.com/in/jdsimmons1/" target="_blank">LinkedIn profile</a>.
-    </h3>
-    <h2>
-      Courses
-    </h2>
-    <p>
-      Through my period of time at UMHB I have taken the following classes:
+<section class="container page">
+  <div class="section__header">
+    <h1>About me</h1>
+    <p class="muted">
+      A technologist grounded in math, physics, and human-centered design. I care about clean architecture, expressive visuals, and
+      reliable delivery.
     </p>
-    <mat-list>
-      <mat-list-item>
-        <div matListItemTitle>Math & Physics</div>
-        <div matListItemLine>Ordinary Differential Equations</div>
-        <div matListItemLine>Partial Differential Equations</div>
-        <div matListItemLine>Foundations of Higher Mathematics*</div>
-        <div matListItemLine>Physics With Calculus I & II</div>
-        <div matListItemLine>Calculus I - III</div>
-        <div matListItemLine>Linear Algebra</div>
-        <span matListItemMeta>*Foundational class for proofs and mathematical notations</span>
-      </mat-list-item>
-      <br/>
-      <mat-list-item>
-        <div matListItemTitle>Various Programming Classes</div>
-        <div matListItemLine>Object Oriented Programming</div>
-        <div matListItemLine>Computer Security</div>
-        <div matListItemLine>Operating Systems</div>
-        <div matListItemLine>Big Data & Data Analysis</div>
-        <div matListItemLine>Networking</div>
-        <div matListItemLine>Algorithms*</div>
-        <div matListItemLine>Software Engineering*</div>
-        <div matListItemLine>Computer Science Thoery*</div>
-        <span matListItemMeta>*Taken at a graduate level</span>
-      </mat-list-item>
-    </mat-list>
-  </mat-card-content>
-</mat-card>
+  </div>
+
+  <mat-card>
+    <mat-card-content class="about-grid">
+      <div>
+        <h3>Professional snapshot</h3>
+        <p>
+          I’m a full-stack engineer who loves pairing Angular and .NET with thoughtful UX patterns. My work has ranged from shipping
+          production dashboards and CI/CD automation to visualizing complex datasets for decision makers.
+        </p>
+        <p>
+          Outside of work, you’ll find me exploring new ML ideas, prototyping game mechanics, or diving into math and physics
+          textbooks to stay sharp.
+        </p>
+        <a href="https://www.linkedin.com/in/jdsimmons1/" target="_blank">LinkedIn profile</a>
+      </div>
+      <div>
+        <h3>Coursework that shaped me</h3>
+        <div class="pill-row">
+          <span class="pill">Differential Equations</span>
+          <span class="pill">Linear Algebra</span>
+          <span class="pill">Physics with Calculus I &amp; II</span>
+          <span class="pill">Algorithms (graduate level)</span>
+          <span class="pill">Software Engineering (graduate level)</span>
+          <span class="pill">Operating Systems</span>
+          <span class="pill">Computer Security</span>
+          <span class="pill">Big Data &amp; Data Analysis</span>
+          <span class="pill">Networking</span>
+          <span class="pill">Computer Science Theory</span>
+        </div>
+        <p class="muted">BS Computer Science, Minor in Mathematics — Summa Cum Laude, Provost’s Medal recipient.</p>
+      </div>
+    </mat-card-content>
+  </mat-card>
+</section>

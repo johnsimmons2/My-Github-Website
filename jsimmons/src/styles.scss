@@ -1,69 +1,95 @@
-/* You can add global styles to this file, and also import other style files */
+@use '@angular/material' as mat;
+@use './themes.scss' as theme;
 
+@include mat.core();
+@include theme.app-theme();
 
-@import './themes.scss';
-@include mat-core();
-@include angular-material-theme($app-theme);
-
-html, body { height: 100%; }
-body { margin: 0; font-family: 'Roboto', "Helvetica Neue", sans-serif; }
-
-.background {
-  background-image: linear-gradient(to bottom right, #ffffff, #eeeeee);
+:root {
+  --panel: rgba(16, 24, 40, 0.65);
+  --border: rgba(226, 232, 240, 0.1);
+  --muted: #94a3b8;
 }
 
-.mat-typography h3 {
-  font-size: 24px;
-  line-height: 32px;
-  font-weight: 400;
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  height: 100%;
+}
+
+body {
   margin: 0;
-  padding: 8px;
+  font-family: 'Inter', 'Roboto', 'Helvetica Neue', sans-serif;
+  color: #e2e8f0;
+  background: #0b1021;
 }
 
-.mat-typography h1 {
-  font-size: 28px;
-  line-height: 32px;
-  font-weight: 400;
-  margin: 0;
-  padding: 8px;
+a {
+  color: inherit;
 }
 
-hr {
-  border-width: 0;
+.container {
+  max-width: 1180px;
+  margin: 0 auto;
+  padding: 0 20px;
+}
+
+mat-card {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.35);
+  color: #e2e8f0;
 }
 
 p {
-  font-size: 16px;
-  line-height: 24px;
-  word-wrap: break-word;
-  overflow-wrap: break-word;
-  hyphens: auto;
-  color: gray;
-
-  @media screen and (min-width: 600px) {
-    font-size: 18px;
-    line-height: 30px;
-  }
+  margin: 0;
+  line-height: 1.6;
 }
 
-/* Small Screen */
-@media only screen and (max-width: 1000px) {
-  mat-card, .faux-card {
-    max-width: 80%;
-    padding: 0px;
-  }
-
-  mat-card-content {
-    padding: 0 5px;
-  }
+.pill {
+  display: inline-flex;
+  align-items: center;
+  padding: 6px 12px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  background: rgba(255, 255, 255, 0.04);
+  color: #cbd5e1;
+  font-weight: 600;
 }
 
-/* Medium Screen */
-@media only screen and (min-width: 1000px) {
-  mat-card, .faux-card {
-    max-width: 70%;
-    margin: auto auto 10px;
-    padding: 32px;
-  }
+.eyebrow {
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  font-weight: 700;
+  color: #38bdf8;
+  margin: 0;
+  font-size: 0.9rem;
+}
 
+.muted {
+  color: var(--muted);
+  margin: 0;
+}
+
+.card-grid {
+  width: 100%;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 16px;
+}
+
+.section {
+  margin-top: 56px;
+}
+
+.section__header {
+  margin-bottom: 16px;
+}
+
+.section__header h1,
+.section__header h2 {
+  margin: 0 0 6px;
 }

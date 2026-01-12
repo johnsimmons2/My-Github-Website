@@ -1,7 +1,5 @@
 import { Component, OnInit } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
-import { MatSelect } from '@angular/material/select';
-import { CaroselData } from './carosel/carosel.component';
 
 interface JobExperience {
   name: string;
@@ -24,6 +22,12 @@ interface Hobby {
   descriptions: string[];
 }
 
+interface Highlight {
+  title: string;
+  description: string;
+  icon: string;
+}
+
 @Component({
   selector: 'app-home',
   templateUrl: './home.component.html',
@@ -31,28 +35,36 @@ interface Hobby {
 })
 export class HomeComponent implements OnInit {
 
-  educationOpen = false;
-  workOpen = false;
   jobExperience: JobExperience[] = [];
   skills: Skill[] = [];
   hobbies: Hobby[] = [];
-
-  currentAttribute: number = 0;
-  attributesOpen: boolean = false;
-
-  firstWorkDay: Date = new Date();
-  lastWorkDay: Date = new Date();
-
-  attributes: CaroselData[] = [
+  highlights: Highlight[] = [
     {
-      name: "Software Engineer",
-      descriptions: ["Full Stack", "Front End", "Back End", "DevOps", "Cloud", "Mobile", "Desktop", "Embedded"]
+      title: 'Product-minded delivery',
+      description: 'Pair user empathy with strong engineering fundamentals to ship features that balance quality, timelines, and measurable outcomes.',
+      icon: 'auto_awesome'
     },
     {
-      name: "Dungeon Master",
-      descriptions: ["Check out 'Projects' for more..."]
+      title: 'Data-rich experiences',
+      description: 'Turn complex datasets into clear, actionable visuals with Angular, Material, and modern web performance practices.',
+      icon: 'analytics'
+    },
+    {
+      title: 'Reliable platforms',
+      description: 'Design APIs, automate CI/CD, and harden production systems so teams can move faster without sacrificing stability.',
+      icon: 'security'
     }
   ];
+  heroHighlights: string[] = [
+    'Full-stack web delivery',
+    'Enterprise Angular & .NET',
+    'Data visualization & UX',
+    'Mentorship & enablement'
+  ];
+
+  totalExperience = 'Loading…';
+  firstWorkDay: Date = new Date();
+  lastWorkDay: Date = new Date();
 
   constructor(private httpClient: HttpClient) {}
 
@@ -60,58 +72,34 @@ export class HomeComponent implements OnInit {
     this.getJobExperience();
   }
 
-  get summary(): string {
-    return this.educationOpen ? "Bachelor of Science in Computer Science with a minor in Mathematics, Summa Cum Laude, 4.0" : "BS CS, Minor in Math";
-  }
-
   private getJobExperience(): void {
     this.httpClient.get('../assets/skills.json').subscribe((data: any) => {
-      data.jobs.forEach((job: any) => {
-        const experience = {
+      this.jobExperience = data.jobs
+        .map((job: any) => ({
           name: job.name,
           positions: job.positions,
           descriptions: job.descriptions,
           start: job.start,
           end: job.end,
           index: job.order
-        }
-        this.jobExperience.push(experience);
-      });
-      this.jobExperience.sort((a: JobExperience, b: JobExperience) => {
-        if (a.index < b.index) {
-          return -1;
-        } else {
-          return 1;
-        }
-      });
-      data.skills.forEach((skill: any) => {
-        const skillx = {
+        }))
+        .sort((a: JobExperience, b: JobExperience) => a.index - b.index);
+
+      this.skills = data.skills
+        .map((skill: any) => ({
           name: skill.name,
           description: skill.description,
           img: '/assets/' + skill.name.toString().toLowerCase() + '.png',
           rating: skill.rating
-        };
-        this.skills.push(skillx);
-      });
-      data.hobbies.forEach((hobby: any) => {
-        const hobbyx = {
-          name: hobby.name,
-          descriptions: hobby.descriptions
-        };
-        this.hobbies.push(hobbyx);
-      });
+        }))
+        .sort((a: Skill, b: Skill) => (b.rating || 0) - (a.rating || 0));
 
-      this.skills = this.skills.sort((a, b) => {
-        if (a.rating && b.rating) {
-          if (a.rating > b.rating) {
-            return -1;
-          } else {
-            return 1;
-          }
-        } else {
-          return 0;
-        }
-      })
+      this.hobbies = data.hobbies.map((hobby: any) => ({
+        name: hobby.name,
+        descriptions: hobby.descriptions
+      }));
+
+      this.updateExperienceTotals();
     });
   }
 
@@ -133,8 +121,12 @@ export class HomeComponent implements OnInit {
     return '1 billion years!!!';
   }
 
-  getTotalExperience(): string {
-    let days = 0;
+  private updateExperienceTotals(): void {
+    if (!this.jobExperience.length) {
+      this.totalExperience = '—';
+      return;
+    }
+
     let start = new Date('4000-01-01');
     let end = new Date();
     this.jobExperience.forEach((job: JobExperience) => {
@@ -152,14 +144,12 @@ export class HomeComponent implements OnInit {
     });
     const diffTime = Math.abs(start.getTime() - end.getTime());
     const diffTimeInDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-    days += diffTimeInDays;
-
-    const diffTimeInYears = days / 365;
+    const diffTimeInYears = diffTimeInDays / 365;
 
     this.lastWorkDay = end;
     this.firstWorkDay = start;
 
-    return diffTimeInYears.toFixed(1) + ' years';
+    this.totalExperience = diffTimeInYears.toFixed(1) + ' years';
   }
 
 }

@@ -1,85 +1,45 @@
-<div>
-  <mat-card style="margin-top: 50px;">
-    <mat-card-header>
-      <mat-card-title>
-        <h1>Gismos</h1>
-      </mat-card-title>
-      <mat-card-subtitle>
-        <h2>Check out some projects live</h2>
-      </mat-card-subtitle>
-    </mat-card-header>
-    <mat-card-content fxLayout="row" fxLayoutGap="12px">
-      <button matTooltip="three.js applications" mat-stroked-button color="primary" (click)="router.navigate(['/games'])">
-        <a>Games</a>
-        <mat-icon>arrow_right</mat-icon>
-      </button>
-      <div matTooltip="Under construction (VTTRPG manager)">
-        <button mat-stroked-button disabled color="primary">
-          <a>CytherNet</a>
-          <mat-icon>arrow_right</mat-icon>
-        </button>
-      </div>
-      <div matTooltip="Under construction, check back soon!">
-        <button mat-stroked-button disabled color="primary">
-          <a>Mynt Interpreter</a>
-          <mat-icon>arrow_right</mat-icon>
-        </button>
-      </div>
-    </mat-card-content>
-  </mat-card>
-
-  <br/>
-
-  <mat-card>
-    <mat-card-header>
-      <mat-card-title>
-        <h1>Current Projects</h1>
-      </mat-card-title>
-    </mat-card-header>
-    <mat-card-content>
-      <p>
-        My current main projects that I am working on are <b>CytherNet, Mynt</b>, and a <b>particle simulation</b>/data visualization tool.
-      </p>
-      <p>
-        You can see a list of my github projects below, but here are the ones I am working on the most right now.
-        <mat-list>
-          <div mat-subheader>Current Projects</div>
-          <a mat-button style="height:100%;" href="https://github.com/johnsimmons2/CytherNet" target="_blank">
-            <mat-list-item lines="3">
-              <mat-icon matListItemIcon>folder</mat-icon>
-              <div matListItemTitle><b>CytherNet</b></div>
-              <span>A VTT and character (CRUD) manager for a DnD campaign I run. Custom JWT authentication and authorization.</span>
-            </mat-list-item>
-          </a>
-          <a mat-button style="height:100%;" href="https://github.com/johnsimmons2/CytherNet" target="_blank">
-            <mat-list-item lines="3">
-              <mat-icon matListItemIcon>folder</mat-icon>
-              <div matListItemTitle><b>Mynt</b></div>
-              <span>Parser/Lexer/Compiler for a scripting language to make minecraft datapacks.</span>
-            </mat-list-item>
-          </a>
-          <a mat-button style="height:100%;" href="https://github.com/johnsimmons2/CytherNet" target="_blank">
-            <mat-list-item lines="3">
-              <mat-icon matListItemIcon>folder</mat-icon>
-              <div matListItemTitle><b>MathViz</b></div>
-              <span>Particle simulations, data visualization; number theory assistant tool.</span>
-            </mat-list-item>
-          </a>
-        </mat-list>
-      </p>
-    </mat-card-content>
-  </mat-card>
-
-  <br/>
-
-  <div class="faux-card">
-    <h1>Github Projects</h1>
-    <h2>Check out my projects on github with their source code.</h2>
-    <div fxLayout="column warp" fxLayoutAlign="space-evenly start" >
-      <app-project-card fxFlex fxFill *ngFor="let card of sortByNotEmpty(projects)" [name]="card.name" [description]="card.description" [forkUrl]="card.forkUrl" [languagesUrl]="card.languages" [url]="card.url">
-      </app-project-card>
-    </div>
+<section class="container page">
+  <div class="section__header">
+    <h1>Projects</h1>
+    <p class="muted">
+      From experiments in graphics to production-ready platforms. Everything below links to live code on GitHub.
+    </p>
   </div>
-</div>
 
+  <mat-card class="cta-card">
+    <mat-card-content class="cta-grid">
+      <div>
+        <h3>Featured builds</h3>
+        <p class="muted">CytherNet, Mynt, and MathViz are active labs where I explore UX, data pipelines, and compiler design.</p>
+        <div class="pill-row">
+          <span class="pill">Angular</span>
+          <span class="pill">Three.js</span>
+          <span class="pill">.NET APIs</span>
+          <span class="pill">Postgres</span>
+        </div>
+      </div>
+      <div class="cta-actions">
+        <button mat-flat-button color="primary" (click)="router.navigate(['/games'])">
+          Interactive demos <mat-icon>arrow_forward</mat-icon>
+        </button>
+        <a mat-stroked-button color="accent" href="https://github.com/johnsimmons2" target="_blank" rel="noreferrer">
+          View GitHub profile
+        </a>
+      </div>
+    </mat-card-content>
+  </mat-card>
+
+  <div class="card-grid">
+    <app-project-card
+      *ngFor="let card of sortByNotEmpty(projects)"
+      [name]="card.name"
+      [description]="card.description"
+      [forkUrl]="card.forkUrl"
+      [languagesUrl]="card.languages"
+      [url]="card.url">
+    </app-project-card>
+  </div>
+
+  <p class="muted status" *ngIf="loading">Loading latest GitHub repositories…</p>
+</section>
 

@@ -1,0 +1,26 @@
+.page {
+  display: grid;
+  gap: 16px;
+}
+
+.contact-card {
+  padding: 8px 12px;
+}
+
+.contact-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 12px 20px;
+}
+
+.contact-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 10px 0;
+  color: #e2e8f0;
+}
+
+.contact-row mat-icon {
+  color: #38bdf8;
+}

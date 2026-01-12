@@ -1,31 +1,35 @@
-<mat-card>
-  <mat-card-header>
-    <mat-card-title>
-      <h1>Contact</h1>
-    </mat-card-title>
-    <mat-card-subtitle>
-      <h2>How to get in Contact with me</h2>
-    </mat-card-subtitle>
-  </mat-card-header>
-  <mat-card-content>
-    <p>
-      I would love to get in touch if you have any questions or comments about my work, or if anything else is on your mind!
-    </p>
-    <mat-list>
-      <mat-list-item>
-        <div matListItemTitle>Socials</div>
-        <a href="https://github.com/johnsimmons2/" target="_blank" matListItemLine>github/johnsimmons2</a>
-        <a href="https://www.linkedin.com/in/jdsimmons1/" target="_blank" matListItemLine>linkedin/jdsimmons1</a>
-      </mat-list-item>
-      <mat-list-item>
-        <div matListItemTitle>Email</div>
-        <div matListItemLine>jsim247@gmail.com</div>
-      </mat-list-item>
-      <mat-list-item>
-        <div matListItemTitle>Phone</div>
-        <div matListItemLine>(903)-258-5884*</div>
-        <span matListItemMeta>*Please text, email, or leave a message first!</span>
-      </mat-list-item>
-    </mat-list>
-  </mat-card-content>
-</mat-card>
+<section class="container page">
+  <div class="section__header">
+    <h1>Let’s build something great</h1>
+    <p class="muted">Reach out for collaborations, contracting, or just to talk shop about product and engineering.</p>
+  </div>
+
+  <mat-card class="contact-card">
+    <mat-card-content>
+      <div class="contact-grid">
+        <div>
+          <h3>Preferred</h3>
+          <div class="contact-row">
+            <mat-icon>email</mat-icon>
+            <a href="mailto:jsim247@gmail.com">jsim247@gmail.com</a>
+          </div>
+          <div class="contact-row">
+            <mat-icon>phone_iphone</mat-icon>
+            <span>(903)-258-5884 <small class="muted">— text or leave a message first</small></span>
+          </div>
+        </div>
+        <div>
+          <h3>Social</h3>
+          <div class="contact-row">
+            <mat-icon>code</mat-icon>
+            <a href="https://github.com/johnsimmons2/" target="_blank" rel="noreferrer">github.com/johnsimmons2</a>
+          </div>
+          <div class="contact-row">
+            <mat-icon>business_center</mat-icon>
+            <a href="https://www.linkedin.com/in/jdsimmons1/" target="_blank" rel="noreferrer">linkedin.com/in/jdsimmons1</a>
+          </div>
+        </div>
+      </div>
+    </mat-card-content>
+  </mat-card>
+</section>

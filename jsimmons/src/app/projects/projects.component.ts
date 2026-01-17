@@ -1,5 +1,5 @@
 import { HttpClient } from '@angular/common/http';
-import { AfterViewInit, Component, OnInit } from '@angular/core';
+import { Component, OnInit } from '@angular/core';
 import { Router } from '@angular/router';
 
 export interface Project {
@@ -15,11 +15,31 @@ export interface Project {
   templateUrl: './projects.component.html',
   styleUrls: ['./projects.component.scss']
 })
-export class ProjectsComponent implements AfterViewInit {
+export class ProjectsComponent implements OnInit {
 
   private GITHUB_ADDRESS: string = 'https://api.github.com/users/';
 
-  projects: Project[] = [];
+  loading = true;
+  projects: Project[] = [
+    {
+      url: 'https://github.com/johnsimmons2/CytherNet',
+      name: 'CytherNet',
+      description: 'Virtual tabletop and character manager with custom JWT authentication, Angular front end, and Postgres-backed API.',
+      languages: 'https://api.github.com/repos/johnsimmons2/CytherNet/languages'
+    },
+    {
+      url: 'https://github.com/johnsimmons2/Mynt',
+      name: 'Mynt',
+      description: 'Lexer, parser, and compiler for generating Minecraft datapacks with a lean scripting language.',
+      languages: 'https://api.github.com/repos/johnsimmons2/Mynt/languages'
+    },
+    {
+      url: 'https://github.com/johnsimmons2/MathViz',
+      name: 'MathViz',
+      description: 'Particle simulation and data visualization experiments for mathematical exploration.',
+      languages: 'https://api.github.com/repos/johnsimmons2/MathViz/languages'
+    }
+  ];
 
   constructor(private httpService: HttpClient, public router: Router) {
   }
@@ -30,7 +50,7 @@ export class ProjectsComponent implements AfterViewInit {
    * @returns
    */
   sortByNotEmpty(projects: Project[]) {
-    return projects.sort((a,b) => a.name.localeCompare(b.name)).sort((a, b) => {
+    return projects.sort((a, b) => a.name.localeCompare(b.name)).sort((a, b) => {
       if (!this.nullOrEmpty(a.description) && this.nullOrEmpty(b.description)) {
         return -1;
       } else if (this.nullOrEmpty(a.description) && !this.nullOrEmpty(b.description)) {
@@ -44,22 +64,27 @@ export class ProjectsComponent implements AfterViewInit {
     return str == null || str == '';
   }
 
-  ngAfterViewInit() {
-    let tmpProjects: Project[] = [];
-    this.httpService.get(this.GITHUB_ADDRESS + 'johnsimmons2/repos').subscribe((data: any) => {
-      console.log(data);
-      Array.from(data).forEach((element: any) => {
-        tmpProjects.push({
-          url: element['html_url'],
-          name: element['name'],
-          description: element['description'],
-          languages: element['languages_url'],
-          forkUrl: element['forks_url']
+  ngOnInit() {
+    this.httpService.get(this.GITHUB_ADDRESS + 'johnsimmons2/repos').subscribe({
+      next: (data: any) => {
+        const tmpProjects: Project[] = [];
+        Array.from(data).forEach((element: any) => {
+          tmpProjects.push({
+            url: element['html_url'],
+            name: element['name'],
+            description: element['description'],
+            languages: element['languages_url'],
+            forkUrl: element['forks_url']
+          });
         });
-      });
+        this.projects = this.sortByNotEmpty(tmpProjects);
+        this.loading = false;
+      },
+      error: () => {
+        this.projects = this.sortByNotEmpty(this.projects);
+        this.loading = false;
+      }
     });
-
-    this.projects = tmpProjects;
   }
 
 

@@ -1,8 +1,21 @@
-.project-name::before {
-  content: 'Project Name';
-  display: block;
-  margin-top: 10px;
-  white-space: nowrap;
-  font-size: 0.8em;
-  color: #666;
+.project-card {
+  display: grid;
+  gap: 10px;
+  padding: 14px 16px;
+}
+
+.project-card__title h3 {
+  margin: 4px 0 0;
+}
+
+.language-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.card-actions {
+  display: flex;
+  justify-content: flex-start;
+  margin-top: 8px;
 }

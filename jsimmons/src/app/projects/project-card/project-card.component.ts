@@ -33,13 +33,22 @@ export class ProjectCardComponent {
   }
 
   ngAfterViewInit() {
-    this.httpClient.get(this.languagesUrl).subscribe((data: any) => {
-      Object.keys(data).forEach((key: string) => {
-        this.languages.push({
-          language: key,
-          count: data[key]
+    if (!this.languagesUrl) {
+      return;
+    }
+
+    this.httpClient.get(this.languagesUrl).subscribe({
+      next: (data: any) => {
+        Object.keys(data).forEach((key: string) => {
+          this.languages.push({
+            language: key,
+            count: data[key]
+          });
         });
-      });
+      },
+      error: () => {
+        this.languages = [];
+      }
     });
   }
 

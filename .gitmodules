@@ -1,0 +1,3 @@
+[submodule "submodules/wordliest"]
+	path = submodules/wordliest
+	url = https://github.com/johnsimmons2/wordliest.git

@@ -7,7 +7,9 @@
     "build": "ng build",
     "deploy": "ng build && powershell -Command \"Copy-Item -Recurse -Force dist/jsimmons/* ../../johnsimmons2.github.io/ ; Copy-Item -Force dist/jsimmons/index.html ../../johnsimmons2.github.io/404.html\"",
     "watch": "ng build --watch --configuration development",
-    "test": "ng test"
+    "test": "ng test",
+    "prebuild": "node ../submodules/wordliest/build.mjs && powershell -Command \"Copy-Item -Force ../submodules/wordliest/wordliest.html src/wordliest.html ; Copy-Item -Force ../submodules/wordliest/wordliest.html src/assets/wordliest.html\"",
+    "update:wordliest": "git submodule update --remote --merge && npm run prebuild"
   },
   "private": true,
   "dependencies": {

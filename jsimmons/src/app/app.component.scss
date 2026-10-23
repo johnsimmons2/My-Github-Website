@@ -327,3 +327,23 @@
   font-size: 0.82rem;
   color: #64748b;
 }
+
+/* Full Page Game Mode (No Header, No Footer) */
+.no-chrome {
+  background: #121213 !important;
+  background-image: none !important;
+  min-height: 100vh !important;
+  height: 100vh !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  overflow: hidden !important;
+}
+
+.full-viewport {
+  width: 100vw !important;
+  height: 100vh !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  overflow: hidden !important;
+  flex: 1 1 auto;
+}

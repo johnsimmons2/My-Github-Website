@@ -1,5 +1,5 @@
-<div class="background">
-  <header class="site-header">
+<div class="background" [class.no-chrome]="isWordleMinigame">
+  <header class="site-header" *ngIf="!isWordleMinigame">
     <div class="nav-container">
       <a routerLink="/" class="brand-link" (click)="closeMobileMenu()">
         <img src="assets/profile.jpg" alt="Jonathan Simmons" class="brand-avatar" />
@@ -76,11 +76,11 @@
     </div>
   </header>
 
-  <main class="main-content">
+  <main class="main-content" [class.full-viewport]="isWordleMinigame">
     <router-outlet></router-outlet>
   </main>
 
-  <footer class="site-footer">
+  <footer class="site-footer" *ngIf="!isWordleMinigame">
     <div class="footer-container">
       <div class="footer-left">
         <div class="footer-brand">Jonathan Simmons</div>

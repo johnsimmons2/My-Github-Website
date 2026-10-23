@@ -8949,38 +8949,532 @@ Minis.register('pool', {
   },
 });
 
+/* ---- js/17b-engine3d.js ---- */
+// ============================================================ 17b-engine3d
+// GENERALIZED LIGHTWEIGHT 3D ENGINE (Engine3D / G3D)
+// Designed for retro-style 3D sections (Wordoom, 3D platformers, Mega Block Man).
+// Provides 3D vector & matrix math, perspective projection, mesh generation,
+// face lighting, backface culling, depth sorting, and 3D polygon rasterization.
+// Zero dependencies; works seamlessly with HTML5 Canvas 2D.
+
+const Engine3D = (() => {
+  // --- Vector3 Math ---
+  const Vec3 = {
+    create: (x = 0, y = 0, z = 0) => ({x, y, z}),
+    set: (v, x, y, z) => { v.x = x; v.y = y; v.z = z; return v; },
+    add: (a, b) => ({x: a.x + b.x, y: a.y + b.y, z: a.z + b.z}),
+    sub: (a, b) => ({x: a.x - b.x, y: a.y - b.y, z: a.z - b.z}),
+    scale: (v, s) => ({x: v.x * s, y: v.y * s, z: v.z * s}),
+    dot: (a, b) => a.x * b.x + a.y * b.y + a.z * b.z,
+    cross: (a, b) => ({
+      x: a.y * b.z - a.z * b.y,
+      y: a.z * b.x - a.x * b.z,
+      z: a.x * b.y - a.y * b.x
+    }),
+    lenSq: v => v.x * v.x + v.y * v.y + v.z * v.z,
+    len: v => Math.sqrt(v.x * v.x + v.y * v.y + v.z * v.z),
+    norm: v => {
+      const l = Math.sqrt(v.x * v.x + v.y * v.y + v.z * v.z);
+      return l > 1e-6 ? {x: v.x / l, y: v.y / l, z: v.z / l} : {x: 0, y: 0, z: 0};
+    },
+    dist: (a, b) => Math.hypot(a.x - b.x, a.y - b.y, a.z - b.z),
+    rotX: (v, ang) => {
+      const c = Math.cos(ang), s = Math.sin(ang);
+      return {x: v.x, y: v.y * c - v.z * s, z: v.y * s + v.z * c};
+    },
+    rotY: (v, ang) => {
+      const c = Math.cos(ang), s = Math.sin(ang);
+      return {x: v.x * c + v.z * s, y: v.y, z: -v.x * s + v.z * c};
+    },
+    rotZ: (v, ang) => {
+      const c = Math.cos(ang), s = Math.sin(ang);
+      return {x: v.x * c - v.y * s, y: v.x * s + v.y * c, z: v.z};
+    }
+  };
+
+  // --- Camera & Projection ---
+  class Camera {
+    constructor(opts = {}) {
+      this.x = opts.x || 0;
+      this.y = opts.y || 0;
+      this.z = opts.z || 0;
+      this.yaw = opts.yaw || 0;     // radians around Y
+      this.pitch = opts.pitch || 0; // radians around X
+      this.fov = opts.fov || 65;    // degrees vertical FOV
+      this.near = opts.near || 0.1;
+      this.far = opts.far || 50;
+    }
+
+    setPos(x, y, z) { this.x = x; this.y = y; this.z = z; }
+    setRot(yaw, pitch = 0) { this.yaw = yaw; this.pitch = pitch; }
+
+    // Project world point (wx, wy, wz) into viewport (W, H).
+    // Returns {x, y, depth, scale, visible}
+    project(wx, wy, wz, W, H) {
+      // 1. Translate relative to camera
+      const dx = wx - this.x;
+      const dy = wy - this.y;
+      const dz = wz - this.z;
+
+      // 2. Rotate by yaw (around Y axis)
+      const cosY = Math.cos(-this.yaw), sinY = Math.sin(-this.yaw);
+      const x1 = dx * cosY + dz * sinY;
+      const z1 = -dx * sinY + dz * cosY;
+
+      // 3. Rotate by pitch (around X axis)
+      const cosP = Math.cos(-this.pitch), sinP = Math.sin(-this.pitch);
+      const y2 = dy * cosP - z1 * sinP;
+      const z2 = dy * sinP + z1 * cosP;
+
+      // Check near clipping plane
+      if (z2 <= this.near) {
+        return {x: 0, y: 0, depth: z2, scale: 0, visible: false};
+      }
+
+      // Perspective divide
+      const fovRad = (this.fov * Math.PI) / 180;
+      const f = (H / 2) / Math.tan(fovRad / 2);
+      const sx = (W / 2) + (x1 / z2) * f;
+      const sy = (H / 2) - (y2 / z2) * f;
+
+      return {
+        x: sx,
+        y: sy,
+        depth: z2,
+        scale: f / z2,
+        visible: sx >= -200 && sx <= W + 200 && sy >= -200 && sy <= H + 200 && z2 <= this.far
+      };
+    }
+  }
+
+  // --- Lighting Helper ---
+  const Light = {
+    dir: Vec3.norm({x: 0.4, y: 0.8, z: -0.5}),
+    ambient: 0.35,
+    diffuse: 0.65,
+    calc(normal, baseRGB, highlight = 0) {
+      const d = Math.max(0, Vec3.dot(normal, this.dir));
+      const factor = this.ambient + this.diffuse * d + highlight;
+      const r = Math.min(255, Math.max(0, Math.round(baseRGB[0] * factor)));
+      const g = Math.min(255, Math.max(0, Math.round(baseRGB[1] * factor)));
+      const b = Math.min(255, Math.max(0, Math.round(baseRGB[2] * factor)));
+      return `rgb(${r},${g},${b})`;
+    }
+  };
+
+  // --- Mesh Generator Presets ---
+  const Meshes = {
+    // 3D Cube: centered at origin with width/height/depth
+    cube(w = 1, h = 1, d = 1, colors = null) {
+      const hw = w / 2, hh = h / 2, hd = d / 2;
+      const vertices = [
+        {x: -hw, y: -hh, z: -hd}, {x: hw, y: -hh, z: -hd},
+        {x: hw, y: hh, z: -hd},   {x: -hw, y: hh, z: -hd},
+        {x: -hw, y: -hh, z: hd},  {x: hw, y: -hh, z: hd},
+        {x: hw, y: hh, z: hd},    {x: -hw, y: hh, z: hd}
+      ];
+      // default colors: front, back, top, bottom, right, left
+      const defCols = colors || [
+        [180, 160, 60], [160, 140, 50], [210, 190, 80],
+        [120, 100, 40], [170, 150, 55], [170, 150, 55]
+      ];
+      const faces = [
+        {verts: [0, 1, 2, 3], norm: {x: 0, y: 0, z: -1}, color: defCols[0]}, // Front
+        {verts: [5, 4, 7, 6], norm: {x: 0, y: 0, z: 1},  color: defCols[1]}, // Back
+        {verts: [3, 2, 6, 7], norm: {x: 0, y: 1, z: 0},  color: defCols[2]}, // Top
+        {verts: [4, 5, 1, 0], norm: {x: 0, y: -1, z: 0}, color: defCols[3]}, // Bottom
+        {verts: [1, 5, 6, 2], norm: {x: 1, y: 0, z: 0},  color: defCols[4]}, // Right
+        {verts: [4, 0, 3, 7], norm: {x: -1, y: 0, z: 0}, color: defCols[5]}  // Left
+      ];
+      return {vertices, faces};
+    },
+
+    // 3D Rotating Golden Dungeon Key
+    key(scale = 0.35) {
+      const vertices = [];
+      const faces = [];
+      const gold = [232, 185, 49];
+      const darkGold = [180, 140, 30];
+      const brightGold = [255, 215, 80];
+
+      // Key Head: Ring (octagon prism)
+      const ringR = 0.45 * scale, ringThick = 0.12 * scale;
+      const segs = 8;
+      for (let i = 0; i < segs; i++) {
+        const a1 = (i / segs) * Math.PI * 2;
+        const a2 = ((i + 1) / segs) * Math.PI * 2;
+        const c1 = Math.cos(a1), s1 = Math.sin(a1);
+        const c2 = Math.cos(a2), s2 = Math.sin(a2);
+
+        const vBase = vertices.length;
+        vertices.push(
+          {x: c1 * ringR, y: 0.7 * scale + s1 * ringR, z: -ringThick},
+          {x: c2 * ringR, y: 0.7 * scale + s2 * ringR, z: -ringThick},
+          {x: c2 * ringR, y: 0.7 * scale + s2 * ringR, z: ringThick},
+          {x: c1 * ringR, y: 0.7 * scale + s1 * ringR, z: ringThick}
+        );
+        faces.push({
+          verts: [vBase, vBase + 1, vBase + 2, vBase + 3],
+          norm: {x: (c1 + c2) / 2, y: (s1 + s2) / 2, z: 0},
+          color: i % 2 === 0 ? gold : brightGold
+        });
+      }
+
+      // Key Stem: Hexagonal/quad cylinder down from ring
+      const stemW = 0.09 * scale, stemLen = 0.9 * scale;
+      const vStem = vertices.length;
+      vertices.push(
+        {x: -stemW, y: 0.35 * scale, z: -stemW},
+        {x: stemW, y: 0.35 * scale, z: -stemW},
+        {x: stemW, y: 0.35 * scale - stemLen, z: -stemW},
+        {x: -stemW, y: 0.35 * scale - stemLen, z: -stemW},
+        {x: -stemW, y: 0.35 * scale, z: stemW},
+        {x: stemW, y: 0.35 * scale, z: stemW},
+        {x: stemW, y: 0.35 * scale - stemLen, z: stemW},
+        {x: -stemW, y: 0.35 * scale - stemLen, z: stemW}
+      );
+      faces.push(
+        {verts: [vStem, vStem + 1, vStem + 2, vStem + 3], norm: {x: 0, y: 0, z: -1}, color: gold},
+        {verts: [vStem + 5, vStem + 4, vStem + 7, vStem + 6], norm: {x: 0, y: 0, z: 1}, color: darkGold},
+        {verts: [vStem + 1, vStem + 5, vStem + 6, vStem + 2], norm: {x: 1, y: 0, z: 0}, color: brightGold},
+        {verts: [vStem + 4, vStem, vStem + 3, vStem + 7], norm: {x: -1, y: 0, z: 0}, color: gold}
+      );
+
+      // Key Bit / Teeth (2 distinct teeth branching to the right)
+      const vTooth = vertices.length;
+      const tw = 0.22 * scale, th = 0.12 * scale, tz = 0.08 * scale;
+      // Tooth 1
+      vertices.push(
+        {x: stemW, y: -0.3 * scale, z: -tz},
+        {x: stemW + tw, y: -0.3 * scale, z: -tz},
+        {x: stemW + tw, y: -0.3 * scale - th, z: -tz},
+        {x: stemW, y: -0.3 * scale - th, z: -tz},
+        {x: stemW, y: -0.3 * scale, z: tz},
+        {x: stemW + tw, y: -0.3 * scale, z: tz},
+        {x: stemW + tw, y: -0.3 * scale - th, z: tz},
+        {x: stemW, y: -0.3 * scale - th, z: tz}
+      );
+      faces.push(
+        {verts: [vTooth, vTooth + 1, vTooth + 2, vTooth + 3], norm: {x: 0, y: 0, z: -1}, color: brightGold},
+        {verts: [vTooth + 5, vTooth + 4, vTooth + 7, vTooth + 6], norm: {x: 0, y: 0, z: 1}, color: gold},
+        {verts: [vTooth + 1, vTooth + 5, vTooth + 6, vTooth + 2], norm: {x: 1, y: 0, z: 0}, color: darkGold}
+      );
+
+      // Tooth 2 (smaller, lower)
+      const vT2 = vertices.length;
+      const tw2 = 0.15 * scale;
+      vertices.push(
+        {x: stemW, y: -0.48 * scale, z: -tz},
+        {x: stemW + tw2, y: -0.48 * scale, z: -tz},
+        {x: stemW + tw2, y: -0.48 * scale - th, z: -tz},
+        {x: stemW, y: -0.48 * scale - th, z: -tz},
+        {x: stemW, y: -0.48 * scale, z: tz},
+        {x: stemW + tw2, y: -0.48 * scale, z: tz},
+        {x: stemW + tw2, y: -0.48 * scale - th, z: tz},
+        {x: stemW, y: -0.48 * scale - th, z: tz}
+      );
+      faces.push(
+        {verts: [vT2, vT2 + 1, vT2 + 2, vT2 + 3], norm: {x: 0, y: 0, z: -1}, color: brightGold},
+        {verts: [vT2 + 5, vT2 + 4, vT2 + 7, vT2 + 6], norm: {x: 0, y: 0, z: 1}, color: gold},
+        {verts: [vT2 + 1, vT2 + 5, vT2 + 6, vT2 + 2], norm: {x: 1, y: 0, z: 0}, color: darkGold}
+      );
+
+      return {vertices, faces};
+    },
+
+    // 3D Faceted Heart pickup
+    heart(scale = 0.28) {
+      const vertices = [
+        {x: 0, y: -0.8 * scale, z: 0},          // 0 bottom tip
+        {x: -0.6 * scale, y: 0.1 * scale, z: 0}, // 1 left wide
+        {x: 0.6 * scale, y: 0.1 * scale, z: 0},  // 2 right wide
+        {x: -0.35 * scale, y: 0.65 * scale, z: 0}, // 3 left peak
+        {x: 0.35 * scale, y: 0.65 * scale, z: 0},  // 4 right peak
+        {x: 0, y: 0.25 * scale, z: 0},           // 5 center notch
+        {x: 0, y: 0.1 * scale, z: 0.3 * scale},   // 6 front bulge
+        {x: 0, y: 0.1 * scale, z: -0.3 * scale}   // 7 back bulge
+      ];
+      const red = [226, 70, 63], brightRed = [255, 95, 85], darkRed = [160, 40, 35];
+      const faces = [
+        // Front facets
+        {verts: [0, 2, 6], norm: {x: 0.4, y: -0.4, z: 0.8}, color: red},
+        {verts: [0, 6, 1], norm: {x: -0.4, y: -0.4, z: 0.8}, color: darkRed},
+        {verts: [6, 2, 4], norm: {x: 0.3, y: 0.5, z: 0.8}, color: brightRed},
+        {verts: [6, 4, 5], norm: {x: 0.1, y: 0.3, z: 0.9}, color: red},
+        {verts: [6, 5, 3], norm: {x: -0.1, y: 0.3, z: 0.9}, color: brightRed},
+        {verts: [6, 3, 1], norm: {x: -0.3, y: 0.5, z: 0.8}, color: darkRed},
+        // Back facets
+        {verts: [0, 7, 2], norm: {x: 0.4, y: -0.4, z: -0.8}, color: darkRed},
+        {verts: [0, 1, 7], norm: {x: -0.4, y: -0.4, z: -0.8}, color: red},
+        {verts: [7, 4, 2], norm: {x: 0.3, y: 0.5, z: -0.8}, color: darkRed},
+        {verts: [7, 5, 4], norm: {x: 0.1, y: 0.3, z: -0.9}, color: red},
+        {verts: [7, 3, 5], norm: {x: -0.1, y: 0.3, z: -0.9}, color: darkRed},
+        {verts: [7, 1, 3], norm: {x: -0.3, y: 0.5, z: -0.8}, color: red}
+      ];
+      return {vertices, faces};
+    },
+
+    // 3D Snail Mesh: Spiral shell + body
+    snail(scale = 0.5, shellColor = [106, 170, 100], rimColor = [63, 122, 59]) {
+      const vertices = [];
+      const faces = [];
+      // 1. Crawling Foot / Body
+      const bw = 0.35 * scale, bl = 0.8 * scale, bh = 0.16 * scale;
+      const vBody = vertices.length;
+      vertices.push(
+        {x: -bw, y: -bh, z: -bl}, {x: bw, y: -bh, z: -bl},
+        {x: bw, y: bh * 0.4, z: -bl}, {x: -bw, y: bh * 0.4, z: -bl},
+        {x: -bw * 0.8, y: -bh, z: bl}, {x: bw * 0.8, y: -bh, z: bl},
+        {x: bw * 0.8, y: bh * 1.1, z: bl}, {x: -bw * 0.8, y: bh * 1.1, z: bl}
+      );
+      const flesh = [232, 214, 168];
+      faces.push(
+        {verts: [vBody, vBody + 1, vBody + 2, vBody + 3], norm: {x: 0, y: 0, z: -1}, color: flesh},
+        {verts: [vBody + 5, vBody + 4, vBody + 7, vBody + 6], norm: {x: 0, y: 0, z: 1}, color: flesh},
+        {verts: [vBody + 1, vBody + 5, vBody + 6, vBody + 2], norm: {x: 1, y: 0, z: 0}, color: flesh},
+        {verts: [vBody + 4, vBody, vBody + 3, vBody + 7], norm: {x: -1, y: 0, z: 0}, color: flesh}
+      );
+
+      // 2. 3D Shell: Faceted Dome / Spiral
+      const rings = 4, segs = 8;
+      const vShellBase = vertices.length;
+      for (let r = 0; r <= rings; r++) {
+        const rad = Math.sin((r / rings) * Math.PI * 0.85) * 0.48 * scale;
+        const y = bh * 0.5 + (r / rings) * 0.65 * scale;
+        const zOff = -0.15 * scale + (r / rings) * 0.08 * scale;
+        for (let s = 0; s < segs; s++) {
+          const ang = (s / segs) * Math.PI * 2;
+          vertices.push({
+            x: Math.cos(ang) * rad,
+            y: y,
+            z: zOff + Math.sin(ang) * rad
+          });
+        }
+      }
+      for (let r = 0; r < rings; r++) {
+        for (let s = 0; s < segs; s++) {
+          const nextS = (s + 1) % segs;
+          const i0 = vShellBase + r * segs + s;
+          const i1 = vShellBase + r * segs + nextS;
+          const i2 = vShellBase + (r + 1) * segs + nextS;
+          const i3 = vShellBase + (r + 1) * segs + s;
+          faces.push({
+            verts: [i0, i1, i2, i3],
+            norm: Vec3.norm({
+              x: Math.cos((s + 0.5) / segs * Math.PI * 2),
+              y: 0.6,
+              z: Math.sin((s + 0.5) / segs * Math.PI * 2)
+            }),
+            color: (r + s) % 2 === 0 ? shellColor : rimColor
+          });
+        }
+      }
+
+      return {vertices, faces};
+    },
+
+    // 3D Melee Weapon: The Shovel (first person & world pickup)
+    shovel(scale = 0.5) {
+      const vertices = [];
+      const faces = [];
+      const wood = [160, 110, 60], darkWood = [120, 80, 40];
+      const iron = [140, 145, 155], darkIron = [95, 100, 110], brightIron = [200, 205, 215];
+
+      // Handle Shaft (octagonal cylinder)
+      const shaftR = 0.045 * scale, shaftLen = 1.3 * scale;
+      const vShaft = vertices.length;
+      vertices.push(
+        {x: -shaftR, y: -0.2 * scale, z: -shaftR},
+        {x: shaftR, y: -0.2 * scale, z: -shaftR},
+        {x: shaftR, y: -0.2 * scale + shaftLen, z: -shaftR},
+        {x: -shaftR, y: -0.2 * scale + shaftLen, z: -shaftR},
+        {x: -shaftR, y: -0.2 * scale, z: shaftR},
+        {x: shaftR, y: -0.2 * scale, z: shaftR},
+        {x: shaftR, y: -0.2 * scale + shaftLen, z: shaftR},
+        {x: -shaftR, y: -0.2 * scale + shaftLen, z: shaftR}
+      );
+      faces.push(
+        {verts: [vShaft, vShaft + 1, vShaft + 2, vShaft + 3], norm: {x: 0, y: 0, z: -1}, color: wood},
+        {verts: [vShaft + 5, vShaft + 4, vShaft + 7, vShaft + 6], norm: {x: 0, y: 0, z: 1}, color: darkWood},
+        {verts: [vShaft + 1, vShaft + 5, vShaft + 6, vShaft + 2], norm: {x: 1, y: 0, z: 0}, color: wood},
+        {verts: [vShaft + 4, vShaft, vShaft + 3, vShaft + 7], norm: {x: -1, y: 0, z: 0}, color: darkWood}
+      );
+
+      // Grip: Triangular / D-ring grip at the top
+      const vGrip = vertices.length;
+      const gw = 0.16 * scale, gh = 0.22 * scale;
+      vertices.push(
+        {x: -gw, y: -0.2 * scale + shaftLen, z: -shaftR},
+        {x: gw, y: -0.2 * scale + shaftLen, z: -shaftR},
+        {x: gw, y: -0.2 * scale + shaftLen + gh, z: -shaftR},
+        {x: -gw, y: -0.2 * scale + shaftLen + gh, z: -shaftR},
+        {x: -gw, y: -0.2 * scale + shaftLen, z: shaftR},
+        {x: gw, y: -0.2 * scale + shaftLen, z: shaftR},
+        {x: gw, y: -0.2 * scale + shaftLen + gh, z: shaftR},
+        {x: -gw, y: -0.2 * scale + shaftLen + gh, z: shaftR}
+      );
+      faces.push(
+        {verts: [vGrip, vGrip + 1, vGrip + 2, vGrip + 3], norm: {x: 0, y: 0, z: -1}, color: darkIron},
+        {verts: [vGrip + 5, vGrip + 4, vGrip + 7, vGrip + 6], norm: {x: 0, y: 0, z: 1}, color: iron},
+        {verts: [vGrip + 3, vGrip + 2, vGrip + 6, vGrip + 7], norm: {x: 0, y: 1, z: 0}, color: brightIron}
+      );
+
+      // Spade Blade: Curved / angled scoop at the bottom
+      const vBlade = vertices.length;
+      const bw = 0.28 * scale, bLen = 0.5 * scale, bThick = 0.03 * scale;
+      vertices.push(
+        {x: -bw, y: -0.2 * scale, z: -bThick},          // 0 top left
+        {x: bw, y: -0.2 * scale, z: -bThick},           // 1 top right
+        {x: bw * 0.9, y: -0.2 * scale - bLen * 0.7, z: 0.05 * scale}, // 2 mid right
+        {x: 0, y: -0.2 * scale - bLen, z: 0.08 * scale}, // 3 bottom tip
+        {x: -bw * 0.9, y: -0.2 * scale - bLen * 0.7, z: 0.05 * scale}, // 4 mid left
+        // back vertices
+        {x: -bw, y: -0.2 * scale, z: bThick},          // 5
+        {x: bw, y: -0.2 * scale, z: bThick},           // 6
+        {x: bw * 0.9, y: -0.2 * scale - bLen * 0.7, z: 0.05 * scale + bThick}, // 7
+        {x: 0, y: -0.2 * scale - bLen, z: 0.08 * scale + bThick}, // 8
+        {x: -bw * 0.9, y: -0.2 * scale - bLen * 0.7, z: 0.05 * scale + bThick}  // 9
+      );
+      faces.push(
+        {verts: [vBlade, vBlade + 1, vBlade + 2, vBlade + 4], norm: {x: 0, y: -0.2, z: -1}, color: iron},
+        {verts: [vBlade + 4, vBlade + 2, vBlade + 3], norm: {x: 0, y: -0.6, z: -0.8}, color: brightIron},
+        {verts: [vBlade + 6, vBlade + 5, vBlade + 9, vBlade + 7], norm: {x: 0, y: 0.2, z: 1}, color: darkIron},
+        {verts: [vBlade + 7, vBlade + 9, vBlade + 8], norm: {x: 0, y: 0.6, z: 0.8}, color: iron}
+      );
+
+      return {vertices, faces};
+    }
+  };
+
+  // --- 3D Mesh Renderer ---
+  function renderMesh(ctx, mesh, pos, rot, scale = 1, cam, W, H, opts = {}) {
+    const rx = rot.x || 0, ry = rot.y || 0, rz = rot.z || 0;
+    const cosY = Math.cos(ry), sinY = Math.sin(ry);
+    const cosX = Math.cos(rx), sinX = Math.sin(rx);
+    const cosZ = Math.cos(rz), sinZ = Math.sin(rz);
+
+    // 1. Transform all vertices into world coordinates
+    const worldVerts = new Array(mesh.vertices.length);
+    for (let i = 0; i < mesh.vertices.length; i++) {
+      const v = mesh.vertices[i];
+      // Scale
+      let x = v.x * scale, y = v.y * scale, z = v.z * scale;
+      // Rotate Z
+      let x1 = x * cosZ - y * sinZ, y1 = x * sinZ + y * cosZ, z1 = z;
+      // Rotate X
+      let x2 = x1, y2 = y1 * cosX - z1 * sinX, z2 = y1 * sinX + z1 * cosX;
+      // Rotate Y
+      let x3 = x2 * cosY + z2 * sinY, y3 = y2, z3 = -x2 * sinY + z2 * cosY;
+      // Translate
+      worldVerts[i] = {
+        x: x3 + pos.x,
+        y: y3 + pos.y,
+        z: z3 + pos.z
+      };
+    }
+
+    // 2. Project vertices to screen
+    const screenVerts = new Array(worldVerts.length);
+    for (let i = 0; i < worldVerts.length; i++) {
+      const wv = worldVerts[i];
+      screenVerts[i] = cam.project(wv.x, wv.y, wv.z, W, H);
+    }
+
+    // 3. Process faces: compute depth, normal, culling, lighting
+    const renderList = [];
+    for (let i = 0; i < mesh.faces.length; i++) {
+      const face = mesh.faces[i];
+      const sv0 = screenVerts[face.verts[0]];
+      const sv1 = screenVerts[face.verts[1]];
+      const sv2 = screenVerts[face.verts[2]];
+
+      // If any of the first three vertices are behind camera, skip
+      if (!sv0.visible && !sv1.visible && !sv2.visible) continue;
+      if (sv0.depth <= cam.near || sv1.depth <= cam.near || sv2.depth <= cam.near) continue;
+
+      // 2D Backface culling: signed area of triangle on screen
+      const area = (sv1.x - sv0.x) * (sv2.y - sv0.y) - (sv1.y - sv0.y) * (sv2.x - sv0.x);
+      if (area <= 0 && !opts.doubleSided) continue;
+
+      // Average depth for Painter's algorithm
+      let avgDepth = 0;
+      for (const idx of face.verts) avgDepth += screenVerts[idx].depth;
+      avgDepth /= face.verts.length;
+
+      // Rotate face normal for lighting
+      let nx = face.norm.x, ny = face.norm.y, nz = face.norm.z;
+      let nx1 = nx * cosZ - ny * sinZ, ny1 = nx * sinZ + ny * cosZ, nz1 = nz;
+      let nx2 = nx1, ny2 = ny1 * cosX - nz1 * sinX, nz2 = ny1 * sinX + nz1 * cosX;
+      let nx3 = nx2 * cosY + nz2 * sinY, ny3 = ny2, nz3 = -nx2 * sinY + nz2 * cosY;
+      const rotNorm = {x: nx3, y: ny3, z: nz3};
+
+      // Shading color
+      const colorStr = Light.calc(rotNorm, face.color, opts.highlight || 0);
+
+      renderList.push({
+        face,
+        depth: avgDepth,
+        color: colorStr
+      });
+    }
+
+    // Sort back-to-front
+    renderList.sort((a, b) => b.depth - a.depth);
+
+    // 4. Draw faces
+    for (const item of renderList) {
+      const f = item.face;
+      ctx.beginPath();
+      const p0 = screenVerts[f.verts[0]];
+      ctx.moveTo(p0.x, p0.y);
+      for (let j = 1; j < f.verts.length; j++) {
+        const pj = screenVerts[f.verts[j]];
+        ctx.lineTo(pj.x, pj.y);
+      }
+      ctx.closePath();
+      ctx.fillStyle = item.color;
+      ctx.fill();
+      if (opts.wireframe) {
+        ctx.strokeStyle = opts.wireColor || 'rgba(0,0,0,0.25)';
+        ctx.lineWidth = 1;
+        ctx.stroke();
+      }
+    }
+  }
+
+  return {
+    Vec3,
+    Camera,
+    Light,
+    Meshes,
+    renderMesh
+  };
+})();
+
+if (typeof window !== 'undefined') window.Engine3D = Engine3D;
+
 /* ---- js/18-mini-wordoom.js ---- */
 // ============================================================ 18-mini-wordoom
-// A pocket version of ../wordoom.html's raycaster, four floors deep (WOOM_FLOORS).
-//   FLOOR 1 — the Burrow: a small maze. Find the hole down. No weapon yet.
-//   FLOOR 2 — the Deep Burrow: the Salt Shaker waits a few steps from the start. One
-//     key opens the hatch down.
-//   FLOOR 3 — the Slime Works: one locked door splits the maze. The first key opens the
-//     door; the second key, behind it, opens the hatch.
-//   FLOOR 4 — the Royal Warren: two locked doors, three keys, then the golden throne door.
-// Doors are cut into a loop-free maze along the start→exit path, so every key is
-// reachable before the lock it opens. Each floor gets a fresh clock (m.setTime).
+// WORDOOM: FULLSCREEN 3D FIRST-PERSON DUNGEON CRAWLER
+// Built on Engine3D (17b-engine3d.js) with real-time 3D projected meshes,
+// rotating 3D keys & hearts, enhanced multi-axis enemies, and fullscreen viewport.
 //
-// Health: WOOM_MAXHP hearts. Touching an enemy costs one; at zero you black out and
-// wake at the floor's start with 3 hearts and WOOM_REVIVE seconds gone. Hearts lie
-// around on floors 2–4 and drop from salted enemies (WOOM_DROP).
-// Salt: a snail hit once loses its shell and becomes a slug (slugs fly, and hunt you);
-// a slug takes WOOM_HP hits.
+// Normal Route:
+//   4 floors deep (THE BURROW, THE DEEP BURROW, THE SLIME WORKS, THE ROYAL WARREN).
+//   Keys open locked doors and down-hatches; salt dissolves the snail horde.
 //
-// One new enemy per floor (WOOM_ENEMIES):
-//   1 snail   — wanders; a salt hit turns it into a slug
-//   2 slug    — flies; hunts you within 7 cells; 2 hits
-//   3 spitter — holds position when it can see you and spits slime globs; 2 hits
-//   4 guard   — the Queen's guard: slow, armoured, fires three shell shards at once; 3 hits
-// Projectiles fly in straight lines and stop at walls and doors, so breaking line of
-// sight is the defence. Each one costs a heart.
+// Shovel Chase Route (from 52-chase.js or S.flags.shovel):
+//   Player carries the MELEE SHOVEL weapon with heavy bash & knockback!
+//   On Floors 1 & 2, a CRACKED FOUNDATION WALL stands in the maze.
+//   Bashed with the shovel 3 times, the wall shatters into rubble, opening a
+//   breached subterranean tunnel that branches the game into the expanded subterranean route!
 
 const WOOM_HP = 2, WOOM_MAXHP = 5, WOOM_DROP = 0.35, WOOM_REVIVE = 15;
 const WOOM_ENEMIES = {
-  snail: {hp: 1, speed: 0.7},
-  slug: {hp: WOOM_HP, speed: 1.25},
-  spitter: {hp: 2, speed: 0.6, range: 6, every: 1.8, shot: 'glob', shotSpeed: 3.2, spread: [0]},
-  guard: {hp: 3, speed: 0.4, range: 7, every: 2.4, shot: 'shard', shotSpeed: 4, spread: [-0.22, 0, 0.22]},
+  snail: {hp: 1, speed: 0.75},
+  slug: {hp: WOOM_HP, speed: 1.3},
+  spitter: {hp: 2, speed: 0.65, range: 6.5, every: 1.7, shot: 'glob', shotSpeed: 3.4, spread: [0]},
+  guard: {hp: 3, speed: 0.45, range: 7.5, every: 2.3, shot: 'shard', shotSpeed: 4.2, spread: [-0.22, 0, 0.22]},
 };
 const WOOM_FLOORS = [
   {name: 'THE BURROW', N: 5, loops: 4, time: 90, doors: 0, keys: 0, hearts: 0, mobs: {snail: 4}, intro: 'Snails. Salt will come later.'},
@@ -8988,134 +9482,211 @@ const WOOM_FLOORS = [
   {name: 'THE SLIME WORKS', N: 7, loops: 0, time: 150, doors: 1, keys: 2, hearts: 3, mobs: {snail: 4, slug: 3, spitter: 3}, intro: 'Spitters: they shoot slime. Break line of sight.'},
   {name: 'THE ROYAL WARREN', N: 8, loops: 0, time: 180, doors: 2, keys: 3, hearts: 4, mobs: {snail: 4, slug: 4, spitter: 3, guard: 2}, intro: 'Royal guards: three shell shards at a time.'},
 ];
-// the floor only a shovel finds (the E chase, 50-chase.js): Minis.run('wordoom', {extraFloor: true})
-const WOOM_SHOVEL_FLOOR = {name: 'THE QUEEN\'S CELLAR', N: 9, loops: 0, time: 210, doors: 3, keys: 4, hearts: 5, mobs: {snail: 4, slug: 5, spitter: 4, guard: 3}, intro: 'You dug deeper than the map goes. The Queen keeps her cellar locked four times over.'};
+const WOOM_SHOVEL_FLOOR = {
+  name: 'THE QUEEN\'S CELLAR', N: 9, loops: 0, time: 210, doors: 3, keys: 4, hearts: 5, mobs: {snail: 4, slug: 5, spitter: 4, guard: 3},
+  intro: 'You dug deeper than the map goes. The Queen keeps her cellar locked four times over.'
+};
 
 Minis.register('wordoom', {
-  title: 'WORDOOM', W: 480, H: 420, time: 90, music: 'wordoom', layers: 1,
+  title: 'WORDOOM', fullWidth: true, fullScene: true, W: 800, H: 600, time: 90, music: 'wordoom', layers: 1,
   goal: 'Floor 1: find the way down',
-  intro: '<p>The word went into debt. We must go <b>deeper</b>. Four floors deeper.</p><p>Find the way down on each floor. From floor 2 you have <b>salt</b>, and the hatches are <b>locked</b>: find the keys (some keys are behind doors that need other keys). The Queen\'s golden door is at the very bottom. Snails (and worse) take your <b>hearts</b>.</p>',
-  controls: 'W/↑ forward · S/↓ back · A/← D/→ turn · Q / E strafe · Space / F salt',
-  winMsg: 'The last key turns. Beyond the golden door, a regal, slimy voice: "Finally."', loseMsg: 'Lost in the deep burrow. A gentle hand leads you to the throne room anyway — but took all your shells as a tax.',
-  pad: [['⟲', 'ArrowLeft'], ['▲', 'ArrowUp'], ['▼', 'ArrowDown'], ['⟳', 'ArrowRight'], ['|'], ['SALT', ' ', true]],
+  intro: '<p>The word went into debt. We must go <b>deeper</b>. Four floors deeper.</p><p>Explore the subterranean maze in full 3D. From floor 2 you have <b>salt</b>, and the hatches are <b>locked</b>: recover rotating 3D keys to open them. Snails (and worse) take your <b>hearts</b>.</p>',
+  controls: 'W/↑ forward · S/↓ back · A/← D/→ turn · Q/E strafe · Space/F attack / salt',
+  winMsg: 'The last key turns. Beyond the golden door, a regal, slimy voice: "Finally."',
+  loseMsg: 'Lost in the deep burrow. A gentle hand leads you to the throne room anyway — but took all your shells as a tax.',
+  pad: [['⟲', 'ArrowLeft'], ['▲', 'ArrowUp'], ['▼', 'ArrowDown'], ['⟳', 'ArrowRight'], ['|'], ['ACTION', ' ', true]],
+
   create(m) {
-    const FLOORS = m.opts.extraFloor ? [...WOOM_FLOORS, WOOM_SHOVEL_FLOOR] : WOOM_FLOORS, LAST = FLOORS.length;
-    const VH = 320, RAYS = 160, CW = m.W / RAYS, DIRS = [[1, 0], [-1, 0], [0, 1], [0, -1]];
-    const DOOR = 4;
+    const hasShovel = !!(m.opts.hasShovel || m.opts.extraFloor || (typeof S !== 'undefined' && S.flags && S.flags.shovel));
+    const FLOORS = m.opts.extraFloor ? [...WOOM_FLOORS, WOOM_SHOVEL_FLOOR] : WOOM_FLOORS;
+    const LAST = FLOORS.length;
+    const DOOR = 4, CRACKED = 5, BREACH = 6;
+    const DIRS = [[1, 0], [-1, 0], [0, 1], [0, -1]];
     const key2 = (x, y) => x + ',' + y;
-    // carve an N×N-cell maze into a (2N+1)² grid; optional loops; distances from the start
+
+    // 3D Engine Setup
+    const cam = new Engine3D.Camera({fov: 68, near: 0.12, far: 45});
+    const keyMesh = Engine3D.Meshes.key(0.36);
+    const heartMesh = Engine3D.Meshes.heart(0.28);
+    const snailMesh = Engine3D.Meshes.snail(0.5);
+    const shovelMesh = Engine3D.Meshes.shovel(0.48);
+
+    // Maze Generator: N×N into (2N+1)²
     const maze = (N, loops) => {
       const G = N * 2 + 1, map = Array.from({length: G}, () => Array(G).fill(1));
       const stack = [[0, 0]], seen = new Set(['0,0']);
       map[1][1] = 0;
       while (stack.length) {
         const [cx, cy] = stack[stack.length - 1];
-        const nb = DIRS.map(([dx, dy]) => [cx + dx, cy + dy, dx, dy]).filter(([x, y]) => x >= 0 && y >= 0 && x < N && y < N && !seen.has(key2(x, y)));
+        const nb = DIRS.map(([dx, dy]) => [cx + dx, cy + dy, dx, dy])
+          .filter(([x, y]) => x >= 0 && y >= 0 && x < N && y < N && !seen.has(key2(x, y)));
         if (!nb.length) { stack.pop(); continue; }
         const [nx, ny, dx, dy] = pick(nb);
         seen.add(key2(nx, ny));
-        map[cy * 2 + 1 + dy][cx * 2 + 1 + dx] = 0; map[ny * 2 + 1][nx * 2 + 1] = 0;
+        map[cy * 2 + 1 + dy][cx * 2 + 1 + dx] = 0;
+        map[ny * 2 + 1][nx * 2 + 1] = 0;
         stack.push([nx, ny]);
       }
-      for (let i = 0; i < loops; i++) { const x = 1 + rnd(G - 2), y = 1 + rnd(G - 2); if ((x + y) % 2 === 1) map[y][x] = 0; }
-      for (let y = 0; y < G; y++) for (let x = 0; x < G; x++) if (map[y][x]) map[y][x] = pick([1, 1, 2, 3]);
+      for (let i = 0; i < loops; i++) {
+        const x = 1 + rnd(G - 2), y = 1 + rnd(G - 2);
+        if ((x + y) % 2 === 1) map[y][x] = 0;
+      }
+      for (let y = 0; y < G; y++) {
+        for (let x = 0; x < G; x++) {
+          if (map[y][x]) map[y][x] = pick([1, 1, 2, 3]);
+        }
+      }
       return {G, map};
     };
-    // BFS over open cells from (sx, sy); walls and doors block. Returns {dist, parent}
+
+    // Breadth-first Search
     const bfs = (map, sx, sy) => {
       const dist = {[key2(sx, sy)]: 0}, parent = {}, q = [[sx, sy]];
       while (q.length) {
         const [x, y] = q.shift();
         for (const [dx, dy] of DIRS) {
           const nx = x + dx, ny = y + dy, k = key2(nx, ny);
-          if (map[ny] && map[ny][nx] === 0 && dist[k] == null) { dist[k] = dist[key2(x, y)] + 1; parent[k] = [x, y]; q.push([nx, ny]); }
+          if (map[ny] && map[ny][nx] === 0 && dist[k] == null) {
+            dist[k] = dist[key2(x, y)] + 1;
+            parent[k] = [x, y];
+            q.push([nx, ny]);
+          }
         }
       }
       return {dist, parent};
     };
-    // sprite images
-    const mkImg = draw => { const c = document.createElement('canvas'); c.width = c.height = 64; draw(c.getContext('2d')); return c; };
-    const tint = (img, col) => mkImg(c => { c.drawImage(img, 0, 0); c.globalCompositeOperation = 'source-atop'; c.fillStyle = col; c.fillRect(0, 0, 64, 64); });
-    const snailImg = mkImg(c => {
-      c.fillStyle = '#e8d6a8'; c.beginPath(); c.ellipse(32, 54, 28, 8, 0, 0, Math.PI * 2); c.fill();
-      c.fillStyle = '#6aaa64'; c.beginPath(); c.arc(30, 36, 18, 0, Math.PI * 2); c.fill();
-      c.strokeStyle = '#3f7a3b'; c.lineWidth = 3; c.beginPath(); c.arc(30, 36, 10, 0, Math.PI * 1.6); c.stroke(); c.beginPath(); c.arc(30, 36, 4, 0, Math.PI * 2); c.stroke();
-      c.strokeStyle = '#b39b62'; c.beginPath(); c.moveTo(50, 50); c.lineTo(52, 26); c.moveTo(56, 50); c.lineTo(60, 28); c.stroke();
-      c.fillStyle = '#111'; c.beginPath(); c.arc(52, 25, 3, 0, 7); c.arc(60, 27, 3, 0, 7); c.fill();
+
+    // 2D Canvas Sprite Generators for billboarding / UI
+    const mkImg = draw => {
+      const c = document.createElement('canvas'); c.width = c.height = 64;
+      draw(c.getContext('2d')); return c;
+    };
+    const tint = (img, col) => mkImg(c => {
+      c.drawImage(img, 0, 0); c.globalCompositeOperation = 'source-atop';
+      c.fillStyle = col; c.fillRect(0, 0, 64, 64);
     });
-    const slugImg = mkImg(c => {   // no shell, therefore wings. Biology.
-      c.fillStyle = 'rgba(220,240,255,.75)'; c.beginPath(); c.ellipse(22, 20, 15, 8, -0.6, 0, 7); c.ellipse(40, 18, 15, 8, 0.5, 0, 7); c.fill();
-      c.fillStyle = '#d9954a'; c.beginPath(); c.ellipse(30, 38, 26, 11, 0, 0, 7); c.fill();
-      c.fillStyle = '#f0c27e'; c.beginPath(); c.ellipse(30, 43, 22, 5, 0, 0, 7); c.fill();
-      c.strokeStyle = '#a8662a'; c.lineWidth = 3; c.beginPath(); c.moveTo(50, 32); c.lineTo(54, 14); c.moveTo(56, 34); c.lineTo(62, 18); c.stroke();
-      c.fillStyle = '#111'; c.beginPath(); c.arc(54, 13, 3, 0, 7); c.arc(62, 17, 3, 0, 7); c.fill();
-      c.strokeStyle = '#111'; c.lineWidth = 2; c.beginPath(); c.moveTo(48, 40); c.lineTo(56, 42); c.stroke();   // a frown, presumably
+
+    const slugImg = mkImg(c => {
+      c.fillStyle = 'rgba(210,235,255,.85)'; c.beginPath();
+      c.ellipse(20, 20, 16, 9, -0.6, 0, 7); c.ellipse(42, 18, 16, 9, 0.5, 0, 7); c.fill();
+      c.fillStyle = '#e29a4a'; c.beginPath(); c.ellipse(30, 38, 26, 11, 0, 0, 7); c.fill();
+      c.fillStyle = '#f5ca85'; c.beginPath(); c.ellipse(30, 43, 22, 5, 0, 0, 7); c.fill();
+      c.strokeStyle = '#a8662a'; c.lineWidth = 3; c.beginPath();
+      c.moveTo(50, 32); c.lineTo(55, 14); c.moveTo(56, 34); c.lineTo(63, 18); c.stroke();
+      c.fillStyle = '#111'; c.beginPath(); c.arc(55, 13, 3.5, 0, 7); c.arc(63, 17, 3.5, 0, 7); c.fill();
+      c.strokeStyle = '#111'; c.lineWidth = 2.5; c.beginPath(); c.moveTo(48, 41); c.lineTo(56, 43); c.stroke();
     });
-    const spitterImg = mkImg(c => {   // a snail with a purple shell and a very wide mouth
+
+    const spitterImg = mkImg(c => {
       c.fillStyle = '#b9d98a'; c.beginPath(); c.ellipse(32, 54, 28, 8, 0, 0, 7); c.fill();
-      c.fillStyle = '#7a4fa0'; c.beginPath(); c.arc(26, 36, 17, 0, 7); c.fill();
-      c.strokeStyle = '#4a2a66'; c.lineWidth = 3; c.beginPath(); c.arc(26, 36, 9, 0, Math.PI * 1.6); c.stroke();
-      c.fillStyle = '#b9d98a'; c.beginPath(); c.ellipse(50, 38, 11, 14, 0, 0, 7); c.fill();
-      c.fillStyle = '#2a1030'; c.beginPath(); c.ellipse(54, 42, 7, 5, 0, 0, 7); c.fill();
-      c.fillStyle = '#8fd14f'; c.beginPath(); c.arc(60, 44, 3, 0, 7); c.fill();
-      c.fillStyle = '#111'; c.beginPath(); c.arc(48, 28, 3, 0, 7); c.arc(56, 28, 3, 0, 7); c.fill();
+      c.fillStyle = '#8252aa'; c.beginPath(); c.arc(26, 36, 18, 0, 7); c.fill();
+      c.strokeStyle = '#4a256a'; c.lineWidth = 3.5; c.beginPath(); c.arc(26, 36, 10, 0, Math.PI * 1.6); c.stroke();
+      c.fillStyle = '#b9d98a'; c.beginPath(); c.ellipse(50, 38, 12, 14, 0, 0, 7); c.fill();
+      c.fillStyle = '#22082b'; c.beginPath(); c.ellipse(54, 42, 8, 6, 0, 0, 7); c.fill();
+      c.fillStyle = '#97e052'; c.beginPath(); c.arc(60, 44, 3.5, 0, 7); c.fill();
+      c.fillStyle = '#111'; c.beginPath(); c.arc(48, 28, 3.5, 0, 7); c.arc(56, 28, 3.5, 0, 7); c.fill();
     });
-    const guardImg = mkImg(c => {   // the Queen's guard: an iron shell and a little crown
+
+    const guardImg = mkImg(c => {
       c.fillStyle = '#d8c8a0'; c.beginPath(); c.ellipse(32, 55, 29, 8, 0, 0, 7); c.fill();
-      c.fillStyle = '#6b7078'; c.beginPath(); c.arc(28, 35, 19, 0, 7); c.fill();
-      c.strokeStyle = '#3c4048'; c.lineWidth = 3; for (let a = 0; a < 6; a++) { c.beginPath(); c.moveTo(28, 35); c.lineTo(28 + Math.cos(a) * 19, 35 + Math.sin(a) * 19); c.stroke(); }
-      c.fillStyle = MC.gold; c.beginPath(); c.moveTo(18, 14); c.lineTo(22, 4); c.lineTo(28, 12); c.lineTo(34, 4); c.lineTo(38, 14); c.closePath(); c.fill();
-      c.strokeStyle = '#b39b62'; c.lineWidth = 3; c.beginPath(); c.moveTo(50, 52); c.lineTo(53, 28); c.moveTo(57, 52); c.lineTo(61, 30); c.stroke();
+      c.fillStyle = '#6b727a'; c.beginPath(); c.arc(28, 35, 20, 0, 7); c.fill();
+      c.strokeStyle = '#383c44'; c.lineWidth = 3.5;
+      for (let a = 0; a < 6; a++) {
+        c.beginPath(); c.moveTo(28, 35); c.lineTo(28 + Math.cos(a) * 20, 35 + Math.sin(a) * 20); c.stroke();
+      }
+      c.fillStyle = '#ffd700'; c.beginPath();
+      c.moveTo(18, 13); c.lineTo(22, 3); c.lineTo(28, 11); c.lineTo(34, 3); c.lineTo(38, 13); c.closePath(); c.fill();
+      c.strokeStyle = '#a68200'; c.lineWidth = 2; c.stroke();
+      c.strokeStyle = '#b39b62'; c.lineWidth = 3; c.beginPath();
+      c.moveTo(50, 52); c.lineTo(53, 28); c.moveTo(57, 52); c.lineTo(61, 30); c.stroke();
       c.fillStyle = '#111'; c.beginPath(); c.arc(53, 27, 3, 0, 7); c.arc(61, 29, 3, 0, 7); c.fill();
     });
-    const globImg = mkImg(c => { c.fillStyle = '#8fd14f'; c.beginPath(); c.arc(32, 34, 22, 0, 7); c.fill(); c.fillStyle = 'rgba(255,255,255,.6)'; c.beginPath(); c.arc(24, 26, 6, 0, 7); c.fill(); });
-    const shardImg = mkImg(c => { c.fillStyle = '#c9b89a'; c.beginPath(); c.arc(32, 32, 20, 0, 7); c.fill(); c.strokeStyle = '#6b4a26'; c.lineWidth = 4; c.beginPath(); c.arc(32, 32, 11, 0, Math.PI * 1.6); c.stroke(); });
-    const IMG = {snail: snailImg, slug: slugImg, spitter: spitterImg, guard: guardImg};
-    const HURT = {snail: tint(snailImg, 'rgba(255,255,255,.6)'), slug: tint(slugImg, 'rgba(255,255,255,.6)'), spitter: tint(spitterImg, 'rgba(255,255,255,.6)'), guard: tint(guardImg, 'rgba(255,255,255,.6)')};
-    const doorImg = mkImg(c => {
-      c.fillStyle = '#b58a12'; c.fillRect(8, 4, 48, 60); c.fillStyle = '#e8b931'; c.fillRect(12, 8, 40, 56);
-      c.fillStyle = '#f5c518'; c.beginPath(); c.moveTo(18, 30); c.lineTo(20, 14); c.lineTo(26, 22); c.lineTo(32, 10); c.lineTo(38, 22); c.lineTo(44, 14); c.lineTo(46, 30); c.closePath(); c.fill();
-      c.strokeStyle = '#7a5a00'; c.lineWidth = 2; c.stroke(); c.fillStyle = '#7a5a00'; c.beginPath(); c.arc(44, 44, 3, 0, 7); c.fill();
+
+    const globImg = mkImg(c => {
+      c.fillStyle = '#97e052'; c.beginPath(); c.arc(32, 34, 22, 0, 7); c.fill();
+      c.fillStyle = 'rgba(255,255,255,.7)'; c.beginPath(); c.arc(24, 26, 7, 0, 7); c.fill();
     });
+    const shardImg = mkImg(c => {
+      c.fillStyle = '#d5c4a6'; c.beginPath(); c.arc(32, 32, 20, 0, 7); c.fill();
+      c.strokeStyle = '#6b4a26'; c.lineWidth = 4; c.beginPath(); c.arc(32, 32, 11, 0, Math.PI * 1.6); c.stroke();
+    });
+
+    const doorImg = mkImg(c => {
+      c.fillStyle = '#b58a12'; c.fillRect(8, 4, 48, 60);
+      c.fillStyle = '#e8b931'; c.fillRect(12, 8, 40, 56);
+      c.fillStyle = '#f5c518'; c.beginPath();
+      c.moveTo(18, 30); c.lineTo(20, 14); c.lineTo(26, 22); c.lineTo(32, 10); c.lineTo(38, 22); c.lineTo(44, 14); c.lineTo(46, 30); c.closePath(); c.fill();
+      c.strokeStyle = '#7a5a00'; c.lineWidth = 2; c.stroke();
+      c.fillStyle = '#7a5a00'; c.beginPath(); c.arc(44, 44, 3, 0, 7); c.fill();
+    });
+
     const lockOver = img => mkImg(c => {
       c.drawImage(img, 0, 0);
       c.strokeStyle = '#666'; c.lineWidth = 4; c.beginPath(); c.arc(32, 42, 7, Math.PI, 0); c.stroke();
-      c.fillStyle = '#8a8d91'; c.fillRect(22, 42, 20, 16); c.fillStyle = '#222'; c.fillRect(31, 47, 3, 6);
+      c.fillStyle = '#8a8d91'; c.fillRect(22, 42, 20, 16);
+      c.fillStyle = '#222'; c.fillRect(31, 47, 3, 6);
     });
+
     const holeImg = mkImg(c => {
       c.fillStyle = '#3b2a18'; c.beginPath(); c.ellipse(32, 56, 30, 8, 0, 0, 7); c.fill();
       c.fillStyle = '#000'; c.beginPath(); c.ellipse(32, 56, 24, 5.5, 0, 0, 7); c.fill();
-      c.strokeStyle = '#a07a40'; c.lineWidth = 3; c.beginPath(); c.moveTo(24, 58); c.lineTo(24, 20); c.moveTo(40, 58); c.lineTo(40, 20);
+      c.strokeStyle = '#a07a40'; c.lineWidth = 3; c.beginPath();
+      c.moveTo(24, 58); c.lineTo(24, 20); c.moveTo(40, 58); c.lineTo(40, 20);
       for (let y = 26; y < 58; y += 8) { c.moveTo(24, y); c.lineTo(40, y); } c.stroke();
-      c.fillStyle = MC.gold; c.font = '900 14px sans-serif'; c.textAlign = 'center'; c.fillText('▼', 32, 14);
+      c.fillStyle = '#ffd700'; c.font = '900 16px sans-serif'; c.textAlign = 'center'; c.fillText('▼', 32, 14);
     });
+
     const hatchImg = mkImg(c => {
       c.fillStyle = '#4a3a24'; c.beginPath(); c.ellipse(32, 56, 30, 8, 0, 0, 7); c.fill();
       c.fillStyle = '#7a5a30'; c.beginPath(); c.ellipse(32, 55, 24, 6, 0, 0, 7); c.fill();
-      c.strokeStyle = '#3a2a14'; c.lineWidth = 2; for (let x = 14; x <= 50; x += 9) { c.beginPath(); c.moveTo(x, 50); c.lineTo(x, 60); c.stroke(); }
-      c.fillStyle = MC.gold; c.font = '900 14px sans-serif'; c.textAlign = 'center'; c.fillText('▼', 32, 34);
+      c.strokeStyle = '#3a2a14'; c.lineWidth = 2;
+      for (let x = 14; x <= 50; x += 9) { c.beginPath(); c.moveTo(x, 50); c.lineTo(x, 60); c.stroke(); }
+      c.fillStyle = '#ffd700'; c.font = '900 16px sans-serif'; c.textAlign = 'center'; c.fillText('▼', 32, 34);
     });
-    const lockedHatch = lockOver(hatchImg), lockedDoor = lockOver(doorImg);
+
+    const tunnelImg = mkImg(c => {
+      c.fillStyle = '#1c150c'; c.fillRect(4, 4, 56, 56);
+      c.fillStyle = '#000'; c.beginPath(); c.arc(32, 38, 22, Math.PI, 0); c.lineTo(54, 60); c.lineTo(10, 60); c.closePath(); c.fill();
+      c.strokeStyle = '#e8a931'; c.lineWidth = 3; c.stroke();
+      c.fillStyle = '#ffd700'; c.font = '900 13px sans-serif'; c.textAlign = 'center'; c.fillText('DEEP', 32, 28);
+    });
+
     const shakerImg = mkImg(c => {
       c.fillStyle = '#8a8d91'; c.fillRect(20, 8, 24, 10);
-      c.fillStyle = '#f1f1f1'; c.fillRect(18, 18, 28, 44); c.fillStyle = '#d4d4d4'; c.fillRect(38, 18, 8, 44);
+      c.fillStyle = '#f1f1f1'; c.fillRect(18, 18, 28, 44);
+      c.fillStyle = '#d4d4d4'; c.fillRect(38, 18, 8, 44);
       c.fillStyle = '#333'; [[26, 13], [32, 11], [38, 13]].forEach(([x, y]) => { c.beginPath(); c.arc(x, y, 1.6, 0, 7); c.fill(); });
       c.fillStyle = '#999'; c.font = '900 18px sans-serif'; c.textAlign = 'center'; c.fillText('S', 30, 48);
     });
-    const keyImg = mkImg(c => {
-      c.strokeStyle = MC.gold; c.lineWidth = 6; c.beginPath(); c.arc(20, 32, 10, 0, 7); c.stroke();
-      c.fillStyle = MC.gold; c.fillRect(29, 29, 30, 6); c.fillRect(48, 35, 5, 9); c.fillRect(56, 35, 4, 7);
-    });
-    const heartPath = (c, x, y, s) => { c.beginPath(); c.moveTo(x, y + s * 0.3); c.bezierCurveTo(x, y - s * 0.2, x - s, y - s * 0.2, x - s, y + s * 0.3); c.bezierCurveTo(x - s, y + s * 0.8, x, y + s * 1.1, x, y + s * 1.4); c.bezierCurveTo(x, y + s * 1.1, x + s, y + s * 0.8, x + s, y + s * 0.3); c.bezierCurveTo(x + s, y - s * 0.2, x, y - s * 0.2, x, y + s * 0.3); c.fill(); };
-    const heartImg = mkImg(c => { c.fillStyle = '#e2463f'; heartPath(c, 32, 14, 22); c.fillStyle = 'rgba(255,255,255,.5)'; c.beginPath(); c.arc(22, 22, 5, 0, 7); c.fill(); });
-    const zbuf = new Float32Array(RAYS);
+
+    const lockedHatch = lockOver(hatchImg), lockedDoor = lockOver(doorImg);
+    const IMG = {slug: slugImg, spitter: spitterImg, guard: guardImg};
+    const HURT = {slug: tint(slugImg, 'rgba(255,255,255,.65)'), spitter: tint(spitterImg, 'rgba(255,255,255,.65)'), guard: tint(guardImg, 'rgba(255,255,255,.65)')};
+
+    const heartPath = (c, x, y, s) => {
+      c.beginPath();
+      c.moveTo(x, y + s * 0.3);
+      c.bezierCurveTo(x, y - s * 0.2, x - s, y - s * 0.2, x - s, y + s * 0.3);
+      c.bezierCurveTo(x - s, y + s * 0.8, x, y + s * 1.1, x, y + s * 1.4);
+      c.bezierCurveTo(x, y + s * 1.1, x + s, y + s * 0.8, x + s, y + s * 0.3);
+      c.bezierCurveTo(x + s, y - s * 0.2, x, y - s * 0.2, x, y + s * 0.3);
+      c.fill();
+    };
+
+    // State Variables
     const P = {x: 1.5, y: 1.5, a: 0};
-    let F = 0, FL, G, map, start, goal, gun = null, hasGun = false, keysHeld = 0, keyItems = [], doors = [], hearts = [], hp = WOOM_MAXHP;
-    let enemies = [], shots = [], seen = new Set(), trans = 0, transTo = 0, kills = 0, hitCD = 0, lockCD = 0, fireCD = 0, flash = 0, recoil = 0, hurtFX = 0, puffs = [];
+    let F = 0, FL, G, map, start, goal, gun = null, hasGun = false;
+    let keysHeld = 0, keyItems = [], doors = [], hearts = [], hp = WOOM_MAXHP;
+    let enemies = [], shots = [], seen = new Set(), trans = 0, transTo = 0, kills = 0;
+    let hitCD = 0, lockCD = 0, fireCD = 0, flash = 0, recoil = 0, hurtFX = 0, swingT = 0, puffs = [];
     let WALL, SKY, msg = '', msgCol = MC.red, msgT = 0, lastGoal = '';
-    const say = (t, col = MC.red, s = 1.6) => { msg = t; msgCol = col; msgT = s; };
+    let crackedWall = null; // {x, y, hp} for secret branch
+
+    const say = (t, col = MC.red, s = 1.8) => { msg = t; msgCol = col; msgT = s; };
     const mob = (kind, [x, y]) => ({kind, x: x + 0.5, y: y + 0.5, tx: x + 0.5, ty: y + 0.5, hp: WOOM_ENEMIES[kind].hp, hurt: 0, bob: rand(0, 6), cd: rand(1, 2.5)});
     const room = ([x, y]) => x % 2 === 1 && y % 2 === 1;
+
+    // Floor Initialization
     const setFloor = n => {
       F = n; FL = FLOORS[n - 1];
       if (typeof Music !== 'undefined') Music.play('wordoom', {layers: n, fade: 0.4});
@@ -9126,22 +9697,31 @@ Minis.register('wordoom', {
       const cells = Object.keys(dist).map(k => k.split(',').map(Number));
       const far = cells.reduce((a, c) => dist[key2(...c)] > dist[key2(...a)] ? c : a, start);
       goal = {x: far[0] + 0.5, y: far[1] + 0.5, locked: FL.keys > 0};
-      // the start→exit path, then locked doors on passage cells along it
-      const path = [far]; while (key2(...path[0]) !== '1,1') path.unshift(parent[key2(...path[0])]);
+
+      // Doors along start→exit path
+      const path = [far];
+      while (key2(...path[0]) !== '1,1') path.unshift(parent[key2(...path[0])]);
       doors = [];
       for (let i = 1; i <= FL.doors; i++) {
         let j = Math.round(path.length * i / (FL.doors + 1));
         while (j < path.length - 2 && room(path[j])) j++;
-        const [x, y] = path[j]; map[y][x] = DOOR; doors.push({x, y, open: false});
+        const [x, y] = path[j];
+        map[y][x] = DOOR;
+        doors.push({x, y, open: false});
       }
-      // regions between the doors: keys go one per region, the last one beside the exit
+
+      // Keys placed between doors
       keyItems = [];
       const regions = [];
       let entry = start;
       for (let i = 0; i <= FL.doors; i++) {
         const reg = Object.keys(bfs(map, entry[0], entry[1]).dist).map(k => k.split(',').map(Number));
         regions.push(reg);
-        if (i < FL.doors) { const d = doors[i]; const after = path[path.findIndex(([x, y]) => x === d.x && y === d.y) + 1]; entry = after; }
+        if (i < FL.doors) {
+          const d = doors[i];
+          const after = path[path.findIndex(([x, y]) => x === d.x && y === d.y) + 1];
+          entry = after;
+        }
       }
       const taken = new Set([key2(...start), key2(...far)]);
       const spot = (reg, minD = 2) => {
@@ -9151,116 +9731,350 @@ Minis.register('wordoom', {
       };
       for (let i = 0; i < FL.keys; i++) {
         const reg = regions[Math.min(i, regions.length - 1)];
-        // prefer the far half of the region, so keys aren't lying at the door
         const ds = reg.map(c => dist[key2(...c)]).sort((a, b) => a - b), mid = ds[Math.floor(ds.length / 2)] || 0;
         const c = spot(reg.filter(c => dist[key2(...c)] >= mid).length > 2 ? reg.filter(c => dist[key2(...c)] >= mid) : reg);
         keyItems.push({x: c[0] + 0.5, y: c[1] + 0.5, got: false, order: i});
       }
+
+      // Salt Shaker Pickup (Floor 2+)
       gun = null;
       if (n >= 2 && !hasGun) {
         const near = cells.filter(c => dist[key2(...c)] >= 2 && dist[key2(...c)] <= 3 && !taken.has(key2(...c)));
-        const g = pick(near.length ? near : cells); gun = {x: g[0] + 0.5, y: g[1] + 0.5}; taken.add(key2(...g));
+        const g = pick(near.length ? near : cells);
+        gun = {x: g[0] + 0.5, y: g[1] + 0.5};
+        taken.add(key2(...g));
       }
+
+      // Hearts
       hearts = [];
-      for (let i = 0; i < FL.hearts; i++) { const c = spot(cells, 4); hearts.push({x: c[0] + 0.5, y: c[1] + 0.5}); }
+      for (let i = 0; i < FL.hearts; i++) {
+        const c = spot(cells, 4);
+        hearts.push({x: c[0] + 0.5, y: c[1] + 0.5});
+      }
+
+      // Enemies
       const away = shuffle(cells.filter(c => dist[key2(...c)] > 4 && !taken.has(key2(...c))));
       enemies = []; shots = [];
-      for (const [kind, n] of Object.entries(FL.mobs)) for (let i = 0; i < n && away.length; i++) enemies.push(mob(kind, away.pop()));
-      P.x = P.y = 1.5; P.a = map[1][2] === 0 ? 0 : Math.PI / 2;
+      for (const [kind, count] of Object.entries(FL.mobs)) {
+        for (let i = 0; i < count && away.length; i++) enemies.push(mob(kind, away.pop()));
+      }
+
+      // Shovel Route: Cracked Foundation Wall on Floor 1 or 2
+      crackedWall = null;
+      if (hasShovel && (n === 1 || n === 2)) {
+        // Find a suitable wall adjacent to an open cell with some space around it
+        const wallCandidates = [];
+        for (let y = 2; y < G - 2; y++) {
+          for (let x = 2; x < G - 2; x++) {
+            if (map[y][x] >= 1 && map[y][x] <= 3) {
+              const openNeighbors = DIRS.filter(([dx, dy]) => map[y + dy][x + dx] === 0);
+              if (openNeighbors.length === 1) wallCandidates.push({x, y});
+            }
+          }
+        }
+        if (wallCandidates.length) {
+          const cw = pick(wallCandidates);
+          map[cw.y][cw.x] = CRACKED;
+          crackedWall = {x: cw.x, y: cw.y, hp: 3};
+        }
+      }
+
+      P.x = P.y = 1.5;
+      P.a = map[1][2] === 0 ? 0 : Math.PI / 2;
       keysHeld = 0; seen = new Set();
-      WALL = [null, {1: [72, 72, 76], 2: [83, 141, 78], 3: [181, 159, 59]}, {1: [66, 54, 82], 2: [58, 112, 96], 3: [150, 110, 54]},
-        {1: [52, 74, 60], 2: [96, 140, 70], 3: [140, 150, 60]}, {1: [84, 40, 56], 2: [120, 70, 120], 3: [190, 150, 60]}, {1: [40, 30, 52], 2: [90, 60, 120], 3: [200, 170, 70]}][n];
-      SKY = [null, ['#0b0906', '#1d1710', '#2b2216', '#4a3b26'], ['#07060a', '#151020', '#1d1626', '#3a2c40'],
-        ['#050a06', '#0f1d12', '#16261a', '#2c4430'], ['#0a0408', '#1e0c16', '#2a1220', '#4a2238'], ['#05030a', '#140a22', '#1c1030', '#3a2058']][n];
+
+      // Atmospheric color themes per floor
+      WALL = [
+        null,
+        {1: [72, 72, 76], 2: [83, 141, 78], 3: [181, 159, 59]},
+        {1: [66, 54, 82], 2: [58, 112, 96], 3: [150, 110, 54]},
+        {1: [52, 74, 60], 2: [96, 140, 70], 3: [140, 150, 60]},
+        {1: [84, 40, 56], 2: [120, 70, 120], 3: [190, 150, 60]},
+        {1: [40, 30, 52], 2: [90, 60, 120], 3: [200, 170, 70]}
+      ][n];
+
+      SKY = [
+        null,
+        ['#0b0906', '#1d1710', '#2b2216', '#4a3b26'],
+        ['#07060a', '#151020', '#1d1626', '#3a2c40'],
+        ['#050a06', '#0f1d12', '#16261a', '#2c4430'],
+        ['#0a0408', '#1e0c16', '#2a1220', '#4a2238'],
+        ['#05030a', '#140a22', '#1c1030', '#3a2058']
+      ][n];
     };
-    const descend = () => { if (trans > 0) return; trans = 1.6; transTo = F + 1; sfx('whoosh'); };
-    const solidAt = (x, y) => { const v = map[Math.floor(y)] && map[Math.floor(y)][Math.floor(x)]; return v === undefined ? true : !!v; };
-    const tryMove = (dx, dy) => { const r = 0.22; if (!solidAt(P.x + dx + Math.sign(dx) * r, P.y)) P.x += dx; if (!solidAt(P.x, P.y + dy + Math.sign(dy) * r)) P.y += dy; };
-    // can (ax, ay) see (bx, by)? walls and locked doors block the line
-    const los = (ax, ay, bx, by) => { const d = Math.hypot(bx - ax, by - ay), n = Math.ceil(d / 0.15); for (let i = 1; i < n; i++) { const t = i / n; if (solidAt(ax + (bx - ax) * t, ay + (by - ay) * t)) return false; } return true; };
-    const view = () => { const dirX = Math.cos(P.a), dirY = Math.sin(P.a), plX = -dirY * 0.66, plY = dirX * 0.66; return {dirX, dirY, plX, plY, inv: 1 / (plX * dirY - dirX * plY)}; };
-    const hurt = (src) => {
-      hitCD = 1.2; hp--; hurtFX = 0.4; sfx('squish'); m.shake();
-      tryMove((P.x - src.x) * 0.6, (P.y - src.y) * 0.6);
-      if (hp > 0) { say({slug: 'A slug swooped you! −1 ♥', spitter: 'A spitter bit you! −1 ♥', guard: 'A royal guard shoved you! −1 ♥', glob: 'Slimed! −1 ♥', shard: 'A shell shard! −1 ♥'}[src.kind] || 'A snail! −1 ♥'); return; }
-      sfx('wah'); hp = 3; m.t += WOOM_REVIVE; P.x = P.y = 1.5; hitCD = 2.5; shots = [];
-      say(`You black out... and wake at the start of the floor. −${WOOM_REVIVE} s`, MC.red, 2.6);
-    };
-    const fire = () => {
+
+    const descend = () => {
       if (trans > 0) return;
-      if (!hasGun) { if (msgT <= 0) say(F === 1 ? 'Nothing to fire. Yet.' : 'Nothing to fire. Find something salty.', MC.muted); return; }
-      if (fireCD > 0) return;
-      fireCD = 0.38; recoil = 0.16; flash = 0.08; sfx('zap');
-      for (let i = 0; i < 12; i++) puffs.push({x: m.W / 2 + 62, y: VH - 82, vx: rand(-200, -80), vy: rand(-320, -170), t: rand(0.2, 0.4)});
-      const {dirX, dirY, plX, plY, inv} = view();
+      trans = 1.6; transTo = F + 1; sfx('whoosh');
+    };
+
+    const solidAt = (x, y) => {
+      const v = map[Math.floor(y)] && map[Math.floor(y)][Math.floor(x)];
+      return v === undefined ? true : (v !== 0 && v !== BREACH);
+    };
+
+    const tryMove = (dx, dy) => {
+      const r = 0.22;
+      if (!solidAt(P.x + dx + Math.sign(dx) * r, P.y)) P.x += dx;
+      if (!solidAt(P.x, P.y + dy + Math.sign(dy) * r)) P.y += dy;
+    };
+
+    const los = (ax, ay, bx, by) => {
+      const d = Math.hypot(bx - ax, by - ay), n = Math.ceil(d / 0.15);
+      for (let i = 1; i < n; i++) {
+        const t = i / n;
+        if (solidAt(ax + (bx - ax) * t, ay + (by - ay) * t)) return false;
+      }
+      return true;
+    };
+
+    const hurt = (src) => {
+      hitCD = 1.2; hp--; hurtFX = 0.45; sfx('squish'); m.shake();
+      tryMove((P.x - src.x) * 0.6, (P.y - src.y) * 0.6);
+      if (hp > 0) {
+        say({
+          slug: 'A slug swooped you! −1 ♥',
+          spitter: 'A spitter bit you! −1 ♥',
+          guard: 'A royal guard shoved you! −1 ♥',
+          glob: 'Slimed! −1 ♥',
+          shard: 'A shell shard! −1 ♥'
+        }[src.kind] || 'A snail! −1 ♥');
+        return;
+      }
+      sfx('wah'); hp = 3; m.t += WOOM_REVIVE; P.x = P.y = 1.5; hitCD = 2.5; shots = [];
+      say(`You black out... and wake at the floor start. −${WOOM_REVIVE} s`, MC.red, 2.6);
+    };
+
+    // Melee Shovel Swing & Wall Breaker
+    const swingShovel = () => {
+      if (fireCD > 0 || trans > 0) return;
+      fireCD = 0.32; swingT = 1.0; sfx('whoosh');
+
+      // Check if hitting the cracked wall
+      if (crackedWall && crackedWall.hp > 0) {
+        const d = Math.hypot(crackedWall.x + 0.5 - P.x, crackedWall.y + 0.5 - P.y);
+        const aToWall = Math.atan2(crackedWall.y + 0.5 - P.y, crackedWall.x + 0.5 - P.x);
+        let diff = Math.abs(aToWall - P.a);
+        while (diff > Math.PI) diff = Math.abs(diff - Math.PI * 2);
+
+        if (d < 1.35 && diff < 0.75) {
+          crackedWall.hp--;
+          sfx('crash'); m.shake();
+          for (let i = 0; i < 18; i++) {
+            puffs.push({
+              x: m.W / 2 + rand(-30, 30), y: m.H * 0.45 + rand(-20, 20),
+              vx: rand(-140, 140), vy: rand(-160, 40), t: rand(0.3, 0.6), col: '#8a7b6a'
+            });
+          }
+          if (crackedWall.hp === 2) {
+            say('CRUNCH! The wall fractures! Deep air rushes through the fissure.', MC.gold, 2.5);
+          } else if (crackedWall.hp === 1) {
+            say('SMASH! The foundation is crumbling!', MC.gold, 2.5);
+          } else {
+            // Shattered!
+            map[crackedWall.y][crackedWall.x] = BREACH;
+            sfx('fanfare');
+            say('COLLAPSE! A secret subterranean passage opens!', MC.green, 3.5);
+            return;
+          }
+        }
+      }
+
+      // Melee Bash vs Enemies
+      let hitEnemy = false;
+      for (const s of enemies) {
+        const d = Math.hypot(s.x - P.x, s.y - P.y);
+        const aToEnemy = Math.atan2(s.y - P.y, s.x - P.x);
+        let diff = Math.abs(aToEnemy - P.a);
+        while (diff > Math.PI) diff = Math.abs(diff - Math.PI * 2);
+
+        if (d < 1.4 && diff < 0.65) {
+          hitEnemy = true;
+          s.hurt = 0.35; sfx('crash'); m.shake();
+          // knockback
+          s.x += Math.cos(P.a) * 0.4; s.y += Math.sin(P.a) * 0.4;
+          if (s.kind === 'snail') {
+            s.kind = 'slug'; s.hp = WOOM_HP;
+            say('Shovel smack shattered the shell! It\'s a flying slug!', MC.gold);
+          } else {
+            s.hp -= 2; // Shovel deals heavy melee damage
+            if (s.hp <= 0) {
+              enemies.splice(enemies.indexOf(s), 1); kills++; sfx('pop');
+              if (chance(WOOM_DROP)) hearts.push({x: s.x, y: s.y, drop: true});
+              say('Smacked with the shovel! Defeated!', MC.green);
+            } else {
+              say(`Heavy shovel strike! (${s.hp} HP left)`, MC.gold);
+            }
+          }
+          break;
+        }
+      }
+
+      if (!hitEnemy && !crackedWall) {
+        // Swing puff
+        for (let i = 0; i < 4; i++) {
+          puffs.push({
+            x: m.W / 2 + 50, y: m.H * 0.55,
+            vx: rand(-120, -40), vy: rand(-80, 40), t: 0.25, col: '#fff'
+          });
+        }
+      }
+    };
+
+    // Ranged Salt Fire
+    const fireSalt = () => {
+      if (trans > 0 || fireCD > 0) return;
+      if (!hasGun) {
+        if (msgT <= 0) say(F === 1 ? 'Nothing to fire yet.' : 'Find the Salt Shaker to salt enemies.', MC.muted);
+        return;
+      }
+      fireCD = 0.35; recoil = 0.16; flash = 0.08; sfx('zap');
+      for (let i = 0; i < 14; i++) {
+        puffs.push({
+          x: m.W / 2 + 65, y: m.H * 0.65,
+          vx: rand(-200, -80), vy: rand(-320, -170), t: rand(0.2, 0.4), col: '#ffffff'
+        });
+      }
+
       let best = null;
       for (const s of enemies) {
-        const rx = s.x - P.x, ry = s.y - P.y, tx = inv * (dirY * rx - dirX * ry), ty = inv * (-plY * rx + plX * ry);
-        if (ty <= 0.1 || ty > 9 || ty >= zbuf[RAYS >> 1] + 0.3) continue;
-        const scx = (m.W / 2) * (1 + tx / ty), half = (VH / ty) * 0.25 + 8;
-        if (Math.abs(scx - m.W / 2) < half && (!best || ty < best.ty)) best = {s, ty};
+        const rx = s.x - P.x, ry = s.y - P.y;
+        const d = Math.hypot(rx, ry);
+        const aToEnemy = Math.atan2(ry, rx);
+        let diff = Math.abs(aToEnemy - P.a);
+        while (diff > Math.PI) diff = Math.abs(diff - Math.PI * 2);
+
+        if (d > 0.2 && d < 9 && diff < 0.22 && los(P.x, P.y, s.x, s.y)) {
+          if (!best || d < best.d) best = {s, d};
+        }
       }
       if (!best) return;
       const s = best.s; s.hurt = 0.25; sfx('squish');
-      if (s.kind === 'snail') {   // salt cracks the shell off. Without a shell, it can fly.
+      if (s.kind === 'snail') {
         s.kind = 'slug'; s.hp = WOOM_HP; sfx('crash');
-        say('Shell shattered! It\'s a slug now. Slugs can fly.', MC.gold); return;
+        say('Shell shattered! It\'s a slug now. Slugs can fly.', MC.gold);
+        return;
       }
       s.hp--;
-      const name = {slug: 'slug', spitter: 'spitter', guard: 'guard'}[s.kind];
-      if (s.hp > 0) { say({slug: 'Hit! The slug is furious, and slightly crunchy.', spitter: 'Hit! The spitter gargles angrily.', guard: `Hit! The guard's armour dents. (${s.hp} left)`}[s.kind], MC.gold); return; }
+      if (s.hp > 0) {
+        say({
+          slug: 'Hit! The slug is furious and crunchy.',
+          spitter: 'Hit! The spitter gargles angrily.',
+          guard: `Hit! Guard armor dented. (${s.hp} left)`
+        }[s.kind], MC.gold);
+        return;
+      }
       enemies.splice(enemies.indexOf(s), 1); kills++; sfx('pop');
-      if (chance(WOOM_DROP)) { hearts.push({x: s.x, y: s.y, drop: true}); say(`The ${name} is salted. It left something behind: a heart.`, MC.green); }
-      else say({slug: 'Slug salted. It deflates, gracefully.', spitter: 'Spitter salted. It is out of spit.', guard: 'Guard salted. It salutes, and dissolves.'}[s.kind], MC.green);
+      if (chance(WOOM_DROP)) {
+        hearts.push({x: s.x, y: s.y, drop: true});
+        say('Enemy salted! Left a heart.', MC.green);
+      } else {
+        say('Salted and dissolved.', MC.green);
+      }
     };
+
+    const action = () => {
+      if (hasShovel) swingShovel();
+      else fireSalt();
+    };
+
     const target = () => {
+      if (crackedWall && crackedWall.hp > 0) return {t: {x: crackedWall.x + 0.5, y: crackedWall.y + 0.5}, label: 'CRACKED WALL'};
       if (F === 1) return {t: goal, label: 'WAY DOWN'};
       if (!hasGun && gun) return {t: gun, label: 'SALT'};
-      if (keysHeld > 0) { const d = doors.find(d => !d.open); return d ? {t: {x: d.x + 0.5, y: d.y + 0.5}, label: 'DOOR'} : {t: goal, label: F === LAST ? 'THRONE' : 'HATCH'}; }
+      if (keysHeld > 0) {
+        const d = doors.find(d => !d.open);
+        return d ? {t: {x: d.x + 0.5, y: d.y + 0.5}, label: 'DOOR'} : {t: goal, label: F === LAST ? 'THRONE' : 'HATCH'};
+      }
       const k = keyItems.find(k => !k.got);
       return k ? {t: k, label: 'KEY'} : {t: goal, label: F === LAST ? 'THRONE' : 'HATCH'};
     };
+
     setFloor(1);
-    m.dbg = {P, get map() { return map; }, get floor() { return F; }, get goal() { return goal; }, get keys() { return keyItems; }, get doors() { return doors; }, get gun() { return gun; }, get enemies() { return enemies; }, get hp() { return hp; },
-      descend, give() { hasGun = true; keysHeld = 9; }, to(n) { setFloor(n); m.setTime(FLOORS[n - 1].time); }};   // for ?debug poking
+
+    m.dbg = {
+      P, get map() { return map; }, get floor() { return F; }, get goal() { return goal; },
+      get keys() { return keyItems; }, get doors() { return doors; }, get gun() { return gun; },
+      get enemies() { return enemies; }, get hp() { return hp; },
+      descend, give() { hasGun = true; keysHeld = 9; }, to(n) { setFloor(n); m.setTime(FLOORS[n - 1].time); }
+    };
+
     return {
+      resize(w, h) {
+        m.W = w; m.H = h;
+      },
       timeUp() {
         S.shells = 0;
         if (typeof Bank !== 'undefined') Bank.balance = 0;
         if (typeof UI !== 'undefined' && UI.hud) UI.hud();
         m.lose('Lost in the deep burrow. A gentle hand leads you to the throne room anyway — but took all your shells as a tax.');
       },
-      key(e, down) { if (down && !e.repeat && (e.key === ' ' || e.key === 'f' || e.key === 'F')) fire(); },
+      key(e, down) {
+        if (down && !e.repeat && (e.key === ' ' || e.key === 'f' || e.key === 'F')) action();
+      },
       update(dt) {
-        msgT -= dt; flash -= dt; recoil = Math.max(0, recoil - dt); fireCD -= dt; hitCD -= dt; lockCD -= dt; hurtFX -= dt;
-        for (let i = puffs.length - 1; i >= 0; i--) { const p = puffs[i]; p.x += p.vx * dt; p.y += p.vy * dt; p.t -= dt; if (p.t <= 0) puffs.splice(i, 1); }
+        msgT -= dt; flash -= dt; recoil = Math.max(0, recoil - dt); swingT = Math.max(0, swingT - dt * 3.5);
+        fireCD -= dt; hitCD -= dt; lockCD -= dt; hurtFX -= dt;
+        for (let i = puffs.length - 1; i >= 0; i--) {
+          const p = puffs[i]; p.x += p.vx * dt; p.y += p.vy * dt; p.t -= dt;
+          if (p.t <= 0) puffs.splice(i, 1);
+        }
         if (trans > 0) {
           const was = trans; trans -= dt;
-          if (was > 0.8 && trans <= 0.8) { setFloor(transTo); m.setTime(FL.time); say(`Floor ${F}. ${FL.intro}`, MC.gold, 3); }
+          if (was > 0.8 && trans <= 0.8) {
+            setFloor(transTo); m.setTime(FL.time);
+            say(`Floor ${F}. ${FL.intro}`, MC.gold, 3);
+          }
           return;
         }
+
         if (typeof Music !== 'undefined' && Music.name === 'wordoom' && Music.layers !== F) Music.setLayers(F);
+
         const k = m.held;
         const fw = (k.ArrowUp || k.w || k.W || k.KeyW ? 1 : 0) - (k.ArrowDown || k.s || k.S || k.KeyS ? 1 : 0);
         const tr = (k.ArrowRight || k.d || k.D || k.KeyD ? 1 : 0) - (k.ArrowLeft || k.a || k.A || k.KeyA ? 1 : 0);
         const st = (k.e || k.E || k.KeyE ? 1 : 0) - (k.q || k.Q || k.KeyQ ? 1 : 0);
-        P.a += tr * 2.6 * dt;
-        const sp = 2.7 * dt;
+
+        P.a += tr * 2.8 * dt;
+        const sp = 2.8 * dt;
         tryMove(Math.cos(P.a) * fw * sp - Math.sin(P.a) * st * sp, Math.sin(P.a) * fw * sp + Math.cos(P.a) * st * sp);
+
         const cx = Math.floor(P.x), cy = Math.floor(P.y);
-        for (let y = cy - 1; y <= cy + 1; y++) for (let x = cx - 1; x <= cx + 1; x++) seen.add(key2(x, y));
-        if (hasGun && (k[' '] || k.Space || k.f || k.F || k.KeyF)) fire();   // hold to keep salting
-        // locked doors open when you walk into them holding a key
+        for (let y = cy - 1; y <= cy + 1; y++) {
+          for (let x = cx - 1; x <= cx + 1; x++) seen.add(key2(x, y));
+        }
+
+        // Action auto-repeat if held
+        if (hasGun && (k[' '] || k.Space || k.f || k.F || k.KeyF)) fireSalt();
+
+        // Locked Doors interaction
         for (const d of doors) {
           if (d.open || Math.hypot(d.x + 0.5 - P.x, d.y + 0.5 - P.y) > 0.95) continue;
-          if (keysHeld > 0) { keysHeld--; d.open = true; map[d.y][d.x] = 0; sfx('stamp'); say('Unlocked.', MC.green); }
-          else if (lockCD <= 0) { lockCD = 2; sfx('deny'); say('Locked. This door wants a key.'); }
+          if (keysHeld > 0) {
+            keysHeld--; d.open = true; map[d.y][d.x] = 0; sfx('stamp');
+            say('Unlocked.', MC.green);
+          } else if (lockCD <= 0) {
+            lockCD = 2; sfx('deny'); say('Locked. This door wants a key.');
+          }
         }
-        const boost = 1 + 0.07 * (F - 1);
+
+        // Breached Wall / Subterranean Warren Branch Interaction
+        if (crackedWall && map[crackedWall.y][crackedWall.x] === BREACH) {
+          if (Math.hypot(crackedWall.x + 0.5 - P.x, crackedWall.y + 0.5 - P.y) < 0.65) {
+            // Trigger secret branch into expanded subterranean warren
+            if (typeof S !== 'undefined' && S.flags) S.flags.wordoomCracked = true;
+            if (typeof Achievements !== 'undefined' && Achievements.unlock) Achievements.unlock('digging_deeper');
+            sfx('fanfare');
+            m.win('You shattered the foundation wall with your shovel and descended into the Subterranean Warren!');
+            return;
+          }
+        }
+
+        // Enemy AI & Projectiles
+        const boost = 1 + 0.08 * (F - 1);
         for (const s of enemies) {
           const E = WOOM_ENEMIES[s.kind];
-          s.hurt -= dt; s.bob += dt * 3; s.cd -= dt;
-          // shooters hold still while they can see you, and fire on a cooldown
+          s.hurt -= dt; s.bob += dt * 3.2; s.cd -= dt;
           s.hold = false;
           if (E.shot) {
             const d = Math.hypot(P.x - s.x, P.y - s.y);
@@ -9268,141 +10082,366 @@ Minis.register('wordoom', {
               s.hold = true;
               if (s.cd <= 0 && d > 0.6) {
                 const a = Math.atan2(P.y - s.y, P.x - s.x);
-                for (const da of E.spread) shots.push({x: s.x, y: s.y, vx: Math.cos(a + da) * E.shotSpeed, vy: Math.sin(a + da) * E.shotSpeed, kind: E.shot, life: 4});
-                s.cd = E.every; s.hurt = Math.max(s.hurt, 0.12); sfx(E.shot === 'glob' ? 'squish' : 'laser');
+                for (const da of E.spread) {
+                  shots.push({
+                    x: s.x, y: s.y, vx: Math.cos(a + da) * E.shotSpeed, vy: Math.sin(a + da) * E.shotSpeed,
+                    kind: E.shot, life: 4
+                  });
+                }
+                s.cd = E.every; s.hurt = Math.max(s.hurt, 0.12);
+                sfx(E.shot === 'glob' ? 'squish' : 'laser');
               }
             }
           }
           if (Math.hypot(s.tx - s.x, s.ty - s.y) < 0.05) {
             const ex = Math.floor(s.x), ey = Math.floor(s.y);
             let opts = DIRS.filter(([dx, dy]) => map[ey + dy] && map[ey + dy][ex + dx] === 0);
-            // slugs hunt: in range, they take the step that closes the distance
-            if (s.kind === 'slug' && Math.hypot(P.x - s.x, P.y - s.y) < 7 && opts.length) opts = opts.sort((a, b) => Math.hypot(ex + a[0] + 0.5 - P.x, ey + a[1] + 0.5 - P.y) - Math.hypot(ex + b[0] + 0.5 - P.x, ey + b[1] + 0.5 - P.y)).slice(0, 1);
+            if (s.kind === 'slug' && Math.hypot(P.x - s.x, P.y - s.y) < 7.5 && opts.length) {
+              opts = opts.sort((a, b) => Math.hypot(ex + a[0] + 0.5 - P.x, ey + a[1] + 0.5 - P.y) - Math.hypot(ex + b[0] + 0.5 - P.x, ey + b[1] + 0.5 - P.y)).slice(0, 1);
+            }
             if (opts.length) { const [dx, dy] = pick(opts); s.tx = ex + dx + 0.5; s.ty = ey + dy + 0.5; }
           }
           if (!s.hold) moveToward(s, s.tx, s.ty, E.speed * boost, dt);
           if (hitCD <= 0 && Math.hypot(s.x - P.x, s.y - P.y) < 0.5) hurt(s);
         }
+
+        // Shots
         for (let i = shots.length - 1; i >= 0; i--) {
           const p = shots[i];
-          if (!p) break;   // a hit that blacks you out clears the shot list mid-loop
+          if (!p) break;
           p.x += p.vx * dt; p.y += p.vy * dt; p.life -= dt;
           if (p.life <= 0 || solidAt(p.x, p.y)) { shots.splice(i, 1); continue; }
           if (Math.hypot(p.x - P.x, p.y - P.y) < 0.32) { shots.splice(i, 1); if (hitCD <= 0) hurt(p); }
         }
-        if (gun && !hasGun && Math.hypot(gun.x - P.x, gun.y - P.y) < 0.55) { hasGun = true; gun = null; sfx('fanfare'); say('You found the SALT SHAKER! Space / F to fire.', MC.gold, 2.8); }
-        for (const kk of keyItems) if (!kk.got && Math.hypot(kk.x - P.x, kk.y - P.y) < 0.55) { kk.got = true; keysHeld++; sfx('chime'); say(`A KEY! (${keyItems.filter(x => x.got).length}/${keyItems.length})`, MC.gold, 2.2); }
+
+        // Salt Shaker Pickup
+        if (gun && !hasGun && Math.hypot(gun.x - P.x, gun.y - P.y) < 0.6) {
+          hasGun = true; gun = null; sfx('fanfare');
+          say('You found the SALT SHAKER! Space / F to fire.', MC.gold, 2.8);
+        }
+
+        // 3D Keys Pickup
+        for (const kk of keyItems) {
+          if (!kk.got && Math.hypot(kk.x - P.x, kk.y - P.y) < 0.6) {
+            kk.got = true; keysHeld++; sfx('chime');
+            say(`3D GOLD KEY! (${keyItems.filter(x => x.got).length}/${keyItems.length})`, MC.gold, 2.2);
+          }
+        }
+
+        // Hearts Pickup
         for (let i = hearts.length - 1; i >= 0; i--) {
           const hh = hearts[i];
-          if (Math.hypot(hh.x - P.x, hh.y - P.y) > 0.55) continue;
-          if (hp >= WOOM_MAXHP) { if (msgT <= 0) say('Full health. The heart can wait.', MC.muted, 1); continue; }
+          if (Math.hypot(hh.x - P.x, hh.y - P.y) > 0.6) continue;
+          if (hp >= WOOM_MAXHP) {
+            if (msgT <= 0) say('Full health. The heart can wait.', MC.muted, 1);
+            continue;
+          }
           hp++; hearts.splice(i, 1); sfx('magic'); say('+1 ♥', MC.green, 1.2);
         }
+
+        // Goal & Hatch
         if (Math.hypot(goal.x - P.x, goal.y - P.y) < 0.6) {
           if (!goal.locked) descend();
           else if (keysHeld > 0) {
             keysHeld--; goal.locked = false; sfx('stamp');
-            if (F === LAST) m.win(); else { say('The hatch unlocks.', MC.green); descend(); }
-          } else if (lockCD <= 0) { lockCD = 2; sfx('deny'); say(F === LAST ? `The golden door is locked. ${FL.keys} keys, the sign says.` : 'Locked. There must be a key down here.'); }
+            if (F === LAST) m.win();
+            else { say('The hatch unlocks.', MC.green); descend(); }
+          } else if (lockCD <= 0) {
+            lockCD = 2; sfx('deny');
+            say(F === LAST ? `The golden door is locked. ${FL.keys} keys required.` : 'Locked. Find the 3D key on this floor.');
+          }
         }
-        const g = F === 1 ? 'Floor 1: find the way down' : `Floor ${F}: ${hasGun ? '🧂' : 'find the salt'} · 🔑 ${keyItems.filter(x => x.got).length}/${keyItems.length} · ${'♥'.repeat(Math.max(0, hp))} · salted ${kills}`;
+
+        const g = F === 1 ? 'Floor 1: find the way down' : `Floor ${F}: ${hasShovel ? '⛏️ Shovel' : hasGun ? '🧂' : 'find the salt'} · 🔑 ${keyItems.filter(x => x.got).length}/${keyItems.length} · ${'♥'.repeat(Math.max(0, hp))} · salted ${kills}`;
         if (g !== lastGoal) { lastGoal = g; m.goal(g); }
       },
+
       draw(ctx) {
-        const {dirX, dirY, plX, plY, inv} = view();
+        const W = m.W, H = m.H;
+        const VH = Math.floor(H * 0.82); // 3D Viewport Height
+        const HUD_H = H - VH;
+
+        // Update 3D Camera
+        cam.setPos(P.x, 0.5, P.y);
+        cam.setRot(P.a, 0);
+
+        // Ceiling & Floor Gradients
         const g1 = ctx.createLinearGradient(0, 0, 0, VH);
-        g1.addColorStop(0, SKY[0]); g1.addColorStop(0.5, SKY[1]); g1.addColorStop(0.5, SKY[2]); g1.addColorStop(1, SKY[3]);
-        ctx.fillStyle = g1; ctx.fillRect(0, 0, m.W, VH);
+        g1.addColorStop(0, SKY[0]); g1.addColorStop(0.5, SKY[1]);
+        g1.addColorStop(0.5, SKY[2]); g1.addColorStop(1, SKY[3]);
+        ctx.fillStyle = g1; ctx.fillRect(0, 0, W, VH);
+
+        // Raycasting for Walls
+        const RAYS = Math.min(320, Math.max(160, Math.floor(W / 3)));
+        const CW = W / RAYS;
+        const zbuf = new Float32Array(RAYS);
+        const dirX = Math.cos(P.a), dirY = Math.sin(P.a);
+        const plX = -dirY * 0.66, plY = dirX * 0.66;
+
         for (let i = 0; i < RAYS; i++) {
-          const cx = 2 * (i + 0.5) / RAYS - 1, rdx = dirX + plX * cx, rdy = dirY + plY * cx;
+          const cx = 2 * (i + 0.5) / RAYS - 1;
+          const rdx = dirX + plX * cx, rdy = dirY + plY * cx;
           let mx = Math.floor(P.x), my = Math.floor(P.y);
           const ddx = Math.abs(1 / (rdx || 1e-9)), ddy = Math.abs(1 / (rdy || 1e-9));
           let sx, sy, sdx, sdy, side = 0;
           if (rdx < 0) { sx = -1; sdx = (P.x - mx) * ddx; } else { sx = 1; sdx = (mx + 1 - P.x) * ddx; }
           if (rdy < 0) { sy = -1; sdy = (P.y - my) * ddy; } else { sy = 1; sdy = (my + 1 - P.y) * ddy; }
-          for (let n = 0; n < 64; n++) { if (sdx < sdy) { sdx += ddx; mx += sx; side = 0; } else { sdy += ddy; my += sy; side = 1; } if (!map[my] || map[my][mx]) break; }
+
+          for (let n = 0; n < 64; n++) {
+            if (sdx < sdy) { sdx += ddx; mx += sx; side = 0; } else { sdy += ddy; my += sy; side = 1; }
+            if (!map[my] || (map[my][mx] && map[my][mx] !== BREACH)) break;
+          }
+
           const d = side === 0 ? sdx - ddx : sdy - ddy;
           zbuf[i] = d;
           const lh = VH / Math.max(0.05, d), top = VH / 2 - lh / 2;
-          const cell = (map[my] && map[my][mx]) || 1, fog = Math.max(0.12, 1 - d / 9) * (side ? 0.75 : 1);
-          const base = cell === DOOR ? [150, 96, 36] : WALL[cell];
+          const cell = (map[my] && map[my][mx]) || 1;
+          const fog = Math.max(0.12, 1 - d / 10) * (side ? 0.78 : 1);
+
+          let base = cell === DOOR ? [160, 105, 40] : cell === CRACKED ? [110, 85, 65] : WALL[cell] || [80, 80, 80];
           ctx.fillStyle = `rgb(${base[0] * fog | 0},${base[1] * fog | 0},${base[2] * fog | 0})`;
-          ctx.fillRect(i * CW, top, CW + 0.6, lh);
+          ctx.fillRect(i * CW, top, CW + 0.8, lh);
+
           const hit = side === 0 ? P.y + d * rdy : P.x + d * rdx, fr = hit - Math.floor(hit);
-          if (fr < 0.04 || fr > 0.96) { ctx.fillStyle = 'rgba(0,0,0,.35)'; ctx.fillRect(i * CW, top, CW + 0.6, lh); }
-          if (cell === DOOR) {   // a locked door: planks, an iron band, a keyhole
-            if ((fr * 6 | 0) % 2) { ctx.fillStyle = 'rgba(0,0,0,.15)'; ctx.fillRect(i * CW, top, CW + 0.6, lh); }
-            ctx.fillStyle = `rgba(232,185,49,${0.8 * fog})`; ctx.fillRect(i * CW, top + lh * 0.3, CW + 0.6, lh * 0.06);
-            if (fr > 0.45 && fr < 0.55) { ctx.fillStyle = 'rgba(0,0,0,.8)'; ctx.fillRect(i * CW, top + lh * 0.5, CW + 0.6, lh * 0.14); }
+          // Wall bevel edge lines
+          if (fr < 0.03 || fr > 0.97) {
+            ctx.fillStyle = 'rgba(0,0,0,.35)';
+            ctx.fillRect(i * CW, top, CW + 0.8, lh);
+          }
+
+          // Locked Door Graphics
+          if (cell === DOOR) {
+            if ((fr * 6 | 0) % 2) {
+              ctx.fillStyle = 'rgba(0,0,0,.15)';
+              ctx.fillRect(i * CW, top, CW + 0.8, lh);
+            }
+            ctx.fillStyle = `rgba(232,185,49,${0.85 * fog})`;
+            ctx.fillRect(i * CW, top + lh * 0.3, CW + 0.8, lh * 0.06);
+            if (fr > 0.44 && fr < 0.56) {
+              ctx.fillStyle = 'rgba(0,0,0,.85)';
+              ctx.fillRect(i * CW, top + lh * 0.48, CW + 0.8, lh * 0.15);
+            }
+          }
+
+          // Cracked Foundation Wall (Fissures & Glowing Dust)
+          if (cell === CRACKED) {
+            const crackProg = 3 - (crackedWall ? crackedWall.hp : 3);
+            ctx.fillStyle = `rgba(235,160,60,${(0.3 + crackProg * 0.25) * fog})`;
+            if (Math.abs(fr - 0.5) < (0.08 + crackProg * 0.08)) {
+              ctx.fillRect(i * CW, top + lh * 0.2, CW + 0.8, lh * 0.6);
+            }
+            if ((fr * 10 | 0) % 3 === 0) {
+              ctx.fillStyle = 'rgba(0,0,0,.45)';
+              ctx.fillRect(i * CW, top, CW + 0.8, lh);
+            }
           }
         }
-        const spr = enemies.map(s => ({x: s.x, y: s.y, img: (s.hurt > 0 ? HURT : IMG)[s.kind],
-          sc: {snail: 0.5, slug: 0.45, spitter: 0.5, guard: 0.62}[s.kind], lift: s.kind === 'slug' ? 0.32 + Math.sin(s.bob) * 0.06 : 0}));
-        for (const p of shots) spr.push({x: p.x, y: p.y, img: p.kind === 'glob' ? globImg : shardImg, sc: p.kind === 'glob' ? 0.2 : 0.15, lift: 0.3});
+
+        // --- Render 3D Rotating Keys ---
+        for (const kk of keyItems) {
+          if (kk.got) continue;
+          const pos = {
+            x: kk.x,
+            y: -0.05 + Math.sin(m.t * 3.5 + kk.order) * 0.08,
+            z: kk.y
+          };
+          const rot = {
+            x: 0.15,
+            y: m.t * 2.8 + kk.order * 1.5,
+            z: Math.sin(m.t * 2) * 0.1
+          };
+          Engine3D.renderMesh(ctx, keyMesh, pos, rot, 1, cam, W, VH, {highlight: 0.3});
+        }
+
+        // --- Render 3D Floating Hearts ---
+        for (let i = 0; i < hearts.length; i++) {
+          const hh = hearts[i];
+          const pos = {
+            x: hh.x,
+            y: -0.1 + Math.sin(m.t * 4 + i) * 0.07,
+            z: hh.y
+          };
+          const rot = {
+            x: 0,
+            y: m.t * 2.5 + i,
+            z: Math.sin(m.t * 3) * 0.1
+          };
+          Engine3D.renderMesh(ctx, heartMesh, pos, rot, 1, cam, W, VH, {highlight: 0.2});
+        }
+
+        // --- Render 3D Snails ---
+        for (const s of enemies) {
+          if (s.kind === 'snail') {
+            const pos = {x: s.x, y: -0.32, z: s.y};
+            const aToCam = Math.atan2(P.y - s.y, P.x - s.x);
+            const rot = {x: 0, y: aToCam, z: 0};
+            Engine3D.renderMesh(ctx, snailMesh, pos, rot, 1, cam, W, VH, {
+              highlight: s.hurt > 0 ? 0.6 : 0
+            });
+          }
+        }
+
+        // --- Billboard Sprites (Slugs, Spitters, Guards, Projectiles, Exit) ---
+        const inv = 1 / (plX * dirY - dirX * plY);
+        const spr = [];
+        for (const s of enemies) {
+          if (s.kind !== 'snail') {
+            spr.push({
+              x: s.x, y: s.y, img: (s.hurt > 0 ? HURT : IMG)[s.kind],
+              sc: {slug: 0.46, spitter: 0.52, guard: 0.66}[s.kind],
+              lift: s.kind === 'slug' ? 0.32 + Math.sin(s.bob) * 0.06 : 0
+            });
+          }
+        }
+        for (const p of shots) {
+          spr.push({x: p.x, y: p.y, img: p.kind === 'glob' ? globImg : shardImg, sc: p.kind === 'glob' ? 0.22 : 0.16, lift: 0.3});
+        }
         const exitImg = F === 1 ? holeImg : F === LAST ? (goal.locked ? lockedDoor : doorImg) : (goal.locked ? lockedHatch : hatchImg);
-        spr.push({x: goal.x, y: goal.y, img: exitImg, sc: 0.9, lift: 0});
-        if (gun) spr.push({x: gun.x, y: gun.y, img: shakerImg, sc: 0.4, lift: 0.04});
-        for (const kk of keyItems) if (!kk.got) spr.push({x: kk.x, y: kk.y, img: keyImg, sc: 0.4, lift: 0.25 + Math.sin(m.t * 3 + kk.order) * 0.05});
-        for (const hh of hearts) spr.push({x: hh.x, y: hh.y, img: heartImg, sc: 0.3, lift: 0.12 + Math.sin(m.t * 4) * 0.04});
-        spr.map(s => ({...s, d: (s.x - P.x) ** 2 + (s.y - P.y) ** 2})).sort((a, b) => b.d - a.d).forEach(s => {
-          const rx = s.x - P.x, ry = s.y - P.y;
-          const tx = inv * (dirY * rx - dirX * ry), ty = inv * (-plY * rx + plX * ry);
-          if (ty <= 0.1) return;
-          const lh = VH / ty, scx = (m.W / 2) * (1 + tx / ty), size = lh * s.sc;
-          const top = VH / 2 + lh / 2 - s.lift * lh - size, x0 = scx - size / 2;
-          for (let i = Math.max(0, Math.floor(x0 / CW)); i < Math.min(RAYS, Math.ceil((x0 + size) / CW)); i++) {
-            if (ty >= zbuf[i]) continue;
-            const u = ((i * CW - x0) / size) * 64;
-            ctx.globalAlpha = Math.max(0.25, 1 - ty / 10);
-            ctx.drawImage(s.img, clamp(u, 0, 63), 0, 1, 64, i * CW, top, CW + 0.6, size);
+        spr.push({x: goal.x, y: goal.y, img: exitImg, sc: 0.95, lift: 0});
+
+        if (crackedWall && map[crackedWall.y][crackedWall.x] === BREACH) {
+          spr.push({x: crackedWall.x + 0.5, y: crackedWall.y + 0.5, img: tunnelImg, sc: 0.9, lift: 0});
+        }
+        if (gun) {
+          spr.push({x: gun.x, y: gun.y, img: shakerImg, sc: 0.42, lift: 0.04});
+        }
+
+        spr.map(s => ({...s, d: (s.x - P.x) ** 2 + (s.y - P.y) ** 2}))
+           .sort((a, b) => b.d - a.d)
+           .forEach(s => {
+             const rx = s.x - P.x, ry = s.y - P.y;
+             const tx = inv * (dirY * rx - dirX * ry), ty = inv * (-plY * rx + plX * ry);
+             if (ty <= 0.1) return;
+             const lh = VH / ty, scx = (W / 2) * (1 + tx / ty), size = lh * s.sc;
+             const top = VH / 2 + lh / 2 - s.lift * lh - size, x0 = scx - size / 2;
+             const i0 = Math.max(0, Math.floor(x0 / CW)), i1 = Math.min(RAYS, Math.ceil((x0 + size) / CW));
+             for (let i = i0; i < i1; i++) {
+               if (ty >= zbuf[i]) continue;
+               const u = ((i * CW - x0) / size) * 64;
+               ctx.globalAlpha = Math.max(0.25, 1 - ty / 11);
+               ctx.drawImage(s.img, clamp(u, 0, 63), 0, 1, 64, i * CW, top, CW + 0.8, size);
+             }
+             ctx.globalAlpha = 1;
+           });
+
+        // Vignette & Hurt Flash
+        const vg = ctx.createRadialGradient(W / 2, VH / 2, VH * 0.35, W / 2, VH / 2, VH * 0.9);
+        vg.addColorStop(0, 'rgba(0,0,0,0)'); vg.addColorStop(1, 'rgba(0,0,0,.6)');
+        ctx.fillStyle = vg; ctx.fillRect(0, 0, W, VH);
+        if (hurtFX > 0) {
+          ctx.fillStyle = `rgba(226,70,63,${hurtFX * 0.8})`;
+          ctx.fillRect(0, 0, W, VH);
+        }
+
+        // --- First Person Weapons (Melee Shovel or Salt Shaker) ---
+        if (hasShovel) {
+          // 3D Melee Shovel in First Person
+          const swingAngle = Math.sin(swingT * Math.PI) * 1.1;
+          const shovelPos = {
+            x: P.x + Math.cos(P.a + 0.45) * 0.55 + Math.cos(P.a - 0.3) * swingAngle * 0.3,
+            y: 0.15 - swingAngle * 0.25,
+            z: P.y + Math.sin(P.a + 0.45) * 0.55 + Math.sin(P.a - 0.3) * swingAngle * 0.3
+          };
+          const shovelRot = {
+            x: 0.4 + swingAngle * 0.8,
+            y: P.a - 0.6 + swingAngle * 0.9,
+            z: -0.4 - swingAngle * 0.5
+          };
+          Engine3D.renderMesh(ctx, shovelMesh, shovelPos, shovelRot, 1, cam, W, VH, {highlight: 0.2});
+
+          // Weapon Reticle
+          ctx.strokeStyle = 'rgba(255,215,80,.6)'; ctx.lineWidth = 2; ctx.beginPath();
+          ctx.arc(W / 2, VH / 2, 6, 0, Math.PI * 2); ctx.stroke();
+        } else if (hasGun) {
+          // Salt Shaker in First Person
+          ctx.strokeStyle = 'rgba(255,255,255,.6)'; ctx.lineWidth = 2; ctx.beginPath();
+          ctx.moveTo(W / 2 - 9, VH / 2); ctx.lineTo(W / 2 - 3, VH / 2); ctx.moveTo(W / 2 + 3, VH / 2); ctx.lineTo(W / 2 + 9, VH / 2);
+          ctx.moveTo(W / 2, VH / 2 - 9); ctx.lineTo(W / 2, VH / 2 - 3); ctx.moveTo(W / 2, VH / 2 + 3); ctx.lineTo(W / 2, VH / 2 + 9);
+          ctx.stroke();
+
+          for (const p of puffs) {
+            ctx.globalAlpha = Math.min(1, p.t * 4);
+            ctx.fillStyle = p.col || '#fff'; ctx.fillRect(p.x - 2, p.y - 2, 4, 4);
           }
           ctx.globalAlpha = 1;
-        });
-        const vg = ctx.createRadialGradient(m.W / 2, VH / 2, VH * 0.3, m.W / 2, VH / 2, VH * 0.85);
-        vg.addColorStop(0, 'rgba(0,0,0,0)'); vg.addColorStop(1, 'rgba(0,0,0,.55)'); ctx.fillStyle = vg; ctx.fillRect(0, 0, m.W, VH);
-        if (hurtFX > 0) { ctx.fillStyle = `rgba(226,70,63,${hurtFX * 0.8})`; ctx.fillRect(0, 0, m.W, VH); }
-        // the salt shaker, held in a green glove
-        if (hasGun) {
-          ctx.strokeStyle = 'rgba(255,255,255,.55)'; ctx.lineWidth = 2; ctx.beginPath();
-          ctx.moveTo(m.W / 2 - 9, VH / 2); ctx.lineTo(m.W / 2 - 3, VH / 2); ctx.moveTo(m.W / 2 + 3, VH / 2); ctx.lineTo(m.W / 2 + 9, VH / 2);
-          ctx.moveTo(m.W / 2, VH / 2 - 9); ctx.lineTo(m.W / 2, VH / 2 - 3); ctx.moveTo(m.W / 2, VH / 2 + 3); ctx.lineTo(m.W / 2, VH / 2 + 9); ctx.stroke();
-          for (const p of puffs) { ctx.globalAlpha = Math.min(1, p.t * 4); ctx.fillStyle = '#fff'; ctx.fillRect(p.x - 2, p.y - 2, 4, 4); }
-          ctx.globalAlpha = 1;
-          const bx = m.W / 2 + 70, by = VH - 84 + recoil * 140;
-          ctx.fillStyle = '#ececec'; ctx.fillRect(bx - 22, by + 14, 44, 76); ctx.fillStyle = '#cfcfcf'; ctx.fillRect(bx + 10, by + 14, 12, 76);
-          ctx.fillStyle = '#8a8d91'; ctx.fillRect(bx - 24, by, 48, 16);
-          ctx.fillStyle = '#333'; [[-10, 8], [0, 6], [10, 8]].forEach(([hx, hy]) => { ctx.beginPath(); ctx.arc(bx + hx, by + hy, 2, 0, 7); ctx.fill(); });
-          mText(ctx, 'S', bx - 4, by + 52, 22, '#999');
-          ctx.fillStyle = MC.green; ctx.beginPath(); ctx.ellipse(bx + 2, VH + 4, 44, 28, -0.25, Math.PI, 0); ctx.fill();
-          if (flash > 0) { ctx.fillStyle = 'rgba(255,255,255,.85)'; ctx.beginPath(); ctx.arc(bx - 4, by - 8, 16, 0, 7); ctx.fill(); }
+
+          const bx = W / 2 + 90, by = VH - 84 + recoil * 140;
+          ctx.fillStyle = '#ececec'; ctx.fillRect(bx - 24, by + 14, 48, 80);
+          ctx.fillStyle = '#cfcfcf'; ctx.fillRect(bx + 10, by + 14, 14, 80);
+          ctx.fillStyle = '#8a8d91'; ctx.fillRect(bx - 26, by, 52, 16);
+          ctx.fillStyle = '#333'; [[-12, 8], [0, 6], [12, 8]].forEach(([hx, hy]) => {
+            ctx.beginPath(); ctx.arc(bx + hx, by + hy, 2, 0, 7); ctx.fill();
+          });
+          mText(ctx, 'S', bx - 2, by + 56, 24, '#999');
+          ctx.fillStyle = MC.green; ctx.beginPath();
+          ctx.ellipse(bx + 4, VH + 6, 48, 30, -0.25, Math.PI, 0); ctx.fill();
+          if (flash > 0) {
+            ctx.fillStyle = 'rgba(255,255,255,.85)';
+            ctx.beginPath(); ctx.arc(bx - 4, by - 8, 18, 0, 7); ctx.fill();
+          }
         }
-        // HUD
-        ctx.fillStyle = '#121213'; ctx.fillRect(0, VH, m.W, m.H - VH);
-        ctx.strokeStyle = MC.border; ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(0, VH); ctx.lineTo(m.W, VH); ctx.stroke();
+
+        // --- Floating Modern HUD Bar ---
+        ctx.fillStyle = '#121214'; ctx.fillRect(0, VH, W, HUD_H);
+        ctx.strokeStyle = 'rgba(255,255,255,.1)'; ctx.lineWidth = 1;
+        ctx.beginPath(); ctx.moveTo(0, VH); ctx.lineTo(W, VH); ctx.stroke();
+
+        // 3D Compass Indicator
         const {t: tgt, label} = target();
         const ga = Math.atan2(tgt.y - P.y, tgt.x - P.x) - P.a, gd = Math.hypot(tgt.x - P.x, tgt.y - P.y);
-        ctx.save(); ctx.translate(70, VH + 46); ctx.rotate(ga - Math.PI / 2);   // straight ahead = up
-        ctx.fillStyle = MC.gold; ctx.beginPath(); ctx.moveTo(26, 0); ctx.lineTo(-12, -12); ctx.lineTo(-6, 0); ctx.lineTo(-12, 12); ctx.closePath(); ctx.fill(); ctx.restore();
-        mText(ctx, `${label} ${gd.toFixed(1)}m`, 70, VH + 84, 11, MC.muted);
-        const cs = Math.max(4, Math.floor(84 / G)), ox = m.W - G * cs - 12, oy = VH + 8;
-        for (let y = 0; y < G; y++) for (let x = 0; x < G; x++) {
-          if (!seen.has(key2(x, y))) continue;
-          ctx.fillStyle = map[y][x] === DOOR ? MC.gold : map[y][x] ? '#565758' : '#2a2a2c'; ctx.fillRect(ox + x * cs, oy + y * cs, cs - 1, cs - 1);
+        ctx.save(); ctx.translate(75, VH + HUD_H * 0.42); ctx.rotate(ga - Math.PI / 2);
+        ctx.fillStyle = MC.gold; ctx.beginPath();
+        ctx.moveTo(24, 0); ctx.lineTo(-10, -10); ctx.lineTo(-5, 0); ctx.lineTo(-10, 10); ctx.closePath(); ctx.fill();
+        ctx.restore();
+        mText(ctx, `${label} ${gd.toFixed(1)}m`, 75, VH + HUD_H * 0.78, 11, MC.muted);
+
+        // Mini-Map in top-right / HUD-right
+        const cs = Math.max(3, Math.min(7, Math.floor(75 / G)));
+        const ox = W - G * cs - 20, oy = VH + Math.floor((HUD_H - G * cs) / 2);
+        for (let y = 0; y < G; y++) {
+          for (let x = 0; x < G; x++) {
+            if (!seen.has(key2(x, y))) continue;
+            ctx.fillStyle = map[y][x] === CRACKED ? '#e8a931' : map[y][x] === DOOR ? MC.gold : map[y][x] ? '#565758' : '#2a2a2c';
+            ctx.fillRect(ox + x * cs, oy + y * cs, cs - 1, cs - 1);
+          }
         }
         ctx.fillStyle = MC.green; ctx.fillRect(ox + P.x * cs - 2, oy + P.y * cs - 2, 4, 4);
-        mText(ctx, 'WORDOOM', m.W / 2, VH + 24, 22);
-        mText(ctx, `FLOOR ${F} · ${FL.name}`, m.W / 2, VH + 45, 10, ['#818384', '#b48ce0', '#7fd08a', '#e07ab8', '#c9a0ff'][F - 1]);
-        for (let i = 0; i < WOOM_MAXHP; i++) { ctx.fillStyle = i < hp ? '#e2463f' : '#3a3a3c'; heartPath(ctx, m.W / 2 - 40 + i * 20, VH + 54, 7); }
-        if (F > 1) mText(ctx, `🔑 ${keysHeld}`, m.W / 2 + 70, VH + 64, 13, keysHeld ? MC.gold : MC.muted);
-        mText(ctx, msgT > 0 ? msg : F === 1 ? 'Find the way down' : !hasGun ? 'Something salty is nearby' : label === 'KEY' ? 'Find the key' : label === 'DOOR' ? 'You have a key. Find its door' : 'Find the way out', m.W / 2, VH + 88, 12, msgT > 0 ? msgCol : MC.muted);
+
+        // Center Title & Status
+        mText(ctx, 'WORDOOM 3D', W / 2, VH + 24, 20);
+        mText(ctx, `FLOOR ${F} · ${FL.name}`, W / 2, VH + 44, 11, ['#818384', '#b48ce0', '#7fd08a', '#e07ab8', '#c9a0ff'][F - 1]);
+
+        // Health Hearts
+        for (let i = 0; i < WOOM_MAXHP; i++) {
+          ctx.fillStyle = i < hp ? '#e2463f' : '#3a3a3c';
+          heartPath(ctx, W / 2 - 44 + i * 22, VH + 55, 7.5);
+        }
+
+        // Keys & Weapon Status
+        if (F > 1) {
+          mText(ctx, `🔑 ${keysHeld}`, W / 2 + 85, VH + 65, 14, keysHeld ? MC.gold : MC.muted);
+        }
+        if (hasShovel) {
+          mText(ctx, '⛏️ SHOVEL', W / 2 - 105, VH + 65, 12, '#ffd700');
+        }
+
+        // Dynamic Subtitle message
+        const defaultMsg = F === 1 ? 'Find the way down' : !hasGun && !hasShovel ? 'Something salty is nearby' : label === 'KEY' ? 'Collect the 3D gold key' : label === 'DOOR' ? 'Unlock the locked door' : label === 'CRACKED WALL' ? 'Cracked foundation nearby! Strike with shovel.' : 'Descend deeper';
+        mText(ctx, msgT > 0 ? msg : defaultMsg, W / 2, VH + HUD_H - 12, 12, msgT > 0 ? msgCol : MC.muted);
+
+        // Floor Transition Fade
         if (trans > 0) {
           const a = 1 - Math.abs(trans - 0.8) / 0.8;
-          ctx.fillStyle = `rgba(0,0,0,${clamp(a * 1.3, 0, 1)})`; ctx.fillRect(0, 0, m.W, m.H);
-          if (a > 0.45) { mText(ctx, `FLOOR ${transTo}`, m.W / 2, VH / 2 - 14, 34, MC.gold); mText(ctx, FLOORS[transTo - 1].name, m.W / 2, VH / 2 + 22, 14, MC.muted); }
+          ctx.fillStyle = `rgba(0,0,0,${clamp(a * 1.3, 0, 1)})`;
+          ctx.fillRect(0, 0, W, H);
+          if (a > 0.45) {
+            mText(ctx, `FLOOR ${transTo}`, W / 2, H / 2 - 16, 38, MC.gold);
+            mText(ctx, FLOORS[transTo - 1].name, W / 2, H / 2 + 24, 15, MC.muted);
+          }
         }
-      },
+      }
     };
-  },
+  }
 });
 
 /* ---- js/19-mini-queen.js ---- */

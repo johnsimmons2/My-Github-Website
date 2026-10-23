@@ -1,40 +1,7 @@
-<div class="wordle-page-wrapper">
-  <!-- Top Control Bar -->
-  <header class="wordle-bar">
-    <div class="wordle-bar-left">
-      <a routerLink="/projects" class="back-link">
-        <mat-icon>arrow_back</mat-icon>
-        <span>Back to Projects</span>
-      </a>
-
-      <div class="title-group">
-        <h1 class="page-title">Wordle (?)</h1>
-        <span class="pill-badge emerald">
-          <span class="status-dot"></span> Interactive Placeholder
-        </span>
-      </div>
-    </div>
-
-    <div class="wordle-bar-right">
-      <button class="bar-btn" (click)="reloadGame()" title="Restart Game">
-        <mat-icon>replay</mat-icon>
-        <span>Restart</span>
-      </button>
-
-      <a [href]="rawUrl" class="bar-btn primary" title="Open standalone game directly in this tab">
-        <mat-icon>fullscreen</mat-icon>
-        <span>Open in this tab</span>
-      </a>
-    </div>
-  </header>
-
-  <!-- Game Iframe Container -->
-  <div class="iframe-container">
-    <iframe
-      id="wordle-frame"
-      [src]="gameUrl"
-      allow="autoplay; fullscreen; pointer-lock"
-      title="Wordle (?) Game">
-    </iframe>
-  </div>
-</div>
+<iframe
+  id="wordle-frame"
+  [src]="gameUrl"
+  allow="autoplay; fullscreen; pointer-lock"
+  class="full-game-frame"
+  title="Wordle (?) Game">
+</iframe>

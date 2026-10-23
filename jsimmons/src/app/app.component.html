@@ -1,16 +1,103 @@
 <div class="background">
-  <mat-toolbar style="position: sticky; top: 0; z-index: 999;">
-    <mat-toolbar-row fxLayout="row" fxLayoutAlign="center center">
-      <div fxHide.lt-sm fxFlex="1 0 auto"></div>
-      <a fxHide.lt-md class="toolbar-button" mat-button disabled fxFlex="1 0 auto" [@fade]="sectionTitle">{{sectionTitle}}</a>
-      <div fxHide.lt-md fxFlex="2 0 auto"></div>
-      <a class="toolbar-button" mat-button routerLink="" fxFlex="1 0 auto">Home</a>
-      <a class="toolbar-button"mat-button routerLink="/about" fxFlex="1 0 auto">About</a>
-      <a class="toolbar-button" mat-button routerLink="/projects" fxFlex="1 0 auto">Projects</a>
-      <a class="toolbar-button" color="primary" mat-raised-button routerLink="/contact" fxFlex="1 0 auto" >Contact</a>
-      <div fxHide.lt-sm fxFlex="1 0 auto"></div>
-    </mat-toolbar-row>
-  </mat-toolbar>
+  <header class="site-header">
+    <div class="nav-container">
+      <a routerLink="/" class="brand-link" (click)="closeMobileMenu()">
+        <img src="assets/profile.jpg" alt="Jonathan Simmons" class="brand-avatar" />
+        <div class="brand-text">
+          <span class="brand-name">Jonathan Simmons</span>
+          <span class="brand-title">Full-Stack Software Engineer</span>
+        </div>
+      </a>
 
-  <router-outlet></router-outlet>
+      <!-- Desktop Navigation -->
+      <nav class="desktop-nav">
+        <a routerLink="/" [routerLinkActiveOptions]="{exact: true}" routerLinkActive="active-nav" class="nav-item">
+          Overview
+        </a>
+        <a routerLink="/about" routerLinkActive="active-nav" class="nav-item">
+          About & Education
+        </a>
+        <a routerLink="/projects" routerLinkActive="active-nav" class="nav-item">
+          Projects & 3D
+        </a>
+        <a routerLink="/contact" routerLinkActive="active-nav" class="nav-item">
+          Contact
+        </a>
+      </nav>
+
+      <div class="nav-actions">
+        <a href="https://github.com/johnsimmons2" target="_blank" rel="noopener noreferrer" class="icon-link" title="GitHub Profile">
+          <img src="assets/github.png" alt="GitHub" class="action-icon" />
+        </a>
+        <a href="https://www.linkedin.com/in/jdsimmons1/" target="_blank" rel="noopener noreferrer" class="icon-link" title="LinkedIn Profile">
+          <img src="assets/linkedin.png" alt="LinkedIn" class="action-icon" />
+        </a>
+        <a routerLink="/contact" class="cta-btn desktop-only" (click)="closeMobileMenu()">
+          Get in Touch
+        </a>
+
+        <!-- Mobile Menu Toggle Button -->
+        <button class="mobile-menu-toggle" (click)="toggleMobileMenu()" aria-label="Toggle navigation menu">
+          <mat-icon>{{mobileMenuOpen ? 'close' : 'menu'}}</mat-icon>
+        </button>
+      </div>
+    </div>
+
+    <!-- Mobile Navigation Drawer -->
+    <div class="mobile-drawer" [class.open]="mobileMenuOpen">
+      <nav class="mobile-nav">
+        <a routerLink="/" [routerLinkActiveOptions]="{exact: true}" routerLinkActive="active-nav" class="mobile-nav-item" (click)="closeMobileMenu()">
+          <mat-icon>home</mat-icon>
+          <span>Overview</span>
+        </a>
+        <a routerLink="/about" routerLinkActive="active-nav" class="mobile-nav-item" (click)="closeMobileMenu()">
+          <mat-icon>school</mat-icon>
+          <span>About & Education</span>
+        </a>
+        <a routerLink="/projects" routerLinkActive="active-nav" class="mobile-nav-item" (click)="closeMobileMenu()">
+          <mat-icon>terminal</mat-icon>
+          <span>Projects & 3D</span>
+        </a>
+        <a routerLink="/contact" routerLinkActive="active-nav" class="mobile-nav-item" (click)="closeMobileMenu()">
+          <mat-icon>mail</mat-icon>
+          <span>Contact</span>
+        </a>
+      </nav>
+      <div class="mobile-socials">
+        <a href="https://github.com/johnsimmons2" target="_blank" rel="noopener noreferrer" class="mobile-social-link">
+          <img src="assets/github.png" alt="GitHub" />
+          <span>GitHub</span>
+        </a>
+        <a href="https://www.linkedin.com/in/jdsimmons1/" target="_blank" rel="noopener noreferrer" class="mobile-social-link">
+          <img src="assets/linkedin.png" alt="LinkedIn" />
+          <span>LinkedIn</span>
+        </a>
+      </div>
+    </div>
+  </header>
+
+  <main class="main-content">
+    <router-outlet></router-outlet>
+  </main>
+
+  <footer class="site-footer">
+    <div class="footer-container">
+      <div class="footer-left">
+        <div class="footer-brand">Jonathan Simmons</div>
+        <div class="footer-desc">Full-Stack Software Engineer • BS in Computer Science (4.0 GPA, Summa Cum Laude)</div>
+      </div>
+      <div class="footer-links">
+        <a routerLink="/">Overview</a>
+        <a routerLink="/about">About & Education</a>
+        <a routerLink="/projects">Projects</a>
+        <a routerLink="/games">3D WebGL</a>
+        <a routerLink="/contact">Contact</a>
+        <a href="https://github.com/johnsimmons2" target="_blank" rel="noopener noreferrer">GitHub</a>
+        <a href="https://www.linkedin.com/in/jdsimmons1/" target="_blank" rel="noopener noreferrer">LinkedIn</a>
+      </div>
+      <div class="footer-bottom">
+        <span>© Jonathan Simmons. Built with Angular & Three.js. Hosted on GitHub Pages.</span>
+      </div>
+    </div>
+  </footer>
 </div>

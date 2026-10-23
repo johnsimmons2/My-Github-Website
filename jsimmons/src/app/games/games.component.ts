@@ -3,11 +3,11 @@ import { EngineService } from "./engine.service";
 import { Game } from "./game-selector/game-selector.component";
 import { DemoGame } from "./game-apps/demo-game-app";
 import { TetrisGame } from "./game-apps/tetris-game-app";
-import { Vector3 } from "three";
 
 @Component({
   selector: 'app-games',
   templateUrl: './games.component.html',
+  styleUrls: ['./games.component.scss']
 })
 export class GamesComponent implements OnInit {
 
@@ -19,20 +19,19 @@ export class GamesComponent implements OnInit {
   public games: Game[] = [
     {
       name: "Demo",
-      description: "demo",
+      description: "Interactive 3D Demo",
       id: 0,
       data: new DemoGame()
     },
     {
-      name: "Tetris",
-      description: "tetris clone",
+      name: "Tetris 3D",
+      description: "Interactive 3D Tetris clone",
       id: 1,
       data: new TetrisGame()
     }
   ];
 
-  public constructor(private engServ: EngineService) {
-  }
+  public constructor(private engServ: EngineService) {}
 
   public ngOnInit(): void {
     this.engServ.setupRenderer(this.rendererCanvas);
@@ -41,7 +40,6 @@ export class GamesComponent implements OnInit {
     }
 
     this.changeSelection(1);
-
     this.engServ.animate(this.games[this.selectedId].data, this.selectedId);
   }
 

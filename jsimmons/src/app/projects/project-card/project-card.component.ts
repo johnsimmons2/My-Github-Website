@@ -11,36 +11,48 @@ export interface LanguageCount {
   templateUrl: './project-card.component.html',
   styleUrls: ['./project-card.component.scss']
 })
-export class ProjectCardComponent {
+export class ProjectCardComponent implements OnInit {
 
   @Input() url!: string;
   @Input() name!: string;
   @Input() description!: string;
-  @Input() languagesUrl!: string;
+  @Input() languagesUrl?: string;
   @Input() forkUrl?: string = '';
+  @Input() languageList?: string[] = [];
 
   languages: LanguageCount[] = [];
 
-  constructor(private httpClient: HttpClient) {
+  constructor(private httpClient: HttpClient) {}
+
+  ngOnInit(): void {
+    if (this.languageList && this.languageList.length > 0) {
+      this.languages = this.languageList.map(l => ({ language: l, count: 1 }));
+    } else if (this.languagesUrl) {
+      this.fetchLanguages();
+    }
   }
 
-  orderByCount(languages: LanguageCount[]) {
-    return languages.sort((a, b) => b.count - a.count);
-  }
+  fetchLanguages(): void {
+    if (!this.languagesUrl) return;
 
-  navigate() {
-    window.open(this.url, '_blank')
-  }
-
-  ngAfterViewInit() {
-    this.httpClient.get(this.languagesUrl).subscribe((data: any) => {
-      Object.keys(data).forEach((key: string) => {
-        this.languages.push({
-          language: key,
-          count: data[key]
-        });
-      });
+    this.httpClient.get<Record<string, number>>(this.languagesUrl).subscribe({
+      next: (data) => {
+        if (data && typeof data === 'object') {
+          this.languages = Object.keys(data).map(key => ({
+            language: key,
+            count: data[key]
+          })).sort((a, b) => b.count - a.count);
+        }
+      },
+      error: () => {
+        // Silently ignore GitHub API rate limit for language breakdown
+      }
     });
   }
 
+  navigate(): void {
+    if (this.url) {
+      window.open(this.url, '_blank');
+    }
+  }
 }

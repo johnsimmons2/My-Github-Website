@@ -1,46 +1,144 @@
-<mat-card>
-  <mat-card-header>
-    <mat-card-title>
-      <h1>About me</h1>
-    </mat-card-title>
-    <mat-card-subtitle>
-      <h2>What courses have I taken, More Info etc.</h2>
-    </mat-card-subtitle>
-  </mat-card-header>
-  <mat-card-content>
-    <h3>
-      This part of the site is still under construction, please check back later for more information. For now, to see information relating to my skillsets please check out my <a href="https://www.linkedin.com/in/jdsimmons1/" target="_blank">LinkedIn profile</a>.
-    </h3>
-    <h2>
-      Courses
-    </h2>
-    <p>
-      Through my period of time at UMHB I have taken the following classes:
+<div class="page-container">
+  <!-- Education Header / Hero -->
+  <section class="modern-card education-hero">
+    <div class="edu-top-row">
+      <div class="edu-badge-group">
+        <span class="pill-badge emerald">
+          <mat-icon class="pill-icon">verified</mat-icon> Summa Cum Laude
+        </span>
+        <span class="pill-badge cyan">
+          <mat-icon class="pill-icon">grade</mat-icon> 4.0 GPA
+        </span>
+      </div>
+      <span class="grad-date">Graduated May 2019</span>
+    </div>
+
+    <div class="edu-main-row">
+      <div class="school-logo-wrap">
+        <img src="assets/umhb.png" alt="University of Mary Hardin-Baylor" class="school-logo" />
+      </div>
+      <div class="school-info">
+        <h1 class="degree-title">Bachelor of Science in Computer Science</h1>
+        <div class="minor-title">Minor in Mathematics</div>
+        <div class="school-name">University of Mary Hardin-Baylor • Belton, TX</div>
+      </div>
+    </div>
+
+    <p class="edu-summary-text">
+      Graduated with a perfect 4.0 GPA, with an emphasis on applied mathematics, ordinary and partial differential equations, and systems programming.
+      Served as a Department Tutor for Math, Physics, and CS, Teaching Assistant leading remedial lectures, and laboratory technician maintaining workstations and 3D printers.
+      Also conducted undergraduate research training autonomous AI RC cars for the Computer Science department.
     </p>
-    <mat-list>
-      <mat-list-item>
-        <div matListItemTitle>Math & Physics</div>
-        <div matListItemLine>Ordinary Differential Equations</div>
-        <div matListItemLine>Partial Differential Equations</div>
-        <div matListItemLine>Foundations of Higher Mathematics*</div>
-        <div matListItemLine>Physics With Calculus I & II</div>
-        <div matListItemLine>Calculus I - III</div>
-        <div matListItemLine>Linear Algebra</div>
-        <span matListItemMeta>*Foundational class for proofs and mathematical notations</span>
-      </mat-list-item>
-      <br/>
-      <mat-list-item>
-        <div matListItemTitle>Various Programming Classes</div>
-        <div matListItemLine>Object Oriented Programming</div>
-        <div matListItemLine>Computer Security</div>
-        <div matListItemLine>Operating Systems</div>
-        <div matListItemLine>Big Data & Data Analysis</div>
-        <div matListItemLine>Networking</div>
-        <div matListItemLine>Algorithms*</div>
-        <div matListItemLine>Software Engineering*</div>
-        <div matListItemLine>Computer Science Thoery*</div>
-        <span matListItemMeta>*Taken at a graduate level</span>
-      </mat-list-item>
-    </mat-list>
-  </mat-card-content>
-</mat-card>
+  </section>
+
+  <!-- Academic Honors & Recognitions -->
+  <section class="section-block">
+    <div class="section-header">
+      <span class="section-tag">
+        <mat-icon class="tag-icon">military_tech</mat-icon> Distinctions
+      </span>
+      <h2 class="section-title">Academic Honors & Awards</h2>
+      <p class="section-subtitle">
+        Institutional and national recognitions earned during undergraduate study.
+      </p>
+    </div>
+
+    <div class="honors-grid">
+      <div *ngFor="let honor of honors" class="modern-card honor-card interactive">
+        <div class="honor-header">
+          <div class="honor-icon-wrap">
+            <mat-icon>workspace_premium</mat-icon>
+          </div>
+          <div>
+            <h3 class="honor-title">{{honor.title}}</h3>
+            <span class="pill-badge amber">{{honor.badge}}</span>
+          </div>
+        </div>
+        <p class="honor-desc">{{honor.description}}</p>
+        <div *ngIf="honor.link" class="honor-footer">
+          <a [href]="honor.link" target="_blank" rel="noopener noreferrer" class="link-arrow">
+            <span>Learn More</span>
+            <mat-icon>open_in_new</mat-icon>
+          </a>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Published Research & Academic Collaborations -->
+  <section class="section-block">
+    <div class="section-header">
+      <span class="section-tag">
+        <mat-icon class="tag-icon">menu_book</mat-icon> Academic Research
+      </span>
+      <h2 class="section-title">Published Research & International Collaboration</h2>
+      <p class="section-subtitle">
+        Graduate research conducted through Baylor University.
+      </p>
+    </div>
+
+    <div class="modern-card research-card interactive">
+      <div class="research-header">
+        <div class="research-logo-wrap">
+          <img src="assets/baylor.png" alt="Baylor University" class="research-logo" />
+        </div>
+        <div>
+          <h3 class="research-title">Java Enterprise Software Analysis & Code Clone Detection</h3>
+          <div class="research-meta">
+            <span>Graduate Research Assistant • Baylor University</span>
+            <span class="meta-separator">•</span>
+            <span>Waco, TX & Brno, Czech Republic</span>
+          </div>
+        </div>
+      </div>
+
+      <p class="research-body">
+        Published research on enterprise Java software architecture (DOI: 10.1007/978-981-15-1465-4_38).
+        Traveled to Brno, Czech Republic to collaborate on-site with <strong>Redhat</strong> on code clone detection tools using Python.
+        Additionally partnered with the <strong>Czech Technical University in Prague</strong> to analyze large-scale Java enterprise applications,
+        authoring a custom Java library that transforms uncompiled Java EE source code into a GraphQL object representation of an Abstract Syntax Tree (AST).
+      </p>
+
+      <div class="research-footer">
+        <a href="https://doi.org/10.1007/978-981-15-1465-4_38" target="_blank" rel="noopener noreferrer" class="link-arrow">
+          <span>View DOI Publication</span>
+          <mat-icon>open_in_new</mat-icon>
+        </a>
+      </div>
+    </div>
+  </section>
+
+  <!-- Relevant Coursework -->
+  <section class="section-block">
+    <div class="section-header">
+      <span class="section-tag">
+        <mat-icon class="tag-icon">menu_book</mat-icon> Curriculum
+      </span>
+      <h2 class="section-title">Relevant Coursework</h2>
+      <p class="section-subtitle">
+        Rigorous academic preparation across advanced mathematics and computer science.
+      </p>
+    </div>
+
+    <div class="courses-grid">
+      <div *ngFor="let cat of courseCategories" class="modern-card course-cat-card">
+        <div class="course-cat-header">
+          <div class="cat-icon-wrap">
+            <mat-icon>{{cat.icon}}</mat-icon>
+          </div>
+          <h3 class="cat-title">{{cat.title}}</h3>
+        </div>
+
+        <div class="course-list">
+          <div *ngFor="let course of cat.courses" class="course-item">
+            <div class="course-name">
+              <mat-icon class="bullet-icon">check_circle</mat-icon>
+              <span>{{course.name}}</span>
+            </div>
+            <span *ngIf="course.note" class="pill-badge neutral">{{course.note}}</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+</div>

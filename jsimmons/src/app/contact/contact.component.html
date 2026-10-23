@@ -1,31 +1,125 @@
-<mat-card>
-  <mat-card-header>
-    <mat-card-title>
-      <h1>Contact</h1>
-    </mat-card-title>
-    <mat-card-subtitle>
-      <h2>How to get in Contact with me</h2>
-    </mat-card-subtitle>
-  </mat-card-header>
-  <mat-card-content>
-    <p>
-      I would love to get in touch if you have any questions or comments about my work, or if anything else is on your mind!
-    </p>
-    <mat-list>
-      <mat-list-item>
-        <div matListItemTitle>Socials</div>
-        <a href="https://github.com/johnsimmons2/" target="_blank" matListItemLine>github/johnsimmons2</a>
-        <a href="https://www.linkedin.com/in/jdsimmons1/" target="_blank" matListItemLine>linkedin/jdsimmons1</a>
-      </mat-list-item>
-      <mat-list-item>
-        <div matListItemTitle>Email</div>
-        <div matListItemLine>jsim247@gmail.com</div>
-      </mat-list-item>
-      <mat-list-item>
-        <div matListItemTitle>Phone</div>
-        <div matListItemLine>(903)-258-5884*</div>
-        <span matListItemMeta>*Please text, email, or leave a message first!</span>
-      </mat-list-item>
-    </mat-list>
-  </mat-card-content>
-</mat-card>
+<div class="page-container">
+  <div class="contact-wrapper">
+    <!-- Header -->
+    <div class="section-header">
+      <span class="section-tag">
+        <mat-icon class="tag-icon">chat</mat-icon> Get In Touch
+      </span>
+      <h1 class="section-title">Let's Connect</h1>
+      <p class="section-subtitle">
+        I welcome inquiries about full-stack engineering opportunities, distributed systems, research, or collaboration.
+      </p>
+    </div>
+
+    <div class="contact-grid">
+      <!-- Email Card -->
+      <div class="modern-card contact-card interactive">
+        <div class="contact-card-top">
+          <div class="contact-icon-wrap cyan">
+            <img src="assets/gmail.png" alt="Email" class="contact-logo" />
+          </div>
+          <span class="pill-badge cyan">Primary</span>
+        </div>
+
+        <h3 class="contact-type">Email</h3>
+        <a [href]="'mailto:' + email" class="contact-value">{{email}}</a>
+        <p class="contact-subtext">Direct inbox for professional inquiries and opportunities.</p>
+
+        <div class="contact-card-actions">
+          <a [href]="'mailto:' + email" class="btn-action primary">
+            <mat-icon>email</mat-icon>
+            <span>Compose Email</span>
+          </a>
+          <button (click)="copyToClipboard(email, 'email')" class="btn-action secondary" title="Copy to clipboard">
+            <mat-icon>{{copiedEmail ? 'done' : 'content_copy'}}</mat-icon>
+            <span>{{copiedEmail ? 'Copied!' : 'Copy'}}</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Phone Card -->
+      <div class="modern-card contact-card interactive">
+        <div class="contact-card-top">
+          <div class="contact-icon-wrap emerald">
+            <mat-icon>call</mat-icon>
+          </div>
+          <span class="pill-badge neutral">Direct</span>
+        </div>
+
+        <h3 class="contact-type">Phone</h3>
+        <a [href]="'tel:' + phoneRaw" class="contact-value">{{phone}}</a>
+        <p class="contact-subtext">*Please text, email, or leave a voicemail first.</p>
+
+        <div class="contact-card-actions">
+          <a [href]="'tel:' + phoneRaw" class="btn-action primary">
+            <mat-icon>phone</mat-icon>
+            <span>Call / Text</span>
+          </a>
+          <button (click)="copyToClipboard(phone, 'phone')" class="btn-action secondary" title="Copy to clipboard">
+            <mat-icon>{{copiedPhone ? 'done' : 'content_copy'}}</mat-icon>
+            <span>{{copiedPhone ? 'Copied!' : 'Copy'}}</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- LinkedIn Card -->
+      <div class="modern-card contact-card interactive">
+        <div class="contact-card-top">
+          <div class="contact-icon-wrap indigo">
+            <img src="assets/linkedin.png" alt="LinkedIn" class="contact-logo" />
+          </div>
+          <span class="pill-badge indigo">Network</span>
+        </div>
+
+        <h3 class="contact-type">LinkedIn</h3>
+        <a href="https://www.linkedin.com/in/jdsimmons1/" target="_blank" rel="noopener noreferrer" class="contact-value">
+          linkedin.com/in/jdsimmons1
+        </a>
+        <p class="contact-subtext">Connect professionally and view endorsements.</p>
+
+        <div class="contact-card-actions">
+          <a href="https://www.linkedin.com/in/jdsimmons1/" target="_blank" rel="noopener noreferrer" class="btn-action primary">
+            <mat-icon>open_in_new</mat-icon>
+            <span>View Profile</span>
+          </a>
+        </div>
+      </div>
+
+      <!-- GitHub Card -->
+      <div class="modern-card contact-card interactive">
+        <div class="contact-card-top">
+          <div class="contact-icon-wrap dark">
+            <img src="assets/github.png" alt="GitHub" class="contact-logo" />
+          </div>
+          <span class="pill-badge neutral">Code</span>
+        </div>
+
+        <h3 class="contact-type">GitHub</h3>
+        <a href="https://github.com/johnsimmons2" target="_blank" rel="noopener noreferrer" class="contact-value">
+          github.com/johnsimmons2
+        </a>
+        <p class="contact-subtext">Explore personal repositories and open-source contributions.</p>
+
+        <div class="contact-card-actions">
+          <a href="https://github.com/johnsimmons2" target="_blank" rel="noopener noreferrer" class="btn-action primary">
+            <mat-icon>open_in_new</mat-icon>
+            <span>View Repositories</span>
+          </a>
+        </div>
+      </div>
+    </div>
+
+    <!-- Location Card -->
+    <div class="modern-card location-banner">
+      <div class="loc-icon-wrap">
+        <mat-icon>location_on</mat-icon>
+      </div>
+      <div class="loc-content">
+        <h4 class="loc-title">Location & Availability</h4>
+        <p class="loc-text">
+          Based in <strong>Texas, USA</strong> (Central Texas: Temple, Austin, Waco). Open to remote, hybrid, and local software engineering opportunities.
+        </p>
+      </div>
+    </div>
+  </div>
+</div>

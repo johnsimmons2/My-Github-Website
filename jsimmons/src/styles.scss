@@ -1,69 +1,279 @@
-/* You can add global styles to this file, and also import other style files */
-
+/* Global styles and design system */
 
 @import './themes.scss';
 @include mat-core();
 @include angular-material-theme($app-theme);
 
-html, body { height: 100%; }
-body { margin: 0; font-family: 'Roboto', "Helvetica Neue", sans-serif; }
+:root {
+  --bg-body: #0b0f19;
+  --bg-card: rgba(17, 24, 39, 0.78);
+  --bg-card-elevated: rgba(30, 41, 59, 0.85);
+  --bg-card-hover: rgba(30, 41, 59, 0.95);
+  --border-color: rgba(255, 255, 255, 0.08);
+  --border-color-hover: rgba(56, 189, 248, 0.35);
+  --text-primary: #f8fafc;
+  --text-secondary: #94a3b8;
+  --text-muted: #64748b;
+  --accent-cyan: #38bdf8;
+  --accent-emerald: #10b981;
+  --accent-indigo: #818cf8;
+  --accent-amber: #f59e0b;
+}
+
+*, *::before, *::after {
+  box-sizing: border-box;
+}
+
+html, body {
+  height: 100%;
+  margin: 0;
+  padding: 0;
+  font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  background-color: var(--bg-body);
+  color: var(--text-primary);
+  scroll-behavior: smooth;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
 
 .background {
-  background-image: linear-gradient(to bottom right, #ffffff, #eeeeee);
+  min-height: 100vh;
+  background-color: var(--bg-body);
+  background-image:
+    radial-gradient(circle at 10% 10%, rgba(56, 189, 248, 0.06) 0%, transparent 35%),
+    radial-gradient(circle at 90% 20%, rgba(129, 140, 248, 0.06) 0%, transparent 35%),
+    radial-gradient(circle at 50% 80%, rgba(16, 185, 129, 0.04) 0%, transparent 40%);
+  background-attachment: fixed;
+  display: flex;
+  flex-direction: column;
 }
 
-.mat-typography h3 {
-  font-size: 24px;
-  line-height: 32px;
-  font-weight: 400;
-  margin: 0;
-  padding: 8px;
+.page-container {
+  width: 100%;
+  max-width: 1120px;
+  margin: 0 auto;
+  padding: 32px 24px 80px;
 }
 
-.mat-typography h1 {
-  font-size: 28px;
-  line-height: 32px;
-  font-weight: 400;
-  margin: 0;
-  padding: 8px;
+@media (max-width: 768px) {
+  .page-container {
+    padding: 20px 16px 60px;
+  }
 }
 
-hr {
-  border-width: 0;
+/* Typography Defaults */
+h1, h2, h3, h4, h5, h6 {
+  color: var(--text-primary);
+  margin-top: 0;
+  font-weight: 700;
+  letter-spacing: -0.02em;
 }
 
 p {
-  font-size: 16px;
-  line-height: 24px;
-  word-wrap: break-word;
-  overflow-wrap: break-word;
-  hyphens: auto;
-  color: gray;
+  color: var(--text-secondary);
+  font-size: 1rem;
+  line-height: 1.65;
+  margin: 0 0 16px;
+}
 
-  @media screen and (min-width: 600px) {
-    font-size: 18px;
-    line-height: 30px;
+a {
+  color: var(--accent-cyan);
+  text-decoration: none;
+  transition: color 0.2s ease;
+
+  &:hover {
+    color: #7dd3fc;
+    text-decoration: underline;
   }
 }
 
-/* Small Screen */
-@media only screen and (max-width: 1000px) {
-  mat-card, .faux-card {
-    max-width: 80%;
-    padding: 0px;
+code, pre {
+  font-family: 'JetBrains Mono', monospace;
+}
+
+/* Glass Card Design */
+.modern-card {
+  background: var(--bg-card);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid var(--border-color);
+  border-radius: 16px;
+  padding: 32px;
+  box-shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.4);
+  transition: transform 0.25s ease, border-color 0.25s ease, box-shadow 0.25s ease;
+  position: relative;
+  overflow: hidden;
+
+  &.interactive:hover {
+    border-color: var(--border-color-hover);
+    transform: translateY(-2px);
+    box-shadow: 0 16px 36px -10px rgba(0, 0, 0, 0.6);
   }
 
-  mat-card-content {
-    padding: 0 5px;
+  @media (max-width: 600px) {
+    padding: 20px 16px;
   }
 }
 
-/* Medium Screen */
-@media only screen and (min-width: 1000px) {
-  mat-card, .faux-card {
-    max-width: 70%;
-    margin: auto auto 10px;
-    padding: 32px;
+/* Section Header Utility */
+.section-header {
+  margin-bottom: 28px;
+
+  .section-tag {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 0.8rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--accent-cyan);
+    margin-bottom: 8px;
   }
 
+  .section-title {
+    font-size: 2rem;
+    font-weight: 800;
+    letter-spacing: -0.025em;
+    color: var(--text-primary);
+    margin: 0 0 8px;
+
+    @media (max-width: 600px) {
+      font-size: 1.6rem;
+    }
+  }
+
+  .section-subtitle {
+    font-size: 1.05rem;
+    color: var(--text-secondary);
+    margin: 0;
+  }
+}
+
+/* Modern Pill Badges */
+.pill-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 12px;
+  border-radius: 9999px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  line-height: 1.4;
+  white-space: nowrap;
+
+  &.cyan {
+    background: rgba(56, 189, 248, 0.12);
+    color: #38bdf8;
+    border: 1px solid rgba(56, 189, 248, 0.25);
+  }
+
+  &.emerald {
+    background: rgba(16, 185, 129, 0.12);
+    color: #34d399;
+    border: 1px solid rgba(16, 185, 129, 0.25);
+  }
+
+  &.indigo {
+    background: rgba(129, 140, 248, 0.12);
+    color: #a5b4fc;
+    border: 1px solid rgba(129, 140, 248, 0.25);
+  }
+
+  &.amber {
+    background: rgba(245, 158, 11, 0.12);
+    color: #fbbf24;
+    border: 1px solid rgba(245, 158, 11, 0.25);
+  }
+
+  &.neutral {
+    background: rgba(255, 255, 255, 0.05);
+    color: var(--text-secondary);
+    border: 1px solid var(--border-color);
+  }
+}
+
+/* Angular Material Overrides */
+mat-toolbar {
+  background: rgba(11, 15, 25, 0.85) !important;
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border-bottom: 1px solid var(--border-color);
+  color: var(--text-primary) !important;
+}
+
+mat-card {
+  background: var(--bg-card) !important;
+  color: var(--text-primary) !important;
+  border: 1px solid var(--border-color) !important;
+  border-radius: 16px !important;
+  box-shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.4) !important;
+}
+
+mat-card-header {
+  padding-bottom: 12px;
+}
+
+mat-card-title h1, mat-card-title h2 {
+  color: var(--text-primary) !important;
+}
+
+mat-card-subtitle h2, mat-card-subtitle p {
+  color: var(--text-secondary) !important;
+}
+
+mat-accordion .mat-expansion-panel {
+  background: var(--bg-card) !important;
+  color: var(--text-primary) !important;
+  border: 1px solid var(--border-color) !important;
+  border-radius: 12px !important;
+  margin-bottom: 12px !important;
+  overflow: hidden;
+
+  &::before {
+    display: none !important;
+  }
+}
+
+.mat-expansion-panel-header-title {
+  color: var(--text-primary) !important;
+  font-weight: 600;
+}
+
+.mat-expansion-panel-header-description {
+  color: var(--text-secondary) !important;
+}
+
+.mat-mdc-chip {
+  background-color: rgba(255, 255, 255, 0.06) !important;
+  color: var(--text-primary) !important;
+  border: 1px solid var(--border-color) !important;
+  font-size: 0.85rem !important;
+  font-weight: 500 !important;
+}
+
+.mat-mdc-button, .mat-mdc-outlined-button, .mat-mdc-unelevated-button {
+  font-family: inherit !important;
+  font-weight: 600 !important;
+  letter-spacing: -0.01em !important;
+  border-radius: 10px !important;
+}
+
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--bg-body);
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.15);
+  border-radius: 4px;
+
+  &:hover {
+    background: rgba(255, 255, 255, 0.25);
+  }
 }

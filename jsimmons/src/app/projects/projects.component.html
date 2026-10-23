@@ -1,85 +1,217 @@
-<div>
-  <mat-card style="margin-top: 50px;">
-    <mat-card-header>
-      <mat-card-title>
-        <h1>Gismos</h1>
-      </mat-card-title>
-      <mat-card-subtitle>
-        <h2>Check out some projects live</h2>
-      </mat-card-subtitle>
-    </mat-card-header>
-    <mat-card-content fxLayout="row" fxLayoutGap="12px">
-      <button matTooltip="three.js applications" mat-stroked-button color="primary" (click)="router.navigate(['/games'])">
-        <a>Games</a>
-        <mat-icon>arrow_right</mat-icon>
-      </button>
-      <div matTooltip="Under construction (VTTRPG manager)">
-        <button mat-stroked-button disabled color="primary">
-          <a>CytherNet</a>
-          <mat-icon>arrow_right</mat-icon>
-        </button>
+<div class="page-container">
+  <!-- Interactive 3D WebGL & Games Feature Banner -->
+  <section class="featured-banner modern-card">
+    <div class="banner-badge-row">
+      <span class="pill-badge emerald">
+        <mat-icon class="pill-icon">sports_esports</mat-icon> Interactive Games & Gizmos
+      </span>
+      <span class="pill-badge cyan">Playable in Browser</span>
+    </div>
+
+    <div class="banner-body">
+      <div class="banner-text">
+        <h1 class="banner-title">Interactive Games & 3D WebGL</h1>
+        <p class="banner-desc">
+          Explore client-side graphics engines and interactive browser games, including our custom Three.js 3D pipeline and single-page web experiments.
+        </p>
+        <div class="banner-actions">
+          <a routerLink="/games" class="btn-primary">
+            <mat-icon>view_in_ar</mat-icon>
+            <span>Play 3D Games</span>
+          </a>
+
+          <!-- Wordle (?) Play Game Button -->
+          <a routerLink="/wordle" target="_blank" rel="noopener noreferrer" class="btn-play-game" title="Play Wordle (?)">
+            <span class="game-btn-inner">
+              <mat-icon class="game-pad-icon">sports_esports</mat-icon>
+              <span class="game-btn-text">Wordle (?)</span>
+              <span class="play-badge">
+                <mat-icon class="play-icon">play_arrow</mat-icon>
+                <span>PLAY</span>
+              </span>
+            </span>
+          </a>
+        </div>
       </div>
-      <div matTooltip="Under construction, check back soon!">
-        <button mat-stroked-button disabled color="primary">
-          <a>Mynt Interpreter</a>
-          <mat-icon>arrow_right</mat-icon>
-        </button>
+      <div class="banner-graphic">
+        <div class="graphic-cube">
+          <mat-icon>sports_esports</mat-icon>
+        </div>
       </div>
-    </mat-card-content>
-  </mat-card>
+    </div>
+  </section>
 
-  <br/>
-
-  <mat-card>
-    <mat-card-header>
-      <mat-card-title>
-        <h1>Current Projects</h1>
-      </mat-card-title>
-    </mat-card-header>
-    <mat-card-content>
-      <p>
-        My current main projects that I am working on are <b>CytherNet, Mynt</b>, and a <b>particle simulation</b>/data visualization tool.
+  <!-- Featured Software Engineering Projects -->
+  <section class="section-block">
+    <div class="section-header">
+      <span class="section-tag">
+        <mat-icon class="tag-icon">terminal</mat-icon> Flagship Work
+      </span>
+      <h2 class="section-title">Current & Highlighted Projects</h2>
+      <p class="section-subtitle">
+        Key engineering efforts spanning full-stack web applications, compilers, and interactive browser games.
       </p>
-      <p>
-        You can see a list of my github projects below, but here are the ones I am working on the most right now.
-        <mat-list>
-          <div mat-subheader>Current Projects</div>
-          <a mat-button style="height:100%;" href="https://github.com/johnsimmons2/CytherNet" target="_blank">
-            <mat-list-item lines="3">
-              <mat-icon matListItemIcon>folder</mat-icon>
-              <div matListItemTitle><b>CytherNet</b></div>
-              <span>A VTT and character (CRUD) manager for a DnD campaign I run. Custom JWT authentication and authorization.</span>
-            </mat-list-item>
+    </div>
+
+    <div class="featured-projects-grid">
+      <!-- Wordle (?) Card -->
+      <div class="modern-card featured-proj-card interactive game-card-highlight">
+        <div class="proj-top">
+          <div class="proj-icon wordle-icon">
+            <mat-icon>videogame_asset</mat-icon>
+          </div>
+          <span class="pill-badge emerald">
+            <span class="status-dot-pulse"></span> Playable Game
+          </span>
+        </div>
+
+        <h3 class="proj-name">Wordle (?)</h3>
+        <div class="proj-tagline">Single-Page Browser Word Game</div>
+        <p class="proj-description">
+          An interactive, standalone browser-based word puzzle game and experimental mechanics demo built with custom canvas rendering and keyboard controls.
+        </p>
+
+        <div class="proj-tech-stack">
+          <span class="pill-badge wordle-tile g">W</span>
+          <span class="pill-badge wordle-tile y">O</span>
+          <span class="pill-badge wordle-tile g">R</span>
+          <span class="pill-badge wordle-tile y">D</span>
+          <span class="pill-badge neutral">HTML5 Canvas</span>
+          <span class="pill-badge neutral">JavaScript</span>
+          <span class="pill-badge neutral">Single-Page App</span>
+        </div>
+
+        <div class="proj-footer">
+          <a routerLink="/wordle" target="_blank" rel="noopener noreferrer" class="btn-arcade-play">
+            <mat-icon>play_circle</mat-icon>
+            <span>Play Wordle (?)</span>
+            <mat-icon class="arrow-icon">open_in_new</mat-icon>
           </a>
-          <a mat-button style="height:100%;" href="https://github.com/johnsimmons2/CytherNet" target="_blank">
-            <mat-list-item lines="3">
-              <mat-icon matListItemIcon>folder</mat-icon>
-              <div matListItemTitle><b>Mynt</b></div>
-              <span>Parser/Lexer/Compiler for a scripting language to make minecraft datapacks.</span>
-            </mat-list-item>
+        </div>
+      </div>
+
+      <!-- CytherNet -->
+      <div class="modern-card featured-proj-card interactive">
+        <div class="proj-top">
+          <div class="proj-icon cyan">
+            <mat-icon>shield</mat-icon>
+          </div>
+          <span class="pill-badge cyan">Active Project</span>
+        </div>
+
+        <h3 class="proj-name">CytherNet</h3>
+        <div class="proj-tagline">Virtual Tabletop & Character Manager (D&D 5e)</div>
+        <p class="proj-description">
+          A full-stack VTT and character CRUD manager built for a tabletop D&D campaign I run.
+          Features custom JWT authentication and authorization, database schema migrations via Alembic,
+          and a responsive client interface.
+        </p>
+
+        <div class="proj-tech-stack">
+          <span class="pill-badge neutral">Angular</span>
+          <span class="pill-badge neutral">Python / Flask</span>
+          <span class="pill-badge neutral">PostgreSQL</span>
+          <span class="pill-badge neutral">Alembic</span>
+          <span class="pill-badge neutral">Node.js</span>
+          <span class="pill-badge neutral">Custom JWT Auth</span>
+        </div>
+
+        <div class="proj-footer">
+          <a href="https://github.com/johnsimmons2/CytherNet" target="_blank" rel="noopener noreferrer" class="link-arrow">
+            <span>View Repository on GitHub</span>
+            <mat-icon>open_in_new</mat-icon>
           </a>
-          <a mat-button style="height:100%;" href="https://github.com/johnsimmons2/CytherNet" target="_blank">
-            <mat-list-item lines="3">
-              <mat-icon matListItemIcon>folder</mat-icon>
-              <div matListItemTitle><b>MathViz</b></div>
-              <span>Particle simulations, data visualization; number theory assistant tool.</span>
-            </mat-list-item>
+        </div>
+      </div>
+
+      <!-- Mynt -->
+      <div class="modern-card featured-proj-card interactive">
+        <div class="proj-top">
+          <div class="proj-icon indigo">
+            <mat-icon>memory</mat-icon>
+          </div>
+          <span class="pill-badge indigo">Language Tooling</span>
+        </div>
+
+        <h3 class="proj-name">Mynt</h3>
+        <div class="proj-tagline">Scripting Language Compiler & Lexer</div>
+        <p class="proj-description">
+          A dedicated parser, lexer, and compiler for a domain-specific scripting language targeting Minecraft datapacks.
+          Translates high-level scripts into structured AST nodes and compiles them into optimized game commands.
+        </p>
+
+        <div class="proj-tech-stack">
+          <span class="pill-badge neutral">Compiler Design</span>
+          <span class="pill-badge neutral">Lexical Analysis</span>
+          <span class="pill-badge neutral">AST Generation</span>
+          <span class="pill-badge neutral">Code Generation</span>
+        </div>
+
+        <div class="proj-footer">
+          <a href="https://github.com/johnsimmons2" target="_blank" rel="noopener noreferrer" class="link-arrow">
+            <span>Explore on GitHub</span>
+            <mat-icon>open_in_new</mat-icon>
           </a>
-        </mat-list>
+        </div>
+      </div>
+
+      <!-- MathViz -->
+      <div class="modern-card featured-proj-card interactive">
+        <div class="proj-top">
+          <div class="proj-icon emerald">
+            <mat-icon>scatter_plot</mat-icon>
+          </div>
+          <span class="pill-badge emerald">Scientific Computing</span>
+        </div>
+
+        <h3 class="proj-name">MathViz</h3>
+        <div class="proj-tagline">Particle Simulations & Number Theory Assistant</div>
+        <p class="proj-description">
+          A scientific computing and visualization workbench for simulated particle dynamics and number theory exploration.
+          Designed to visualize physical behaviors and mathematical structures interactively.
+        </p>
+
+        <div class="proj-tech-stack">
+          <span class="pill-badge neutral">Python</span>
+          <span class="pill-badge neutral">Particle Physics</span>
+          <span class="pill-badge neutral">Data Visualization</span>
+          <span class="pill-badge neutral">Number Theory</span>
+        </div>
+
+        <div class="proj-footer">
+          <a href="https://github.com/johnsimmons2" target="_blank" rel="noopener noreferrer" class="link-arrow">
+            <span>Explore on GitHub</span>
+            <mat-icon>open_in_new</mat-icon>
+          </a>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- GitHub Repositories Grid -->
+  <section class="section-block">
+    <div class="section-header">
+      <span class="section-tag">
+        <mat-icon class="tag-icon">code</mat-icon> Code Repositories
+      </span>
+      <h2 class="section-title">GitHub Projects</h2>
+      <p class="section-subtitle">
+        Public open-source codebases hosted on GitHub.
       </p>
-    </mat-card-content>
-  </mat-card>
+    </div>
 
-  <br/>
-
-  <div class="faux-card">
-    <h1>Github Projects</h1>
-    <h2>Check out my projects on github with their source code.</h2>
-    <div fxLayout="column warp" fxLayoutAlign="space-evenly start" >
-      <app-project-card fxFlex fxFill *ngFor="let card of sortByNotEmpty(projects)" [name]="card.name" [description]="card.description" [forkUrl]="card.forkUrl" [languagesUrl]="card.languages" [url]="card.url">
+    <div class="repos-grid">
+      <app-project-card
+        *ngFor="let card of projects"
+        [name]="card.name"
+        [description]="card.description"
+        [forkUrl]="card.forkUrl"
+        [languagesUrl]="card.languages"
+        [languageList]="card.languageList"
+        [url]="card.url">
       </app-project-card>
     </div>
-  </div>
+  </section>
 </div>
 
 

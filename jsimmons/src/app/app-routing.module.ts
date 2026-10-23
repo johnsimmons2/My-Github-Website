@@ -6,11 +6,12 @@ import { AboutComponent } from './about/about.component';
 import { ProjectsComponent } from './projects/projects.component';
 import { ContactComponent } from './contact/contact.component';
 import { GamesComponent } from './games/games.component';
+import { WordleComponent } from './wordle/wordle.component';
 
 const routes: Routes = [
   {
     path: '',
-    component: HomeComponent // This will be the default component
+    component: HomeComponent
   },
   {
     path: 'about',
@@ -29,8 +30,37 @@ const routes: Routes = [
     component: GamesComponent
   },
   {
+    path: 'wordle',
+    component: WordleComponent
+  },
+  {
+    path: 'wordliest',
+    redirectTo: 'wordle',
+    pathMatch: 'full'
+  },
+  {
+    path: 'wordliest.html',
+    redirectTo: 'wordle',
+    pathMatch: 'full'
+  },
+  {
+    path: 'wordle.html',
+    redirectTo: 'wordle',
+    pathMatch: 'full'
+  },
+  {
+    path: 'wordoom',
+    redirectTo: 'wordle',
+    pathMatch: 'full'
+  },
+  {
+    path: 'wordoom.html',
+    redirectTo: 'wordle',
+    pathMatch: 'full'
+  },
+  {
     path: '**',
-    component: NotFoundComponent // This will be the 404 or unknown page path
+    component: NotFoundComponent
   },
 ];
 

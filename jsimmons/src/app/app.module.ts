@@ -30,6 +30,7 @@ import {MatInputModule} from '@angular/material/input';
 import {MatFormFieldModule} from '@angular/material/form-field';
 import { AppCarosel } from './home/carosel/carosel.component';
 import { MatProgressBarModule } from '@angular/material/progress-bar'
+import { WordleComponent } from './wordle/wordle.component';
 
 @NgModule({
   declarations: [
@@ -42,7 +43,8 @@ import { MatProgressBarModule } from '@angular/material/progress-bar'
     GamesComponent,
     ProjectCardComponent,
     GameSelectorComponent,
-    AppCarosel
+    AppCarosel,
+    WordleComponent
   ],
   imports: [
     BrowserModule,
@@ -71,3 +73,4 @@ import { MatProgressBarModule } from '@angular/material/progress-bar'
   bootstrap: [AppComponent]
 })
 export class AppModule { }
+

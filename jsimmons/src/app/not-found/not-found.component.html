@@ -1,13 +1,19 @@
-<mat-card>
-  <mat-card-header>
-    <mat-card-title>
-      <h1>404!</h1>
-    </mat-card-title>
-    <mat-card-subtitle>
-      <h2>Page not found...</h2>
-    </mat-card-subtitle>
-  </mat-card-header>
-  <mat-card-content>
-    <p>Sorry, the page ({{path}}) you are looking for does not exist.</p>
-  </mat-card-content>
-</mat-card>
+<div class="page-container">
+  <div class="not-found-card modern-card">
+    <div class="not-found-badge">404 Error</div>
+    <h1 class="not-found-title">Page Not Found</h1>
+    <p class="not-found-desc">
+      The requested route <code>{{path}}</code> does not exist on this portfolio.
+    </p>
+    <div class="not-found-actions">
+      <a routerLink="/" class="btn-primary">
+        <mat-icon>home</mat-icon>
+        <span>Return to Overview</span>
+      </a>
+      <a routerLink="/projects" class="btn-secondary">
+        <mat-icon>terminal</mat-icon>
+        <span>View Projects</span>
+      </a>
+    </div>
+  </div>
+</div>

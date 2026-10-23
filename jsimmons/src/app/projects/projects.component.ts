@@ -1,12 +1,13 @@
 import { HttpClient } from '@angular/common/http';
-import { AfterViewInit, Component, OnInit } from '@angular/core';
+import { Component, OnInit } from '@angular/core';
 import { Router } from '@angular/router';
 
 export interface Project {
   url: string;
   name: string;
   description: string;
-  languages: string;
+  languages?: string;
+  languageList?: string[];
   forkUrl?: string;
 }
 
@@ -15,52 +16,62 @@ export interface Project {
   templateUrl: './projects.component.html',
   styleUrls: ['./projects.component.scss']
 })
-export class ProjectsComponent implements AfterViewInit {
+export class ProjectsComponent implements OnInit {
 
-  private GITHUB_ADDRESS: string = 'https://api.github.com/users/';
-
+  private GITHUB_API: string = 'https://api.github.com/users/johnsimmons2/repos';
   projects: Project[] = [];
+  isLoadingRepos: boolean = true;
 
-  constructor(private httpService: HttpClient, public router: Router) {
+  // Curated list ensuring repos always display even if GitHub API is rate-limited
+  fallbackProjects: Project[] = [
+    {
+      name: 'CytherNet',
+      url: 'https://github.com/johnsimmons2/CytherNet',
+      description: 'A VTT (Virtual Tabletop) and character (CRUD) manager for tabletop campaigns. Built with Python, Flask, Alembic, Angular, Node, and PostgreSQL with custom JWT authentication.',
+      languageList: ['TypeScript', 'Python', 'PostgreSQL', 'HTML/SCSS']
+    },
+    {
+      name: 'My-Github-Website',
+      url: 'https://github.com/johnsimmons2/My-Github-Website',
+      description: 'Source code for personal developer portfolio and 3D graphics applications built using Angular, TypeScript, Three.js, and SCSS.',
+      languageList: ['TypeScript', 'SCSS', 'HTML', 'Three.js']
+    },
+    {
+      name: 'johnsimmons2.github.io',
+      url: 'https://github.com/johnsimmons2/johnsimmons2.github.io',
+      description: 'Production static deployment repository for the portfolio website hosted on GitHub Pages.',
+      languageList: ['JavaScript', 'HTML', 'CSS']
+    }
+  ];
+
+  constructor(private httpService: HttpClient, public router: Router) {}
+
+  ngOnInit(): void {
+    this.fetchRepos();
   }
 
-  /**
-   * Sort the list of projects first by alphabetical order, then sort that by whether there is a description.
-   * @param projects
-   * @returns
-   */
-  sortByNotEmpty(projects: Project[]) {
-    return projects.sort((a,b) => a.name.localeCompare(b.name)).sort((a, b) => {
-      if (!this.nullOrEmpty(a.description) && this.nullOrEmpty(b.description)) {
-        return -1;
-      } else if (this.nullOrEmpty(a.description) && !this.nullOrEmpty(b.description)) {
-        return 1;
+  fetchRepos(): void {
+    this.isLoadingRepos = true;
+    this.httpService.get<any[]>(this.GITHUB_API).subscribe({
+      next: (data) => {
+        if (Array.isArray(data) && data.length > 0) {
+          this.projects = data.map((item: any) => ({
+            url: item.html_url,
+            name: item.name,
+            description: item.description || 'Personal software engineering project on GitHub.',
+            languages: item.languages_url,
+            forkUrl: item.forks_url
+          })).sort((a, b) => a.name.localeCompare(b.name));
+        } else {
+          this.projects = this.fallbackProjects;
+        }
+        this.isLoadingRepos = false;
+      },
+      error: (err) => {
+        console.warn('GitHub API rate limited or unreachable, using fallback list', err);
+        this.projects = this.fallbackProjects;
+        this.isLoadingRepos = false;
       }
-      return 0;
     });
   }
-
-  nullOrEmpty(str: string | undefined): boolean {
-    return str == null || str == '';
-  }
-
-  ngAfterViewInit() {
-    let tmpProjects: Project[] = [];
-    this.httpService.get(this.GITHUB_ADDRESS + 'johnsimmons2/repos').subscribe((data: any) => {
-      console.log(data);
-      Array.from(data).forEach((element: any) => {
-        tmpProjects.push({
-          url: element['html_url'],
-          name: element['name'],
-          description: element['description'],
-          languages: element['languages_url'],
-          forkUrl: element['forks_url']
-        });
-      });
-    });
-
-    this.projects = tmpProjects;
-  }
-
-
 }

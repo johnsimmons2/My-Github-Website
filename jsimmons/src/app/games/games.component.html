@@ -1,16 +1,33 @@
 <div class="engine-wrapper">
-  <div class="hud" style="position: absolute; top: 5%; z-index: 9999; display: inline; padding: 20px">
-    <mat-card>
-      <mat-card-header>
-        <mat-card-title>
-          Select a Game: {{games[selectedId].name}}
-        </mat-card-title>
-      </mat-card-header>
-      <mat-card-content>
-        <app-game-selector [games]="games" (selectedId)="changeSelection($event.valueOf())">
-        </app-game-selector>
-      </mat-card-content>
-    </mat-card>
+  <div class="hud modern-card">
+    <div class="hud-top">
+      <a routerLink="/projects" class="hud-back-btn">
+        <mat-icon>arrow_back</mat-icon>
+        <span>Back to Projects</span>
+      </a>
+      <span class="pill-badge emerald">WebGL Active</span>
+    </div>
+
+    <div class="hud-content">
+      <div class="hud-title-row">
+        <h2 class="hud-title">3D Engine Preview</h2>
+        <span class="hud-game-name">{{games[selectedId].name}}</span>
+      </div>
+
+      <app-game-selector [games]="games" (selectedId)="changeSelection($event.valueOf())">
+      </app-game-selector>
+
+      <!-- Tetris Controls Helper -->
+      <div *ngIf="selectedId === 1" class="controls-legend">
+        <div class="legend-title">Tetris Controls:</div>
+        <div class="keys-grid">
+          <div class="key-item"><span class="kbd">←</span> <span class="kbd">→</span> Move</div>
+          <div class="key-item"><span class="kbd">↑</span> <span class="kbd">↓</span> Rotate</div>
+          <div class="key-item"><span class="kbd">Space</span> Drop</div>
+        </div>
+      </div>
+    </div>
   </div>
+
   <canvas #rendererCanvas id="renderCanvas"></canvas>
 </div>

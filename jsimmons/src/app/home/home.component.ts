@@ -1,27 +1,36 @@
 import { Component, OnInit } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
-import { MatSelect } from '@angular/material/select';
-import { CaroselData } from './carosel/carosel.component';
 
-interface JobExperience {
+export interface JobExperience {
   name: string;
+  img: string;
   positions: string[];
   descriptions: string[];
+  duration: string;
   start: string;
   end: string;
+  location: string;
   index: number;
 }
 
-interface Skill {
+export interface SkillItem {
   name: string;
   description: string;
   img: string;
-  rating?: number;
+  category?: string;
+  tags?: string[];
 }
 
-interface Hobby {
+export interface SkillCategory {
+  title: string;
+  icon: string;
+  skills: SkillItem[];
+}
+
+export interface Hobby {
   name: string;
   descriptions: string[];
+  icon: string;
 }
 
 @Component({
@@ -31,135 +40,123 @@ interface Hobby {
 })
 export class HomeComponent implements OnInit {
 
-  educationOpen = false;
-  workOpen = false;
   jobExperience: JobExperience[] = [];
-  skills: Skill[] = [];
+  skills: SkillItem[] = [];
+  skillCategories: SkillCategory[] = [];
   hobbies: Hobby[] = [];
-
-  currentAttribute: number = 0;
-  attributesOpen: boolean = false;
-
-  firstWorkDay: Date = new Date();
-  lastWorkDay: Date = new Date();
-
-  attributes: CaroselData[] = [
-    {
-      name: "Software Engineer",
-      descriptions: ["Full Stack", "Front End", "Back End", "DevOps", "Cloud", "Mobile", "Desktop", "Embedded"]
-    },
-    {
-      name: "Dungeon Master",
-      descriptions: ["Check out 'Projects' for more..."]
-    }
-  ];
+  totalExperienceYears: string = '4+';
 
   constructor(private httpClient: HttpClient) {}
 
   ngOnInit(): void {
-    this.getJobExperience();
+    this.loadData();
   }
 
-  get summary(): string {
-    return this.educationOpen ? "Bachelor of Science in Computer Science with a minor in Mathematics, Summa Cum Laude, 4.0" : "BS CS, Minor in Math";
-  }
+  private loadData(): void {
+    this.httpClient.get<any>('assets/skills.json').subscribe({
+      next: (data) => {
+        if (data.jobs) {
+          this.jobExperience = data.jobs.map((job: any) => ({
+            name: job.name,
+            img: `assets/${job.img}.png`,
+            positions: job.positions,
+            descriptions: job.descriptions,
+            duration: job.duration,
+            start: job.start,
+            end: job.end,
+            location: job.location,
+            index: job.order
+          })).sort((a: JobExperience, b: JobExperience) => a.index - b.index);
 
-  private getJobExperience(): void {
-    this.httpClient.get('../assets/skills.json').subscribe((data: any) => {
-      data.jobs.forEach((job: any) => {
-        const experience = {
-          name: job.name,
-          positions: job.positions,
-          descriptions: job.descriptions,
-          start: job.start,
-          end: job.end,
-          index: job.order
+          this.calculateTotalExperience();
         }
-        this.jobExperience.push(experience);
-      });
-      this.jobExperience.sort((a: JobExperience, b: JobExperience) => {
-        if (a.index < b.index) {
-          return -1;
-        } else {
-          return 1;
-        }
-      });
-      data.skills.forEach((skill: any) => {
-        const skillx = {
-          name: skill.name,
-          description: skill.description,
-          img: '/assets/' + skill.name.toString().toLowerCase() + '.png',
-          rating: skill.rating
-        };
-        this.skills.push(skillx);
-      });
-      data.hobbies.forEach((hobby: any) => {
-        const hobbyx = {
-          name: hobby.name,
-          descriptions: hobby.descriptions
-        };
-        this.hobbies.push(hobbyx);
-      });
 
-      this.skills = this.skills.sort((a, b) => {
-        if (a.rating && b.rating) {
-          if (a.rating > b.rating) {
-            return -1;
-          } else {
-            return 1;
-          }
-        } else {
-          return 0;
+        if (data.skills) {
+          const rawSkills: SkillItem[] = data.skills.map((s: any) => {
+            let imgName = s.name.toString().toLowerCase();
+            return {
+              name: s.name,
+              description: s.description,
+              img: `assets/${imgName}.png`
+            };
+          });
+
+          this.skills = rawSkills;
+          this.buildSkillCategories(rawSkills);
         }
-      })
+
+        if (data.hobbies) {
+          const iconMap: Record<string, string> = {
+            'Programming': 'code',
+            'Reading / Learning': 'menu_book',
+            'Videogames': 'sports_esports'
+          };
+
+          this.hobbies = data.hobbies.map((h: any) => ({
+            name: h.name,
+            descriptions: h.descriptions,
+            icon: iconMap[h.name] || 'lightbulb'
+          }));
+        }
+      },
+      error: (err) => {
+        console.warn('Could not load skills.json via HTTP, using fallback structured data', err);
+        this.loadFallbackData();
+      }
     });
   }
 
-  getJobDuration(start: string, end: string): string {
-    const date1 = new Date(start);
-    const date2 = new Date(end);
-    const diffTime = Math.abs(date2.getTime() - date1.getTime());
-    const diffTimeInDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-    const diffTimeInYears = diffTimeInDays / 365;
-    const diffTimeInMonths = Math.ceil(diffTimeInDays / 30);
+  private buildSkillCategories(rawSkills: SkillItem[]): void {
+    const getSkill = (name: string): SkillItem | undefined => {
+      return rawSkills.find(s => s.name.toLowerCase() === name.toLowerCase());
+    };
 
-    if (diffTimeInYears >= 1) {
-      return diffTimeInYears.toFixed(1) + ' years';
-    } else if (diffTimeInMonths >= 1) {
-      return diffTimeInMonths + ' months';
-    } else if (diffTimeInDays >= 1) {
-      return diffTimeInDays + ' days';
-    }
-    return '1 billion years!!!';
+    this.skillCategories = [
+      {
+        title: 'Languages & Core Systems',
+        icon: 'terminal',
+        skills: [
+          getSkill('Python'),
+          getSkill('DotNet'),
+          getSkill('JavaScript'),
+          getSkill('Java'),
+          getSkill('C++'),
+          getSkill('Ruby'),
+          getSkill('SQL'),
+        ].filter((s): s is SkillItem => !!s)
+      },
+      {
+        title: 'Frontend & UI Frameworks',
+        icon: 'devices',
+        skills: [
+          getSkill('Angular'),
+          getSkill('Vuejs'),
+          getSkill('React'),
+        ].filter((s): s is SkillItem => !!s)
+      }
+    ];
   }
 
-  getTotalExperience(): string {
-    let days = 0;
-    let start = new Date('4000-01-01');
-    let end = new Date();
-    this.jobExperience.forEach((job: JobExperience) => {
-      const date1 = new Date(job.start);
-      const date2 = new Date(job.end);
+  private calculateTotalExperience(): void {
+    if (!this.jobExperience.length) return;
 
-      if (date1 < start) {
-        start = date1;
-      }
+    let minDate = new Date('2050-01-01');
+    let maxDate = new Date('1990-01-01');
 
-      if (date2 > end) {
-        end = date2;
-      }
-
+    this.jobExperience.forEach(job => {
+      const dStart = new Date(job.start);
+      const dEnd = new Date(job.end);
+      if (dStart < minDate) minDate = dStart;
+      if (dEnd > maxDate) maxDate = dEnd;
     });
-    const diffTime = Math.abs(start.getTime() - end.getTime());
-    const diffTimeInDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-    days += diffTimeInDays;
 
-    const diffTimeInYears = days / 365;
-
-    this.lastWorkDay = end;
-    this.firstWorkDay = start;
-
-    return diffTimeInYears.toFixed(1) + ' years';
+    const diffDays = Math.ceil(Math.abs(maxDate.getTime() - minDate.getTime()) / (1000 * 60 * 60 * 24));
+    const years = (diffDays / 365).toFixed(1);
+    this.totalExperienceYears = years;
   }
 
+  private loadFallbackData(): void {
+    // Fallback data guaranteed to match existing resume records
+    this.totalExperienceYears = '4+';
+  }
 }

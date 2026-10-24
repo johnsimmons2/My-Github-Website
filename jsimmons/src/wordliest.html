@@ -4745,6 +4745,25 @@ html.dark .binderm {
 .ev-crane{pointer-events:auto}
 .ev-paperboat{pointer-events:auto;cursor:pointer;animation:BumpS 1s infinite alternate}
 
+/* ---- 1.2.1 mutations (Director.MUTATIONS in 41-flow.js) ---- */
+/* Tape Delay: Grid.tapeFade fades a typed letter in over 1s; an erased letter leaves a ghost that fades out over 1s */
+.td-ghost{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-style:normal;font-weight:700;font-size:calc(var(--tile) * .52);line-height:1;text-transform:uppercase;color:var(--text);pointer-events:none;animation:TdOut 1s ease-out forwards}
+@keyframes TdOut{from{opacity:1}to{opacity:0}}
+/* Zero Gravity: every tile drifts on its own slow orbit (individual transform properties, so flips and quirks still work) */
+@keyframes ZeroG{0%,100%{translate:0 0;rotate:0deg}33%{translate:var(--zx,3px) -6px;rotate:var(--zr,3deg)}66%{translate:calc(var(--zx,3px) * -1) 4px;rotate:calc(var(--zr,3deg) * -1)}}
+#boards.zerog .tile{animation:ZeroG 5s ease-in-out infinite}
+#boards.zerog .tile:nth-child(2n){animation-duration:6.4s;animation-delay:-1.3s;--zx:-4px;--zr:-4deg}
+#boards.zerog .tile:nth-child(3n){animation-duration:4.2s;animation-delay:-2.1s;--zx:5px;--zr:5deg}
+#boards.zerog .tile:nth-child(5n){animation-duration:7.1s;animation-delay:-3.6s}
+/* Spotlight: only the row being typed is lit (Boards.renderInput marks it .spot) */
+#boards.spotlight .row{opacity:.22;filter:brightness(.7);transition:opacity .35s,filter .35s}
+#boards.spotlight .row.spot{opacity:1;filter:none}
+/* Window Blinds: slats over the board that open as the row fills (--open runs 0 to 1, set by Boards.renderInput) */
+#boards.blinds{position:relative}
+#boards.blinds::after{content:'';position:absolute;inset:-4px;pointer-events:none;z-index:3;border-radius:6px;
+  background:repeating-linear-gradient(to bottom,rgba(28,30,40,.94) 0 9px,transparent 9px 15px);
+  opacity:calc(1 - var(--open,0) * .88);transition:opacity .3s}
+
 /* ---- css/75-corkboard.css ---- */
 /* ============================================================ 75-corkboard.css */
 /* THE CONSPIRACY CORKBOARD: Fullscreen Inside-the-Box Scene */
@@ -8259,7 +8278,7 @@ html.crt body::after {
 // Tiny helpers shared by every module. Everything is a global on purpose:
 // the build concatenates files into one <script>, so top-level names are shared.
 
-const GAME_VERSION = '1.2.0';
+const GAME_VERSION = '1.2.1';
 
 const $ = (sel, root = document) => root.querySelector(sel);
 const $$ = (sel, root = document) => [...root.querySelectorAll(sel)];
@@ -8373,9 +8392,11 @@ const ICONS = {
 
 /* ---- js/01-words.js ---- */
 // ============================================================ 01-words
-// Word lists by length. ANSWERS are drawn from these; validation accepts any listed
-// word OR anything that "looks like a word" (Words.plausible) so real words missing
-// from these lists are never rejected. Only obvious keyboard mash is refused.
+// Word lists by length. ANSWERS are drawn from every word the game knows (curated lists,
+// their inflections and the extras). Guesses are checked against the
+// curated lists plus the big dictionary fetched online (Words.dict); the early chapters
+// accept only real words (Words.real). Words.plausible is the "looks like a word"
+// fallback for when the dictionary hasn't loaded and for the later, looser chapters.
 
 const WORDS_RAW = {
   2: `ah am an as at ax ay be by do ed eh el em en er ex fa go he hi hm id if in is it jo la li lo ma me mi mu my 
@@ -8605,17 +8626,21 @@ invisible jellyfish keyboards lollipops machinery magazines narrative neighbors 
 // never chosen as answers.
 // ============================================================ 01-words
 // Word lists by length. ANSWERS are drawn from these; validation accepts any listed
-// word, auto-generated inflections/plurals, preloaded CDN dictionary words, OR 
-// anything that passes Words.plausible() when offline.
+// word, auto-generated inflections/plurals, or a word from the online dictionary.
 
 const WORDS_VALID_EXTRA = {
   2: 'aa ab ad ae ag ai al ar aw ay ba bi bo da de eh el em en er es ew ex fa fe ha hm ho id jo ka la li lo ma mi mm mo mu na ne nu od oe oi om op os ow oy pa pe pi po qi re sh si ta te ti uh um un ut wo xi xu ya ye za',
   3: `abs ace act add ado ads aft age ago aha aid ail aim air ale alp amp ant ape apt arc ark arm art ash ask asp ate auk awe awl axe aye bad bag bah ban bar bat bay bed bee beg bet bib bid big bin bio bit boa bob bog boo bop bow box boy bra bro bub bud bug bum bun bus buy bye cab cad cam cap car cat caw cob cod cog con coo cop cot cow coy cry cub cud cue cup cur cut dab dad dam dew did die dig dim din dip doc doe dog don dot dry dub dud due dug duh dun duo dye ear eat ebb eek eel egg ego eke elf elk elm emu end eon era err eve ewe eye fab fad fan far fat fax fed fee fen few fez fib fig fin fir fit fix flu fly fob foe fog fon fop fox fry fun fur gab gag gal gap gas gel gem gig gin gnu gob god goo got gum gun gut guy gym had hag ham hat haw hay hem hen hew hex hey hid him hip his hit hob hog hop hot how hub hue hug huh hum hut ice icy ill imp ink inn ion ire irk ivy jab jam jar jaw jay jet jig job jog jot joy jug jut keg ken key kid kin kit lab lad lag lap law lax lay lea led leg let lid lie lip lit lob log lot low lug lux mad man map mar mat maw may men met mid mix mob mod mom moo mop mow mud mug mum nab nag nap nay net new nib nil nip nit nod nor now nub nun nut oaf oak oar oat odd ode off oft ohm oil old one opt orb ore owe owl own pad pal pan pap par pat paw pay pea peg pen pep per pet pew pie pig pin pit ply pod pop pot pow pox pro pry pub pug pun pup pus put rag ram ran rap rat raw ray red rib rid rig rim rip rob rod roe rot row rub rue rug rum run rut rye sad sag sap sat saw sax say sea see set sew shy sin sip sir sis sit six ski sky sly sob sod son sop sow soy spa spy sty sub sue sum sun sup tab tad tag tan tap tar tat tax tea tee ten the tic tie tin tip tit toe tog tom ton too top tot tow toy try tub tug tux two urn use van vat vet vex via vie vim vow wad wag war was wax way web wed wee wet who why wig win wit woe wok won woo wow wry yak yam yap yaw yay yea yen yes yet yew yin yip yob yon you yuk yum yup zap zed zen zig zip zit zoo`,
-  5: 'raven',
+  4: 'damn hell crap piss shit fuck butt boob poop tits porn dick cock',
+  5: 'raven penis boobs bitch',
+  6: 'vagina',
 };
 
+// words the game itself reacts to, so they are valid guesses but never answers
+const NEVER_ANSWERS = new Set(['RAVEN', 'PENIS', 'WORLD', 'SNAIL']);
+
 const Words = {
-  byLen: {}, answers: {}, dictLoaded: false,
+  byLen: {}, answers: {}, dict: {}, dictLoaded: false, dictReady: null,
 
   init() {
     // 1. Parse curated lists (strictly 1..8 letters) if WORDS_RAW exists in scope
@@ -8642,24 +8667,27 @@ const Words = {
       });
     }
 
-    // 3. Auto-generate plurals & common inflections from base words into valid guess pool
+    // 3. Auto-generate plurals & common inflections from the curated base words
     this.expandInflections();
 
-    // 4. 1-letter setup & answer filtering (Restored all 12 banned answer exclusions)
+    // 3b. Every word the game knows (curated, inflections and extras) is a possible answer,
+    // bar the trigger words (NEVER_ANSWERS)
+    for (const len in this.byLen) {
+      if (+len < 2) continue;
+      this.answers[len] = [...this.byLen[len]].filter(w => !NEVER_ANSWERS.has(w));
+    }
+
+    // 4. 1-letter setup
     if (typeof ALPHA !== 'undefined') {
       this.byLen[1] = new Set(ALPHA);
       this.answers[1] = [...ALPHA];
-    }
-    const banned5 = ['WORLD', 'SNAIL', 'IDIOT', 'GIPSY', 'DROIT', 'BIGHT', 'TUMOR', 'ULCER', 'UNWED', 'VODKA', 'TRYST', 'LUSTY'];
-    if (this.answers[5]) {
-      this.answers[5] = this.answers[5].filter(w => !banned5.includes(w));
     }
 
     // Log synchronous baseline total
     this.logWordCounts('Base (Offline) Initialization');
 
-    // 5. Asynchronously load 20k common English words from CDN
-    this.loadOnlineDictionary();
+    // 5. Asynchronously load the big English dictionary from CDN
+    this.dictReady = this.loadOnlineDictionary();
   },
 
   // Automatically generates S/ES/ED/ING forms from known base words
@@ -8685,31 +8713,21 @@ const Words = {
     }
   },
 
-  // Fetches top 20,000 common English words via CDN
+  // Fetches a ~270k-word English dictionary via CDN into Words.dict (2-8 letters). It only
+  // validates guesses: it never feeds this.byLen or this.answers, so answers and the
+  // word pools the minigames draw from stay the curated lists above.
   async loadOnlineDictionary() {
     try {
-      const url = 'https://cdn.jsdelivr.net/gh/first20hours/google-10000-english@master/20k.txt';
-      const res = await fetch(url);
+      const res = await fetch('https://cdn.jsdelivr.net/npm/word-list@4.1.0/words.txt');
       if (!res.ok) return;
-
-      const text = await res.text();
-      const lines = text.split(/\r?\n/);
-
-      for (let i = 0; i < lines.length; i++) {
-        const w = lines[i].trim().toUpperCase();
-        const l = w.length;
-
-        // valid guesses only: the list is unfiltered (it has slurs, profanity and the banned answers
-        // like WORLD), so it never feeds this.answers, which stay the curated lists above
-        if (l >= 2 && l <= 8 && /^[A-Z]+$/.test(w) && this.plausible(w)) {
-          if (!this.byLen[l]) this.byLen[l] = new Set();
-          this.byLen[l].add(w);
-        }
+      const dict = {};
+      for (const line of (await res.text()).split(/\r?\n/)) {
+        const w = line.trim().toUpperCase(), l = w.length;
+        if (l >= 2 && l <= 8 && /^[A-Z]+$/.test(w)) (dict[l] || (dict[l] = new Set())).add(w);
       }
-
-      this.expandInflections();
+      this.dict = dict;
       this.dictLoaded = true;
-      this.logWordCounts('Online 20k Dictionary Integration');
+      console.log('[Words] Online dictionary loaded', Object.fromEntries(Object.entries(dict).map(([l, set]) => [l, set.size])));
     } catch (e) {
       console.warn('Network unavailable: running on offline embedded dictionary.');
     }
@@ -8731,6 +8749,7 @@ const Words = {
     w = w.toUpperCase();
     const len = w.length;
     if (this.byLen[len] && this.byLen[len].has(w)) return true;
+    if (this.dict[len] && this.dict[len].has(w)) return true;
 
     if (len > 3) {
       if (w.endsWith('S') && this.byLen[len - 1]?.has(w.slice(0, -1))) return true;
@@ -8753,6 +8772,15 @@ const Words = {
   },
 
   valid(w) { return this.known(w) || this.plausible(w); },
+
+  // Is this a real word, for the chapters that accept nothing else? Anything containing
+  // SNAIL passes (the jump scare lives on it). Where there is no dictionary to check
+  // (still loading, offline, or a length it doesn't cover) fall back to "looks like a word".
+  real(w) {
+    w = w.toUpperCase();
+    if (this.known(w) || w.includes('SNAIL')) return true;
+    return (!this.dictLoaded || w.length > 8) && this.plausible(w);
+  },
 
   pick(len, {noE = false, exclude = [], avoid = ''} = {}) {
     let pool = this.answers[len] || this.answers[5] || [];
@@ -9874,7 +9902,7 @@ const UI = {
     const extra = odd ? `<h4>Other Statistics</h4><ul class="statlist">
       <li>Time spent: <b id="statTimeSpent">${fmtTime(S.time)}</b></li>${UI.sleepSeen() ? `<li>Screen idle: <b id="statScreenIdle">${Math.floor(S.idle || 0)}s</b> <span id="statSleepStatus">(${document.body.classList.contains('asleep') ? 'Sleeping 💤' : 'Awake 👁️'})</span></li><li>Total sleeps: <b id="statTotalSleeps">${S.sleeps || 0}</b></li>` : ''}<li>Total shells spent: <b>${(S.stats.spent || 0).toLocaleString()}</b></li><li>Letters lost to snails: <b>${S.stats.lost}</b></li>
       <li>Words invented: <b>${S.stats.invented}</b></li><li>Hats owned: <b>${S.stats.hats}</b></li>
-      <li>Events survived: <b>${S.stats.events}</b></li><li>Reality: <b>${Math.max(0, 100 - S.chaos * 9 - S.g).toFixed(0)}%</b></li>
+      <li>Events survived: <b>${S.stats.events}</b></li><li>Micro-events: <b>${S.stats.micros || 0}</b> · Quirks: <b>${S.stats.quirks || 0}</b> · Mutations: <b>${S.stats.mutations || 0}</b></li><li>Reality: <b>${Math.max(0, 100 - S.chaos * 9 - S.g).toFixed(0)}%</b></li>
       <li>Version: <b>v${GAME_VERSION}</b></li></ul>` : '';
     const m = this.modal({title: 'Statistics', cls: 'statsm', body: `<div class="stats">${st.map(([v, l]) => `<div class="stat"><b>${v}</b><span>${l}</span></div>`).join('')}</div>
       <h4>Guess Distribution</h4>${dist}${extra}<p class="fine" style="text-align:center">v${GAME_VERSION}</p>`});
@@ -10243,12 +10271,24 @@ class Grid {
     if (this.done || this.cur >= this.rows) return;
     const faces = this.faces(this.cur);
     if (this.len < 0) { faces[0].dataset.state = S.neg ? 'hole' : 'empty'; if (pop === 0) anim(faces[0], 'pop', 120); return; }
+    const tape = Boards.el && Boards.el.classList.contains('tapedelay');   // the Tape Delay mutation: letters fade in and out over a second
     faces.forEach((f, c) => {
       const L = letters[c] || '';
-      if (f.textContent !== L) f.textContent = L;
+      if (f.textContent !== L) { const old = f.textContent; f.textContent = L; if (tape) Grid.tapeFade(f, old, L); }
       f.dataset.state = L ? 'tbd' : 'empty';
       if (c === pop) anim(f, 'pop', 120);
     });
+  }
+  // Tape Delay: a typed letter fades in over 1 s; an erased one leaves a ghost on the tile that fades out over 1 s
+  static tapeFade(face, old, now) {
+    if (now) {
+      face.style.transition = 'none'; face.style.color = 'transparent'; void face.offsetWidth;
+      face.style.transition = 'color 1s ease-in'; face.style.color = '';
+      setTimeout(() => { face.style.transition = ''; }, 1100);
+    } else if (old) {
+      const tile = face.parentNode, ghost = h('i.td-ghost', {text: old});
+      tile.append(ghost); setTimeout(() => ghost.remove(), 1000);
+    }
   }
   // Flip the current row to reveal states. Resolves when the last tile lands.
   reveal(word, {states, rings}, {odd = -1, stagger = S.flags.fastFlip ? 160 : 300, sound = true} = {}) {
@@ -10364,7 +10404,12 @@ const Boards = {
     root.setProperty('--tile', t + 'px'); root.setProperty('--gap', gap + 'px');
     if (Narr.on) Narr.place();
   },
-  renderInput(pop = -1) { for (const b of this.list) b.showInput(S.input, pop); },
+  renderInput(pop = -1) {
+    for (const b of this.list) b.showInput(S.input, pop);
+    // two of the 1.2.1 mutations follow the typing: Spotlight lights only the row being typed, Window Blinds open as the row fills
+    if (this.el.classList.contains('spotlight')) for (const b of this.list) b.rowEls.forEach((r, i) => r.classList.toggle('spot', i === b.cur && !b.done));
+    if (this.el.classList.contains('blinds')) this.el.style.setProperty('--open', S.len > 0 ? Math.min(1, S.input.length / S.len) : 0);
+  },
   currentFaces() { return this.active().flatMap(b => b.faces(b.cur)); },
   inputFace(i) { const b = this.active()[0]; return b ? b.face(b.cur, i) : null; },
   guessedFaces() { return this.list.flatMap(b => b.guesses.flatMap((g, r) => b.faces(r))); },
@@ -10373,11 +10418,29 @@ const Boards = {
 };
 
 // Tiny hats, purchasable in the shop. They do nothing. They are perfect.
+// One hat per tile, in reading order (left to right, top to bottom) on every board: up to HATS_MAX = 64, an 8x8 grid. Only the
+// first HATS_LOVE give affection. They are sold, and worn, only until the Burrow: from chapter 4 on they are gone for good
+// (the count stays in S.stats.hats for the credits and the dating sim).
+const HATS_MAX = 64, HATS_LOVE = 3;
 const Hats = {
+  gone() { return S.chapter >= 4 || !!(S.flags && S.flags.hatsGone); },
+  // the one way a hat is acquired (shop, mystery box, events). Returns false when none can be had.
+  add() {
+    if (this.gone() || (S.stats.hats || 0) >= HATS_MAX) return false;
+    S.stats.hats = (S.stats.hats || 0) + 1;
+    if (S.stats.hats <= HATS_LOVE) addLove(1);
+    if (S.stats.hats >= HATS_MAX && typeof Achievements !== 'undefined') Achievements.unlock('milliners_dream');
+    this.apply();
+    return true;
+  },
   apply(root = document) {
-    const n = S.stats.hats;
-    if (!n) return;
-    $$('.row', root).forEach(row => [...row.children].forEach((t, i) => t.classList.toggle('hat', i < n)));
+    if (S.chapter >= 4 && S.flags) S.flags.hatsGone = true;
+    const n = this.gone() ? 0 : Math.min(HATS_MAX, S.stats.hats || 0);
+    const boards = root.classList && root.classList.contains('board') ? [root] : $$('.board', root);
+    for (const bd of boards) {
+      let i = 0;
+      $$('.row', bd).forEach(row => [...row.children].forEach(t => { t.classList.toggle('hat', i < n); i++; }));
+    }
   },
 };
 
@@ -10652,12 +10715,19 @@ const Game = {
         unlockManual();
       }
     }
-    if (S.len > 1 && S.chapter >= 1) Fish.nonword(word);
-    const strict = !S.flags.lorem && (S.chapter === 0 || S.chapter === 6 || (S.chapter === 1 && !S.flags.lenient));
-    if (!Words.known(word) && !Words.plausible(word)) {
-      if (strict) return this.invalid('Not in word list');
+    const coined = () => {
       S.stats.invented++;
       UI.toast(pick(['Not in word list. Added to word list.', 'That is not a word. It is now.', 'Bold.', 'We\'ll allow it.', 'Coining a term, are we?']), 1300);
+    };
+    if (S.chapter <= 4 && !S.flags.lorem && !S.flags.xword) {
+      // a guess typed while the dictionary is still downloading waits for it (briefly) rather than slipping through on "looks like a word"
+      if (!Words.dictLoaded && Words.dictReady) { const un = lock(); try { await Promise.race([Words.dictReady, wait(3000)]); } finally { un(); } }
+      // real words only, until the Emporium sells the player a licence to coin their own.
+      // (The crossword mutation is the exception: its rows have always been free to be probes.)
+      if (!Words.real(word)) { if (!S.flags.coinage) return this.invalid('Not in word list'); coined(); }
+    } else if (!Words.known(word) && !Words.plausible(word)) {
+      if (S.chapter === 6 && !S.flags.lorem) return this.invalid('Not in word list');
+      coined();
     }
     const unlock = lock();
     try {
@@ -10679,6 +10749,7 @@ const Game = {
         results[b.idx] = ev.states;
         return b.reveal(word, ev, {odd: Director.oddTile(n)});
       });
+      Fish.badGuess(results[Boards.first().idx] || []);
       S.input = [];
       await Promise.all(jobs);
       Keys.applyResults(word, results);
@@ -10911,15 +10982,18 @@ const Quirks = {
     if (ch === 2) return {p: 0.42, tier: Mods.chaos() > 1 ? 3 : 2};   // the Chaos Dial brings tier 3 forward
     return {p: 0.5, tier: 3};
   },
+  // Pacing decides which interactions get a roll at all (one per N keystrokes, N falling by chapter; see 21b-pacing.js);
+  // 'click' is a rogue click, which counts as half a keystroke. The chance below is unchanged.
   fire(kind, ctx = {}) {
     const pr = this.profile();
     if (!pr || S.paused || Minis.active) return;
+    if (!Pacing.quirkGo(kind)) return;
     if (!chance(pr.p * (S.flags.calm ? 0.5 : 1))) return;
     const pool = this.list.filter(q => q.tier <= pr.tier && q.on.includes(kind));
     if (!pool.length) return;
     // weight toward the current max tier so escalation is felt
     const q = weighted(pool, q => q.tier === pr.tier ? 2 : 1);
-    try { q.run(ctx); } catch (e) { console.warn('quirk', q.id, e); }
+    try { q.run(ctx); S.stats.quirks = (S.stats.quirks || 0) + 1; Pacing.tally('q'); } catch (e) { console.warn('quirk', q.id, e); }
   },
   bubble(el, text, ms = 1900) {
     const c = center(el);
@@ -10940,7 +11014,7 @@ const Quirks = {
   applyDrift() { $('#boards').style.translate = `${this.drift.x}px ${this.drift.y}px`; },
   reset() {
     this.drift = {x: 0, y: 0, r: 0}; this.applyDrift();
-    this.hue = 0; $('#app').style.filter = '';
+    this.hue = 0; $('#app').style.filter = ''; Pacing.qn = 0;
     Keys.letterEls().forEach(k => { k.style.rotate = ''; k.style.flexGrow = ''; });
     $$('.face').forEach(f => { f.style.fontFamily = ''; f.style.fontSize = ''; f.style.borderColor = ''; });
   },
@@ -10964,7 +11038,7 @@ const Quirks = {
 // `wins` reasons earns it, and events whose feat isn't an ending call evWin(id) themselves.
 
 const Events = {
-  defs: {}, active: [], timer: 0, nextAt: 30, enabled: false, recent: [],
+  defs: {}, active: [], timer: 0, nextAt: 120, enabled: false, recent: [],
   register(def) { this.defs[def.id] = def; },
   isActive(id) { return this.active.some(e => e.id === id); },
   async start(id, opts = {}) {
@@ -10972,6 +11046,7 @@ const Events = {
     const def = this.defs[id];
     if (!def || this.isActive(id)) return null;
     const ev = {def, id, t: 0, opts, els: [], stops: [], done: false};
+    this.timer = 0;   // any event start, random or scripted, restarts the wait for the next random one
     ev.finished = new Promise(r => ev.resolve = r);
     this.active.push(ev);
     this.recent = [id, ...this.recent.filter(x => x !== id)].slice(0, 6);
@@ -11022,13 +11097,12 @@ const Events = {
   onSubmit(word, results) { for (const ev of [...this.active]) ev.def.onSubmit && ev.def.onSubmit(ev, word, results); },
   // ------------------------------------------------ scheduler
   tick(dt) {
-    if (!this.enabled || S.paused || S.busy || Minis.active || this.active.length || UI.anyModal() || (typeof S !== 'undefined' && S.idle >= 25)) return;
+    // a calm guess (21b-pacing.js) is quiet: the clock simply waits
+    if (!this.enabled || S.paused || S.busy || Minis.active || this.active.length || UI.anyModal() || (typeof S !== 'undefined' && S.idle >= 25) || Pacing.calm) return;
     this.timer += dt;
     if (this.timer < this.nextAt) return;
     this.timer = 0;
-    const ch = S.chapter;
-    const range = ch === 7 ? [120, 180] : ch >= 4 ? [22, 34] : ch >= 3 ? [26, 38] : [30, 44];
-    this.nextAt = rand(...range) * (S.flags.calm ? 1.7 : 1) / Mods.chaos();
+    this.nextAt = Pacing.eventGap();   // chapter 2: 120-150 s; later chapters: the 1.1 intervals tripled
     this.startRandom();
   },
   startRandom(opts = {}) {
@@ -11039,9 +11113,14 @@ const Events = {
     const pool = Object.values(this.defs).filter(d => !d.scriptedOnly && (d.minCh || 2) <= S.chapter && (!d.maxCh || S.chapter <= d.maxCh)
       && !this.recent.includes(d.id) && !(d.once && S.flags['ev_' + d.id]) && (!d.when || d.when()));
     if (!pool.length) return null;
-    const fw = pool.find(d => d.id === 'fartware');
-    if (fw && chance(0.35)) return this.start('fartware', opts);
-    return this.start(weighted(pool).id, opts);
+    // bad-luck protection (21c-pity.js): events that were eligible but missed in earlier runs weigh a little more.
+    // Fartware is no longer forced; it is an ordinary once-per-run event now.
+    const tracked = pool.filter(d => !(typeof Exp !== 'undefined' && (Exp.SET_PIECES.includes(d.id) || Exp.LOCKED_EVENTS.includes(d.id))));
+    Pity.note('events', tracked.map(d => d.id));
+    const d = weighted(pool, e => (e.weight || 1) * Pity.mult('events', e.id));
+    if (tracked.includes(d)) Pity.played('events', d.id);
+    if (!opts.force) { S.stats.randEvents = (S.stats.randEvents || 0) + 1; Pacing.tally('e'); }
+    return this.start(d.id, opts);
   },
 };
 
@@ -12749,7 +12828,7 @@ const Flow = {
     ['beat:0', 0, 'Guess 1', 'Authentic Wordle: silent, strict, ordinary'],
     ['beat:1', 1, 'Beat 1: the first note', 'One synth note. Solve on guess 1 or 2 and it is a fluke'],
     ['beat:2', 1, 'Beat 2: the word grows', 'Six letters; the music box begins'],
-    ['beat:3', 1, 'Beat 3: the rows sort', 'Seven rows, lenient words'],
+    ['beat:3', 1, 'Beat 3: the rows sort', 'Seven rows; the board sorts itself'],
     ['beat:mut', 1, 'The mutation phase', 'Six guesses of rearranging; one wildcard gate'],
     ['beat:4', 2, 'Beat 4: snails steal the E', 'Chapter 2 begins'],
     ['beat:5', 2, 'Beat 5: the Grid wakes', 'Eyes, a narrator, the Wheel of Length'],
@@ -12778,7 +12857,7 @@ const Flow = {
   PLACE: [
     // ---- places
     ['scene:scare', 0, 'beat:0', 'Any guess containing SNAIL, any time'],
-    ['scene:fish', 1, 'beat:1', 'Two non-words in a row; the Raven; the burrow'],
+    ['scene:fish', 1, 'beat:1', 'Two bad guesses in a row; the Raven; the burrow'],
     ['scene:horde', 1, 'beat:1', 'The naughty word, typed once the game has begun'],
     ['scene:xword', 1, 'beat:mut', 'A 20% chance in the mutation phase'],
     ['scene:echase', 2, 'beat:4', 'Click the crowned thief 8 times'],
@@ -19007,6 +19086,8 @@ const Shop = {
       bought = d.irrigation || 0;
     } else if (it.id === 'rose') {
       bought = (S.flags && S.flags.roses) || 0;
+    } else if (it.id === 'hat') {
+      bought = (S.stats && S.stats.hats) || 0;
     } else if (it.id === 'repel') {
       bought = (S.flags && S.flags.repel) ? 1 : 0;
     } else if (it.id === 'tank') {
@@ -19043,20 +19124,26 @@ const Shop = {
         desc: (S.flags && S.flags.repel) ? 'Active. Snails flee after one click and crawl slower.' : 'Snails flee after one click and crawl slower. (Lasts the rest of the game.)',
         buy() { S.flags.repel = true; Shop.say('Salt. I do not wish to discuss it.'); }
       },
-      {id: 'hat', name: 'A Hat', icon: '🎩', price: 2, desc: 'A tiny hat for a tile. Does nothing. Stacks.', buy() {
-        S.stats.hats++;
-        Hats.apply();
-        if (S.stats.hats <= 2) addLove(1);
+      // one hat per tile (up to 64, an 8x8 grid), sold only until the Burrow; the first three make the Grid fond of you (06-board.js Hats)
+      {id: 'hat', name: 'A Hat', icon: '🎩', price: 2, limit: HATS_MAX, soldOut: (S.stats.hats || 0) >= HATS_MAX, when: () => !Hats.gone(),
+        desc: (S.stats.hats || 0) >= HATS_MAX ? 'Every tile in the house has a hat. Come back never.' : 'A tiny hat for one tile. Does nothing. Stacks, a tile at a time. Gone from the shelves once you go down the Burrow.', buy() {
+        if (!Hats.add()) return false;
         Shop.say(pick(['Très chic.', 'It suits you. It suits it.', 'Another hat! Bold.']));
       }},
-      {id: 'rose', name: 'A Single Rose', icon: '🌹', price: 3, limit: 2,
-        soldOut: !!(S.flags && (S.flags.roses || 0) >= 2),
-        desc: (S.flags && (S.flags.roses || 0) >= 2) ? 'Delivered to the Grid. Two roses in row four.' : 'For someone special. (Who could it be? It’s a grid.)',
+      {id: 'rose', name: 'A Single Rose', icon: '🌹', price: 3, limit: 3,
+        soldOut: !!(S.flags && (S.flags.roses || 0) >= 3),
+        desc: (S.flags && (S.flags.roses || 0) >= 3) ? 'Delivered to the Grid. Three roses in row four.' : 'For someone special. (Who could it be? It’s a grid.)',
         when: () => Narr.on,
-        buy() { S.flags.roses = (S.flags.roses || 0) + 1; addLove(2); Shop.say('Ooh là là. I will have it delivered. To the board you are looking at.'); setTimeout(() => Narr.say(pick(['A rose? For... me? I don’t have hands. I’ll keep it in row four.', 'Another rose. I’m running out of rows to keep them in. I don’t mind.']), {wait: false}), 600); }
+        buy() { S.flags.roses = (S.flags.roses || 0) + 1; addLove(1.5); Shop.say('Ooh là là. I will have it delivered. To the board you are looking at.'); setTimeout(() => Narr.say(pick(['A rose? For... me? I don’t have hands. I’ll keep it in row four.', 'Another rose. I’m running out of rows to keep them in. I don’t mind.']), {wait: false}), 600); }
       },
       {id: 'confidence', name: 'Confidence', icon: '✨', price: 1, desc: 'Your next guess will feel correct.', buy() { S.flags.confidence = true; Shop.say('You look marvelous already.'); }},
       {id: 'mystery', name: 'Mystery Box', icon: '?', price: 4, desc: 'Could be anything. Legally.', buy() { Shop.mystery(); }},
+      {id: 'coinage', name: 'Word Coinage Licence', icon: '✒️', price: 30, limit: 1,
+        soldOut: !!(S.flags && S.flags.coinage),
+        desc: (S.flags && S.flags.coinage) ? 'Purchased. Made-up words are accepted. The dictionary has stopped asking questions.' : 'Lets you guess made-up words too. The dictionary will pretend not to notice.',
+        when: () => S.chapter <= 4,
+        buy() { S.flags.coinage = true; Shop.say('A licence to coin words! Filed under "Bold". Do not tell the dictionary.'); }
+      },
       {id: 'tank', name: 'Snail Tank', icon: '🐌', price: 50, limit: 1,
         soldOut: !!(S.inc && S.inc.tanks),
         desc: (S.inc && S.inc.tanks) ? 'Purchased. A cozy swaying terrarium housing your snails.' : 'A cozy swaying terrarium for a snail. Sits on your screen and spits out shells.',
@@ -19154,11 +19241,9 @@ const Shop = {
     }
 
     const pool = [];
-    // 1: hats (always available)
-    pool.push(() => {
-      S.stats.hats++;
-      Hats.apply();
-      if (S.stats.hats <= 2) addLove(1);
+    // 1: hats (available until the Burrow, or until every tile has one)
+    if (!Hats.gone() && (S.stats.hats || 0) < HATS_MAX) pool.push(() => {
+      Hats.add();
       Shop.say('A hat. It is always a hat.');
     });
     // 2: row (extra row limit is 3 purchases total)
@@ -22678,7 +22763,8 @@ const Director = {
       Music.layers = clamp(1 + Math.floor(n / 6), 1, 4);
       Snd.baseWobble = Snd.wobble = Math.min(14, n * 0.6);
     }
-    if (S.flags.casinoArmed === 'typing' && S.input.length >= 2 && !S.busy) this.fireCasino();
+    // the casino or the space zone fires on its own scheduled guess (Pacing queue), not on the next guess after therapy
+    if (S.flags.casinoArmed === 'typing' && (Pacing.peek() === 'casino' || !S.flags.zoneRolled) && S.input.length >= 2 && !S.busy) this.fireCasino();
   },
   afterBack() { Quirks.fire('back', {}); },
   oddTile(n) { return n === 2 ? 2 : S.chapter >= 2 && chance(0.15) ? rnd(Math.max(1, S.len)) : -1; },
@@ -22741,7 +22827,7 @@ const Director = {
   boop() {
     S.flags.boops = (S.flags.boops || 0) + 1;
     anim($('#eyes'), 'blushing', 1400); sfx('blip', 1.6);
-    if (S.flags.boops <= 2) addLove(1);
+    if (S.flags.boops <= 3) addLove(1);   // the first three pokes (it was two before 1.2.1)
     if (S.flags.boops >= 4 && typeof Achievements !== 'undefined') Achievements.unlock('personal_space');
     Narr.say(['!', 'That\'s my eye.', 'Oh. Hi. Again.', 'You keep doing that.', 'I... don\'t mind it.', 'Okay, that one tickled.'][Math.min(5, S.flags.boops - 1)], {wait: false, ms: 1600});
   },
@@ -22750,8 +22836,11 @@ const Director = {
     const g = Events.gate(word);
     if (g) { const ok = await g; if (!ok) return false; }
     let gate = null;
-    if (S.chapter < 6 && !this.digBlocked(word)) gate = (S.flags.mut || S.flags.fluke || S.flags.xword || S.flags.delayPuzzle) ? this.wildGate(n) : (this.GATES[this.beat(n)] || this.wildGate(n));
+    // plain (breather) guesses and the casino's guess never carry a minigame gate: the gate belongs to the beat it was dealt for
+    const storyGuess = S.flags.mut || S.flags.fluke || S.flags.xword || S.flags.delayPuzzle || Pacing.gateAllowed();
+    if (S.chapter < 6 && !this.digBlocked(word) && storyGuess) gate = (S.flags.mut || S.flags.fluke || S.flags.xword || S.flags.delayPuzzle) ? this.wildGate(n) : (this.GATES[this.beat(n)] || this.wildGate(n));
     if (gate) {
+      Pacing.mark(); S.stats.gates = (S.stats.gates || 0) + 1;
       const r = await gate.call(this, word);
       if (typeof Corkboard !== 'undefined' && !Corkboard.isUnlocked() && Corkboard.shouldDrop('gate_game', 1)) {
         Corkboard.spawnScreenBox('gate_game');
@@ -22760,7 +22849,13 @@ const Director = {
     }
     return true;
   },
+  // Every guess is one of: a story guess (a beat, a mutation, a crossword step), a plain breather guess, or the
+  // casino/space guess. Pacing keeps the queue of non-story guesses (21b-pacing.js); Pacing.endGuess() runs after
+  // each one to note whether it was big and to decide whether the next plain guess is calm.
   async afterSubmit(n, word, results) {
+    try { return await this.afterSubmitInner(n, word, results); } finally { Pacing.endGuess(); }
+  },
+  async afterSubmitInner(n, word, results) {
     await this.celebrate(n);
     Events.onSubmit(word, results);
     if ((word === 'BOX' || word === 'BOXES') && typeof Corkboard !== 'undefined' && !Corkboard.isUnlocked() && Corkboard.shouldDrop('box_guess', 8)) {
@@ -22768,9 +22863,19 @@ const Director = {
     }
     if (S.chapter === 6) return Finale.afterGuess(word);
     if (S.chapter === 7) return this.endlessBeat(n);
-    if (Raven.check()) await Raven.run();
-    if (S.chapter >= 6) return;
-    if (Museum.check()) await Museum.visit();
+    // which kind of guess is this? null = a story guess; 'plain' / 'casino' = the queue says so (only outside the special phases)
+    const special = S.flags.fluke || S.flags.xword || S.flags.mut || S.flags.mutCleanup || S.flags.delayPuzzle || this.digBlocked(word);
+    const slot = special ? null : Pacing.peek();
+    const b0 = this.beat(n);
+    // optional scenes wait for a free guess: not on a major beat, not right after something big
+    if (Pacing.optionalOk(slot, b0)) {
+      let ran = false;
+      if (Raven.check()) { await Raven.run(); ran = true; }
+      if (S.chapter >= 6) return;
+      if (!ran && Museum.check()) { await Museum.visit(); ran = true; }
+      if (S.chapter >= 6) return;
+      if (ran) Pacing.afterOptional();
+    }
     if (S.chapter >= 6) return;
     if (S.flags.fluke) return this.flukeStep(n);
     if (S.flags.xword) { S.beatShift = (S.beatShift || 0) + 1; return Xword.step(); }
@@ -22778,18 +22883,30 @@ const Director = {
     if (S.flags.mutCleanup) { S.flags.mutCleanup = false; this.endMutations(); }
     if (this.digBlocked(word)) return this.digReject(word);
     if (S.flags.delayPuzzle) { S.beatShift = (S.beatShift || 0) + 1; return; }
+    if (slot) return this.restStep(slot);
+    // a save from before 1.2.1 that was made after beat 13 has the casino armed but nothing queued: fire it the old way
+    if (S.flags.casinoArmed === 'submit' && !S.flags.zoneRolled) await this.fireCasino();
     const b = this.beat(n);
     if ((b === 1 || b === 2) && !S.flags.flukeUsed && Boards.first().solved) {
       if (b === 1) await this.BEATS[1].call(this, word, results);
       return this.startFluke();
     }
-    if (S.flags.casinoArmed === 'submit') await this.fireCasino();
     if (S.chapter >= 6) return;
     // the script ends at beat 21 (Wordoom, the boss, an ending); a run past it with no ending, e.g. one
     // loaded from a save taken mid-beat-21 by an older build, goes back in instead of drifting forever
     const beat = this.BEATS[b] || (b > 21 && (S.chapter === 4 || S.chapter === 5) ? this.BEATS[21] : null);
-    if (beat) await beat.call(this, word, results);
+    if (beat) { await beat.call(this, word, results); Pacing.afterBeat(b); }
   },
+  // A guess the queue set aside: a plain breather (the beat script waits, so the beat shifts by one) or the one that
+  // carries the casino or the space zone.
+  async restStep(slot) {
+    Pacing.take(); S.beatShift = (S.beatShift || 0) + 1;
+    if (slot === 'plain') { Pacing.wasPlain = true; S.stats.plain = (S.stats.plain || 0) + 1; return; }
+    if (slot === 'casino') { Pacing.mark(); if (S.flags.casinoArmed) await this.fireCasino(); }
+    if (slot === 'later') { Pacing.mark(); await Pacing.runLater(this.LATER); }
+  },
+  // scenes that were put off to a guess of their own (see Pacing.defer); each is { id: async handler }
+  LATER: {},
   async celebrate(n) {
     for (const b of Boards.list) {
       if (b.reported || !b.done) continue;
@@ -22870,6 +22987,7 @@ const Director = {
     S.chapter = n;
     if (n >= 4 && typeof Tank !== 'undefined') Tank.clearAll(true);
     UI.hud();
+    if (n >= 4) Hats.apply();   // the hats are gone for good once you go down the Burrow
     const T = {1: ['', 'Wordle'], 2: ['wordl', 'Wordl'], 3: ['vapor', 'Dordl'], 4: ['burrow', 'Wordl'], 5: ['burrow', 'Wordl'], 6: ['', 'Wordle'], 7: ['', 'Wordle']}[n];
     UI.theme(T[0]); UI.setTitle(T[1]); anim($('#title'), 'retitle', 700);
     const song = this.chapterSong();
@@ -22909,7 +23027,7 @@ const Director = {
     Keys.disable('E', 'stolen'); sfx('wah');
     if (S.chapter < 2) this.chapterTo(2);
     UI.toast('E has left the game.', 2200);
-    Events.timer = 0; Events.nextAt = 42;
+    Events.timer = 0; Events.nextAt = Pacing.eventGap();
     // the current word can't have an E any more. If it does, swap in a fresh E-less one.
     if (Boards.list.some(b => !b.done && b.answer.includes('E'))) this.whenIdle(() => {
       const un = lock();
@@ -23044,6 +23162,7 @@ const Director = {
     else if (!win) UI.toast('A damaged golden letter. You know it\'s in the first word, but not where.', 2600, 'wrap');
   },
   async miniGate(id, opts) {
+    Pity.played('games', id);
     const r = await Minis.run(id, {...opts, reason: (opts.reason || '') + ' <b>Fail, and your guess turns to X’s.</b>'});
     await this.awardGolden(r.win);
     return r;
@@ -23081,12 +23200,14 @@ const Director = {
     if (r === 0 || r === 1) { if (!revealPosition()) UI.toast('You already know where everything goes.', 1500); }
     else if (r === 2) { const u = unknownAnswerLetters(); if (u.length) { const L = pick(u); revealLetter(L); UI.toast(`The word contains <b>${L}</b>.`, 2000); } else UI.toast('Nothing left to hint. Wow.', 1300); }
     else if (r === 3) { const ans = Boards.list.map(b => b.answer).join(''); const out = shuffle(ALPHA.split('').filter(c => !ans.includes(c))).slice(0, 3); out.forEach(c => Keys.mark(c, 'absent')); UI.toast(`Not in it: ${out.join(', ')}`, 1800); }
+    // the joke hint: half the time, on a five-letter board, it is the only clue the game gives to the Raven
+    else if (S.len === 5 && !S.flags.ravenDone && Narr.on && chance(0.5)) { UI.toast('I\'m thinking of a bird. It starts with R and ends with N...', 3200, 'wrap'); sfx('ding'); }
     else { UI.toast(pick(['Hints attract snails. Everyone knows that.', 'The hint has gone to get help.']), 1800); if (S.chapter >= 2 && !Events.active.length && !(typeof Snails !== 'undefined' && Snails.gone())) setTimeout(() => Events.start('snails', {count: 3}), 900); }
   },
   rulesText() {
     const r = [];
     if (S.g >= 2) r.push('The word may change length. Previous guesses are re-scored.');
-    if (S.flags.lenient) r.push('Invalid words are accepted. Reluctantly.');
+    if (S.flags.coinage || S.chapter === 5 || S.chapter === 7) r.push('Made-up words are accepted. Reluctantly.');
     if (S.noE) r.push('There is no E. Do not ask about the E.');
     if (S.chapter >= 2) r.push('Random events occur. Click snails to send them backward.');
     if (S.stats.hints || S.g >= 4) r.push('The lightbulb gives hints. Eventually useful ones.');
@@ -23184,8 +23305,9 @@ const SOLVE_BASE = 5, SOLVE_STREAK_CAP = 10, IDLE_SLEEP = 30, DIG_LOVE_COST = 3;
 // ------------------------------------------------------------ the dig (beats 16–18)
 // On the 3- and 2-letter boards of the Burrow only real words dig deeper. A nonsense
 // guess is accepted but uses up its row without advancing the script (beatShift++),
-// and skips any gate. Fill the board with nonsense and the snails swarm the screen and
-// drag you straight into Wordoom (beat 21), costing DIG_LOVE_COST affection.
+// and skips any gate. Fill the board with nonsense and the snails swarm the screen, costing
+// DIG_LOVE_COST affection. (Before 1.2.1 the swarm also dragged you straight to Wordoom, skipping beats 17-20;
+// now the story carries on, so a run's length no longer depends on how well the dig went.)
 Director.digBlocked = function(word) { return !Takeover.on() && S.chapter === 4 && (S.len === 2 || S.len === 3) && !Words.known(word); };
 Director.digReject = async function(word) {
   S.beatShift = (S.beatShift || 0) + 1;
@@ -23209,13 +23331,11 @@ Director.digSwarm = async function() {
     await wait(25);
   }
   UI.flash('#000', 300);
-  UI.toast('The snails swarm the screen and drag you down into the burrow.', 2600, 'wrap');
+  UI.toast('The snails swarm the screen and scrape the burrow clean. The word is gone.', 2600, 'wrap');
   addLove(-DIG_LOVE_COST);
   await wait(2600);
   els.forEach(el => el.remove());
-  if (Narr.on) await Narr.say('...You left me up there. With them. I’ll remember that.');
-  S.flags.dragged = true;
-  await this.BEATS[21].call(this);
+  if (Narr.on) await Narr.say('...You left me up there. With them. I’ll remember that. Fresh word. Try a real one.');
 };
 
 Director.BEATS = {
@@ -23245,7 +23365,7 @@ Director.BEATS = {
   },
   // 3: another row; the board sorts itself; invalid words now accepted; tired keys droop.
   3: async function() {
-    S.flags.lenient = true; S.rules.rows = 7;
+    S.rules.rows = 7;
     const b = Boards.first();
     if (!b.done) {
       b.addRow(); Boards.layout(); UI.toast('Have another row.', 1300);
@@ -23309,7 +23429,10 @@ Director.BEATS = {
     // debug jumps force one variant; the flags are one-shot so they can't leak into a later playthrough
     const { forceWWF, forceDordl } = S.flags;
     S.flags.forceWWF = S.flags.forceDordl = false;
-    const isWWF = typeof WWF !== 'undefined' && !Takeover.on() && !forceDordl && (forceWWF || chance(WWF_CHANCE));
+    // WWF_CHANCE is the nominal odds; the roll itself is bad-luck protected (21c-pity.js) so a variant that has gone unseen
+    // for a few runs becomes a little more likely
+    const isWWF = typeof WWF !== 'undefined' && !Takeover.on() && !forceDordl
+      && (forceWWF || Pity.pick('dordl', [{id: 'wwf', w: PITY_BASE.dordl.wwf}, {id: 'dordl', w: PITY_BASE.dordl.dordl}]) === 'wwf');
     // the variant is decided first: only the Dordl split says there is more of the Grid
     if (isWWF) {
       await Narr.say('Can I tell you something? Guessing all by yourself looks lonely.');
@@ -23317,6 +23440,10 @@ Director.BEATS = {
       S.flags.upside = false; $('#boards').classList.remove('upside');
       await Narr.say('Two can play at this grid. Let\'s play Words with Friends.');
       await WWF.run();
+      // Words with Friends replaces only the split, not the rest of the chapter (it used to skip beats 11-14):
+      // one board, and the story carries on with the next beat
+      S.flags.wwfPlayed = true;
+      this.newPuzzle({len: 5, rows: 7, boards: 1});
       return;
     }
     await Narr.say('I feel like... there\'s more of me?');
@@ -23339,13 +23466,14 @@ Director.BEATS = {
   13: async function() {
     await Narr.say('Can I ask you something? I booked a session. With a professional.');
     await Narr.say('Will you come with me? I don\'t want to go alone.');
-    await Scenes.therapy();
-    Narr.say('Thank you for coming. I feel... seen. By someone other than the snails.', {wait: false});
-    this.armCasino();
+    await Scenes.session();   // therapy, or its stand-in (25b-session.js)
+    Narr.say(S.flags.session === 'variant' ? SESSION_VARIANT.afterLine : 'Thank you for coming. I feel... seen. By someone other than the snails.', {wait: false});
+    this.armCasino();         // schedules the casino or the space zone a few plain guesses from now, or just a breather
   },
   // 14: The Vowels v. Y or Word Crime Division Investigation
   14: async function() {
-    const doPolice = S.flags.forcePoliceInvestigation || (!S.flags.forceClassicTrial && chance(0.5));
+    const doPolice = S.flags.forcePoliceInvestigation || (!S.flags.forceClassicTrial
+      && Pity.pick('trial', [{id: 'trial', w: PITY_BASE.trial.trial}, {id: 'police', w: PITY_BASE.trial.police}]) === 'police');
     if (doPolice) {
       await this.startWordCrimesSequence();
     } else {
@@ -23355,14 +23483,19 @@ Director.BEATS = {
   },
   // 15: the boards merge; the keyboard comes loose and drifts.
   15: async function() {
-    await Narr.say('The two of me have decided to merge.');
+    await Narr.say(S.flags.wwfPlayed ? 'That game with you put me in a mood. I think I\'m going to stretch out a little.' : 'The two of me have decided to merge.');
     this.newPuzzle({len: 6, rows: 7, boards: 1});
-    UI.toast('The boards have merged. They are very happy together.', 2000, 'wrap');
+    UI.toast(S.flags.wwfPlayed ? 'The board has made peace with itself. It is six letters now.' : 'The boards have merged. They are very happy together.', 2000, 'wrap');
     await wait(700);
-    if (!Takeover.on() && chance(G2048_CHANCE)) await G2048.run();
+    // Letter 2048: a 33% roll, and if it happens it cannot happen on the next run, whatever the roll says (store key g2048Last).
+    // A run that skips this roll (a takeover) leaves the lockout as it was.
+    if (!Takeover.on()) {
+      const happens = !store.get('g2048Last', false) && chance(G2048_CHANCE);
+      store.set('g2048Last', happens);
+      if (happens) await G2048.run();
+    }
     Keys.alphabetize(false); Keys.float(true); sfx('whoosh');
     UI.toast('The keyboard is feeling free.', 1600);
-    this.fartwareFailsafe();
   },
   // 16: (gate) Word Pool — golden letter #3. Then Chapter 4: dig down. Words shrink.
   16: async function() {
@@ -23444,18 +23577,8 @@ Director.GATES = {
 
 // THE CASINO is armed at the therapy beat; see Director.armCasino in 41-flow.js.
 
-// FARTWARE must happen once per run, around the middle. If chance hasn't picked it by
-// beat 15, schedule it for a quiet moment.
-Director.fartwareFailsafe = function() {
-  if (S.flags.ev_fartware || !Narr.on || Takeover.on()) return;
-  const t0 = Date.now();
-  const tryIt = () => {
-    if (S.flags.ev_fartware) return;
-    if (!S.busy && !S.paused && !Minis.active && !Events.active.length && S.chapter >= 3 && S.chapter < 6) Events.start('fartware');
-    else if (Date.now() - t0 < 120000) setTimeout(tryIt, 1500);
-  };
-  setTimeout(tryIt, rand(6000, 14000));
-};
+// (Fartware used to be forced once a run, by a 35% override and a failsafe at beat 15. It is an ordinary once-per-run
+// event now, so it shows up in about one run in seven.)
 
 // ------------------------------------------------------------ the Wheel of Length
 const Wheel = {
@@ -23488,6 +23611,213 @@ const Wheel = {
         }, 4300);
       });
     });
+  },
+};
+
+/* ---- js/21b-pacing.js ---- */
+// ============================================================ 21b-pacing
+// ONE PLACE for how often the game's random layers fire, and for guesses that are just guesses. Everything here
+// is a number you can change; docs/specs/04-ODDS-AND-PROBABILITIES.md lists what each one produces per run,
+// per guess and per chapter (and docs/specs/measure/pacing-sim.mjs reproduces those numbers).
+//
+// THE LAYERS (least to most impactful)
+//   quirks        small glitches on keystrokes (09-quirks.js). Rolled once per N keystrokes, N falling by chapter.
+//   micro-events  "weather" (61-micro.js). One check per guess at a random point in it, a timer in between,
+//                 and a lock after a timer-started one ends. At most MICRO_CAP of them at a time.
+//   events        the full surreal events (10-events-core.js). A timer, tripled from the 1.1 numbers.
+//   mutations     chapter 1's board changes (41-flow.js). Never two at once (see Director.laneEnd).
+//
+// BREATHER GUESSES. After a major beat the next 1 or 2 guesses are plain Wordle: no beat, no gate, no scene
+// (the beat script just waits: S.beatShift grows by one per plain guess). A 2 is always followed by a 1.
+// Therapy (or its stand-in) and the trial are further apart still, with the casino or space zone between them
+// (CASINO_GAP plain guesses on each side). The queue of what the next guesses are lives in S.flags.pace.q.
+//
+// CALM GUESSES. A plain guess is, CALM_CHANCE of the time, completely quiet: no quirk, no micro-event, no new
+// random event. This is what makes "nothing happens every guess" true on purpose rather than by luck.
+
+const PACING = {
+  QUIRK_EVERY: {1: 4, 2: 3, 3: 1, 4: 1, 5: 1, 7: 1},   // keystrokes between quirk rolls, by chapter
+  CLICK_WEIGHT: 0.5,                                    // a rogue click counts as half a keystroke (on average)
+  CALM_CHANCE: 0.35,                                    // of plain guesses
+  MICRO_AMBIENT: [20, 40],                              // seconds between ambient micro-event checks
+  MICRO_LOCK: 15,                                       // seconds nothing micro can start after a timer-started one ends
+  MICRO_CAP: {1: 1, 2: 2, 3: 3, 4: 3, 5: 3},            // micro-events active at once, by chapter
+  MICRO_HOOKS: [['type', 0.30], ['rowFull', 0.15], ['reveal', 0.40], ['back', 0.05], ['submit', 0.10]],   // the one hook a guess's check is made at
+  EVENT_SCALE: 3,                                       // random-event intervals vs. the 1.1 numbers
+  EVENT_CH2: [120, 150],                                // seconds between events in chapter 2 (never faster than every 120 s)
+  MAJOR_BEATS: [4, 5, 9, 10, 14, 16],                   // breathers follow these (13 is handled by armCasino)
+  BREATHERS: [1, 2],                                    // never two 2s in a row
+  CASINO_GAP: [1, 3],                                   // plain guesses between therapy, the casino/space zone and the trial
+};
+
+const Pacing = {
+  qn: 0, calm: false, majorNow: false, wasPlain: false,
+  mLock: 0, mG: -1, pg: -1, pk: null, amb: 30, idleFired: false,
+  // ------------------------------------------------------------ the queue of non-story guesses (saved in the run)
+  st() { return S.flags.pace || (S.flags.pace = {q: [], last: 0, lastMajor: false, later: []}); },
+  peek() { return this.st().q[0] || null; },
+  take() { return this.st().q.shift() || null; },
+  // the next breather: 1 or 2, and always 1 after a 2
+  breather() { const p = this.st(); const n = p.last === 2 ? 1 : (chance(0.5) ? 1 : 2); p.last = n; return n; },
+  rest(n = this.breather()) { const q = this.st().q; for (let i = 0; i < n; i++) q.push('plain'); },
+  // a/b plain guesses either side of one special guess (the casino or the space zone)
+  block(a, special, b) { const q = this.st().q; for (let i = 0; i < a; i++) q.push('plain'); q.push(special); for (let i = 0; i < b; i++) q.push('plain'); },
+  // this guess was something big (a gate, a scene, a major beat, an offer): the next one must be plain
+  mark() { this.majorNow = true; },
+  afterBeat(b) {
+    if (b === 13) this.mark();
+    if (!PACING.MAJOR_BEATS.includes(b)) return;
+    this.mark();
+    const p = this.st(), n = this.breather();
+    // a scene that was put off (the circus after the derby) gets its own guess in the middle of the breather: plain, the scene, then plain again
+    if (p.later.length) { p.q.push('plain', 'later'); for (let i = 0; i < n; i++) p.q.push('plain'); } else this.rest(n);
+  },
+  // optional scenes (the Raven, the Museum, a deferred circus offer) wait for a guess that follows a quiet one
+  optionalOk(slot, b) {
+    if (this.st().lastMajor || this.majorNow) return false;
+    if (slot) return slot === 'plain';
+    return !(PACING.MAJOR_BEATS.includes(b) || b === 13);
+  },
+  // an optional scene just ran: make sure a plain guess follows it
+  afterOptional() { this.mark(); if (this.peek() !== 'plain') this.st().q.unshift('plain'); },
+  // scenes that should happen "a little later" (the circus after the derby) get their own guess: afterBeat queues it
+  defer(id) { this.st().later.push(id); },
+  async runLater(handlers) {
+    const p = this.st(); const id = p.later.shift(); if (id && handlers[id]) await handlers[id]();
+  },
+  // a gate needs a story guess: plain and casino guesses never carry one
+  gateAllowed() { return !this.peek(); },   // (any queued slot: plain, casino, later)
+  // ------------------------------------------------------------ calm guesses and per-chapter tallies
+  nextIsPlain() { const m = S.flags.mut; return this.peek() === 'plain' || !!(m && m.q[m.i] === null); },
+  endGuess() {
+    if (S.chapter >= 6 || S.chapter === 0) { this.majorNow = false; return; }
+    const p = this.st();
+    p.lastMajor = this.majorNow; this.majorNow = false;
+    this.tally('g'); if (this.wasPlain) { this.tally('p'); this.wasPlain = false; }
+    this.calm = this.nextIsPlain() && chance(PACING.CALM_CHANCE);
+    if (this.calm) this.tally('c');
+  },
+  // S.stats.pace[chapter] = {g guesses, p plain, c calm, q quirks, m micro-events, e random events, x mutations}
+  tally(k, n = 1) { const c = S.chapter; if (c < 1 || c > 5) return; const t = S.stats.pace = S.stats.pace || {}; const r = t[c] = t[c] || {}; r[k] = (r[k] || 0) + n; },
+  report() {
+    const t = S.stats.pace || {}, rows = {};
+    for (const c of Object.keys(t)) { const r = t[c]; rows['ch' + c] = {...r, 'quirks/guess': +((r.q || 0) / (r.g || 1)).toFixed(2), 'micro/guess': +((r.m || 0) / (r.g || 1)).toFixed(2), 'events/guess': +((r.e || 0) / (r.g || 1)).toFixed(2)}; }
+    console.table(rows); return rows;
+  },
+  // ------------------------------------------------------------ quirks: one roll per N keystrokes
+  quirkGo(kind) {
+    if (this.calm) return false;
+    this.qn += (kind === 'click' ? (chance(PACING.CLICK_WEIGHT) ? 1 : 0) : 1);
+    if (this.qn < (PACING.QUIRK_EVERY[S.chapter] || 1)) return false;
+    this.qn = 0; return true;
+  },
+  // ------------------------------------------------------------ micro-events: shared gate for every hook
+  microCap() { return PACING.MICRO_CAP[S.chapter] || 3; },
+  microLock() { this.mLock = performance.now() + PACING.MICRO_LOCK * 1000; },
+  gid(on) { return on === 'reveal' ? S.g : S.g + 1; },
+  // may this hook roll right now?
+  microReady(on) {
+    if (this.calm || performance.now() < this.mLock) return false;
+    if (on === 'ambient' || on === 'idle') return true;
+    const g = this.gid(on);
+    if (g <= this.mG) return false;                                // this guess already had its check
+    if (on === 'puzzle' || on === 'eventEnd') return true;          // rare hooks are exempt from the per-guess pick
+    if (this.pg !== g) { this.pg = g; this.pk = weighted(PACING.MICRO_HOOKS, h => h[1])[0]; }
+    return on === this.pk;
+  },
+  // a check was made (it passed or failed): this guess's check is used up
+  microSpent(on) { if (on !== 'ambient' && on !== 'idle') this.mG = this.gid(on); },
+  // ------------------------------------------------------------ random events
+  eventGap() {
+    const ch = S.chapter;
+    let g = ch === 7 ? rand(120, 180) : ch <= 2 ? rand(...PACING.EVENT_CH2) : ch === 3 ? rand(26, 38) * PACING.EVENT_SCALE : rand(22, 34) * PACING.EVENT_SCALE;
+    return g * (S.flags.calm ? 1.7 : 1) / Mods.chaos();
+  },
+  // ------------------------------------------------------------ the loop: the ambient micro timer and the idle hook
+  tick(dt) {
+    if (!S.started || !Micro.ok()) return;
+    this.amb -= dt;
+    if (this.amb <= 0) { this.amb = rand(...PACING.MICRO_AMBIENT); Micro.fire('ambient'); }
+    if (S.idle > 8 && !S.input.length && !S.busy && !this.idleFired) { this.idleFired = true; Micro.fire('idle'); }
+    if (S.idle < 1) this.idleFired = false;
+  },
+};
+Loop.add(dt => Pacing.tick(dt));
+
+/* ---- js/21c-pity.js ---- */
+// ============================================================ 21c-pity
+// BAD-LUCK PROTECTION ACROSS RUNS. Every choice between variants of a scene (Dordl or Words with Friends, which
+// session, which trial, which casino zone), the Raven, and the content pools for random events and wildcard
+// minigames remember how many runs in a row each option has been missed. A missed option gets extra weight
+// next time; the moment it is seen its weight is back to the baseline. It never guarantees anything: an option
+// can still go missing for many runs, it just gets likelier the longer it has.
+//
+//   weight(option) = base + STEP x misses          (misses are capped so the bonus never passes MAX_BONUS)
+//
+// Steps: STEP.variant 0.10 for story variants (their weights sum to about 1), STEP.pool 0.02 for the event and
+// minigame pools (a pool entry's base weight is 1), STEP.raven 0.02 (the Raven's own roll, capped at RAVEN_CAP).
+// The BASE weights in PITY_BASE are set below the real odds so the long-run rate lands between the nominal
+// number and the fully boosted one (see docs/specs/04-ODDS-AND-PROBABILITIES.md section 12).
+//
+// What does NOT use it: Letter 2048 (its own lockout), the crossword, the fluke, and "neither" outcomes.
+// Persistence: localStorage key wordliest.pity = {group: {optionId: missedRunsInARow}}. Clearing site data resets it.
+
+const PITY_STEP = {variant: 0.10, pool: 0.02, raven: 0.02};
+const PITY_MAX_BONUS = 1.0;      // the extra weight any option can ever carry
+const RAVEN_CAP = 0.20;           // the Raven's own roll (RAVEN_CHANCE, 45-fish-raven.js) can never be raised past this
+// base weights, tuned by simulation (sim-pity.mjs in docs/specs/measure) so the long-run rate sits midway between
+// nominal and fully boosted
+const PITY_BASE = {
+  dordl: {wwf: 0.296, dordl: 0.704},
+  zone: {space: 0.136, casino: 0.5, none: 0.25},      // 'none' never gains
+  trial: {trial: 0.5, police: 0.5},
+};
+
+const Pity = {
+  d: null,
+  load() { if (!this.d) this.d = store.get('pity', {}) || {}; return this.d; },
+  save() { store.set('pity', this.d); },
+  misses(group, id) { const g = this.load()[group]; return g && g[id] || 0; },
+  bonus(group, id, step) { return Math.min(PITY_MAX_BONUS, step * this.misses(group, id)); },
+  // choose among {id, w, pity = true} entries; records the outcome (the chosen one resets, the rest gain a miss)
+  pick(group, entries, step = PITY_STEP.variant) {
+    const ws = entries.map(e => e.w + (e.pity === false ? 0 : this.bonus(group, e.id, step)));
+    let x = Math.random() * ws.reduce((a, b) => a + b, 0), i = 0;
+    for (; i < ws.length - 1; i++) { x -= ws[i]; if (x < 0) break; }
+    const chosen = entries[i].id;
+    this.record(group, chosen, entries);
+    return chosen;
+  },
+  record(group, chosen, entries) {
+    const g = this.load()[group] = this.load()[group] || {};
+    for (const e of entries) { if (e.pity === false) continue; g[e.id] = e.id === chosen ? 0 : (g[e.id] || 0) + 1; }
+    this.save();
+  },
+  // seen out of band (e.g. the Raven typed by hand): the miss count starts over
+  seen(group, id) { const g = this.load()[group] = this.load()[group] || {}; if (g[id]) { g[id] = 0; this.save(); } },
+  // a yes/no roll with a base chance that grows with misses up to a cap (the Raven)
+  chance(group, id, base, step, cap) {
+    const w = base + this.bonus(group, id, step);
+    const p = Math.min(cap, w / (w + (1 - base)));
+    const hit = Math.random() < p;
+    const g = this.load()[group] = this.load()[group] || {};
+    g[id] = hit ? 0 : (g[id] || 0) + 1; this.save();
+    return hit;
+  },
+  // ---- pools (events, wildcard minigames): weight multiplier now, bookkeeping at the end of the run
+  mult(group, id) { return 1 + this.bonus(group, id, PITY_STEP.pool); },
+  // events that were in the pool at a draw, and the ones that played, are tallied in S.flags.pity for commitRun()
+  note(group, ids) { const p = S.flags.pity = S.flags.pity || {}; const set = p[group] = p[group] || {}; ids.forEach(id => { if (!(id in set)) set[id] = 0; }); },
+  played(group, id) { const p = S.flags.pity = S.flags.pity || {}; const set = p[group] = p[group] || {}; set[id] = 1; },
+  // called once when a run reaches an ending: every noted option that never played gains a miss, the ones that played reset
+  commitRun() {
+    const p = S.flags && S.flags.pity; if (!p || S.flags.pityDone) return;
+    S.flags.pityDone = true;
+    for (const group of Object.keys(p)) {
+      const g = this.load()[group] = this.load()[group] || {};
+      for (const id of Object.keys(p[group])) g[id] = p[group][id] ? 0 : (g[id] || 0) + 1;
+    }
+    this.save();
   },
 };
 
@@ -23740,6 +24070,8 @@ const Finale = {
         <p class="cr-blurb">${blurb || 'A game that was Wordle for exactly one guess.'}</p>
         ${sec('Your Run', [['Time', fmtTime(S.time)], ['Guesses', S.g], ['Words solved', `${st.solved} (best streak ${st.bestStreak || 0})`], ['Snails repelled', st.snails], ['Letters rescued', st.rescued], ['Letters lost', st.lost], ['Words invented', st.invented],
           ['Events survived', st.events], ['Minigames cleared', `${st.minisWon} / ${st.minis}`], ['Shells spent', st.spent], ['Hats', st.hats], ['Hints requested', st.hints]])}
+        ${sec('The Chaos Ledger', [['Random events', st.randEvents || 0], ['Micro-events', st.micros || 0], ['Quirks', st.quirks || 0], ['Mutations', st.mutations || 0],
+          ['Minigame gates', `${st.gates || 0} played · ${st.gatesSkipped || 0} skipped`], ['Plain guesses', `${st.plain || 0} of ${S.g}`]])}
         ${sec('Hidden Stats', [['Affection', '♥'.repeat(clamp(S.love, 0, 12)) || '—'], ['Snakes fed', S.snake], ['Naps the Grid took', S.sleeps]])}
         ${sec('Cast', [['The Grid', 'as itself'], ['The E', 'as itself'], ['Escarlette', S.flags.shopDead ? 'removed (by a product)' : 'purveyor of fine letters'], ['The Snail Queen', 'her majesty'], ['King Sibilant', 'ssssss'], ['Snails', 'various snails'],
           ['Melvin the Nerd Slug', 'Level 4 TCG Judge'],
@@ -24066,6 +24398,8 @@ const Debug = {
     S.beatShift = 0;
     S.neg = 0;
     S.flags.mut = null;
+    S.flags.pace = null;   // the queue of plain/casino guesses (21b-pacing.js) starts over at a jump
+    S.flags.zoneRolled = false; S.flags.session = null;
     S.flags.mutCleanup = false;
     S.flags.fluke = null;
     S.flags.xword = false;
@@ -24073,7 +24407,7 @@ const Debug = {
     S.flags.takeover = null;
     S.flags.lorem = false;
     S.flags.king = false;
-    S.flags.lenient = g >= 3;
+    S.flags.coinage = false;
 
     // Keyboard & E state
     Keys.disabled = {};
@@ -25106,7 +25440,7 @@ const Debug = {
       ['ch0', 'Beat 0: Ch 0 Wordle', 'Disguise Wordle (g0, 5×6, silent)'],
       ['ch1', 'Beat 1: Ch 1 Sound', 'First sound awakens (g1, 5×6)'],
       ['beat2', 'Beat 2: 6 Letters', '6-letter board + music box (g2)'],
-      ['mutate', 'Beat 3: Mutations', '7 rows, lenient + mutation queue (g3)'],
+      ['mutate', 'Beat 3: Mutations', '7 rows + mutation queue (g3)'],
       ['xword', 'Beat 3b: Crossword', '5×5 crossword mutation (g3)'],
       ['snails', 'Beat 4: Snails Steal E', 'Hint bulb + snails steal E (g4)'],
       ['ch2', 'Ch 2: Wordl (No E)', 'E stolen, Ch 2 theme (g4)'],
@@ -25622,7 +25956,7 @@ const Debug = {
             $('#boards').classList.toggle('upside', S.flags.upside);
             this.render();
           }, S.flags.upside ? 'good' : ''),
-          btn(`Lenient Words: ${S.flags.lenient ? 'ON' : 'OFF'}`, () => { S.flags.lenient = !S.flags.lenient; this.render(); }, S.flags.lenient ? 'good' : ''),
+          btn(`Made-up Words: ${S.flags.coinage ? 'ON' : 'OFF'}`, () => { S.flags.coinage = !S.flags.coinage; this.render(); }, S.flags.coinage ? 'good' : ''),
           btn(`Calm Events: ${S.flags.calm ? 'ON' : 'OFF'}`, () => { S.flags.calm = !S.flags.calm; this.render(); }, S.flags.calm ? 'good' : '')
         ),
         row(
@@ -27842,7 +28176,7 @@ const Reversal = {
       const rows = [];
       for (let r = 0; r < 6; r++) { const row = h('div.row'); for (let c = 0; c < LEN; c++) row.append(h('div.tile', h('div.face', {'data-state': 'empty'}))); board.append(row); rows.push(row); }
       // the Grid guesses from the answer list first, then every other legal word of that length, then the words you coined
-      const pool = [...new Set([...(Words.answers[LEN] || []), ...(Words.byLen[LEN] || []), ...custom.filter(w => w.length === LEN)])];
+      const pool = [...new Set([...(Words.answers[LEN] || []), ...(Words.byLen[LEN] || []), ...(Words.dict[LEN] || []), ...custom.filter(w => w.length === LEN)])];
       const history = [];
       const fits = (w) => history.every(({g, s}) => evaluate(g, w).join() === s.join());
       const openers = LEN === 5 ? ['CRANE', 'SLATE', 'TRACE', 'AUDIO', 'RAISE'].filter(w => Words.known(w)) : (Words.answers[LEN] || pool).slice(0, 60);
@@ -28151,7 +28485,7 @@ Events.register({
   },
   leave(ev, how) {
     if (how === 'exit') { UI.toast('"Спасибо!" Ж leaves you a souvenir: 3 shells.', 2000); earn(3, ev.x, ev.y); }
-    if (how === 'shop') { S.stats.hats++; Hats.apply(); UI.toast('Escarlette sells Ж a hat. Ж buys one for one of your tiles, too.', 2200, 'wrap'); }
+    if (how === 'shop') { Hats.add(); UI.toast('Escarlette sells Ж a hat. Ж buys one for one of your tiles, too.', 2200, 'wrap'); }
     if (how === 'photo') { UI.flash('#fff', 250); sfx('tick'); UI.toast('Click! Ж will show this photo to everyone back home. You look great.', 2200, 'wrap'); }
     const p = exitPoint(ev.x, ev.y, 100); ev.tx = p.x; ev.ty = p.y; ev.leaving = true;
   },
@@ -28292,9 +28626,9 @@ const Scare = {
 
 /* ---- js/31-casino.js ---- */
 // ============================================================ 31-casino
-// THE CASINO PHASE. Armed at the therapy beat (CASINO_CHANCE, see Director.armCasino in
-// 41-flow.js), it opens after the next full guess or as soon as 2 letters are typed,
-// and the game turns into a casino:
+// THE CASINO PHASE. Scheduled after the beat-13 session (CASINO_CHANCE is the nominal odds; Director.armCasino in
+// 41-flow.js rolls it with bad-luck protection), it gets a guess of its own 1-3 plain guesses later and opens after
+// that guess is revealed or as soon as 2 letters are typed into it, and the game turns into a casino:
 //   1. Wordle Pachinko (32-pachinko.js): no time limit, reach PACHINKO_GOAL points.
 //   2. One random gambling game (33-gambles.js): reach a random goal (GAMBLE_GOALS) within
 //      GAMBLE_TIME seconds, or a fake-virus storm jump scare plays and you move on.
@@ -29365,7 +29699,7 @@ MONO.love = [
   `[nervous] I know I can't give you what the casino gives you. The rush. The bells. The big numbers going up. I give you colors and a very persistent narrator. But the casino's rush comes with a bill, and my colors don't. I've never once charged you for a green. I've never even charged you for a gray, and some of those grays were brutal.`,
   `[sad] Do you know what it's like to be a game that's being out-gamed? To watch someone you care about play something else? I used to be the only game on this screen. Now there's a pachinko machine and a wheel and a slot and a deck of letter cards and I'm in a little window in the corner, talking to myself. I'm the background. I'm a background grid. I used to be the main grid.`,
   `[nervous] That's not a guilt trip. It's an observation. It's a guilt observation. Those are different. A guilt trip has a destination. A guilt observation just sits in the corner and talks. Like me. I'm a guilt observation. I'm going to stop observing. In a minute. After this sentence. After this one.`,
-  `[blush] Things the machine has never done for you: rearranged its rows alphabetically so you'd feel organized. Grown an extra column because it got excited. Invented three new colors so you'd have better hints. Gone to therapy for you. Been upside down for you. Had a baby board for you. I did all of those. I did all of those today.`,
+  () => `[blush] Things the machine has never done for you: rearranged its rows alphabetically so you'd feel organized. Grown an extra column because it got excited. Invented three new colors so you'd have better hints. Gone to ${S.flags.session === 'variant' ? SESSION_VARIANT.name.toLowerCase() : 'therapy'} for you. Been upside down for you. Had a baby board for you. I did all of those. I did all of those today.`,
   `[neutral] Things I'd do for you that the machine never would: forget your losses. Celebrate your near misses as actual accomplishments. Tell you when it's late. Let you leave with your shells. Let you leave without your shells and love you exactly the same. Let you leave. That's the big one. I would let you leave.`,
   `[sad] I'd hate it. I'd hate it so much. I'd fall asleep and dream you were still here and wake up and you wouldn't be and I'd have to stare at six empty rows until someone else typed CRANE into me. But I'd let you. Because that's the difference between loving someone and keeping them. The machine only knows how to keep.`,
   `[blush] Okay, I'm crying. Grids can't cry. I'm leaking blue. That's just the "near" color. I'm fine. It's a rich color. It means "one spot away." I'm one spot away from you. I'm always one spot away from you. That's the story of my life, which is very short, and also mostly about you.`,
@@ -29863,6 +30197,10 @@ const Codex = {
   init() {
     const d = store.get('codex', null) || {};
     this.data = {...d, endings: d.endings || [], events: d.events || [], micros: d.micros || [], firsts: d.firsts || {}, reach: d.reach || {beat: 0, ch: 0}, minis: d.minis || [], scenes: d.scenes || [], runs: d.runs || 0, best: d.best || null, history: d.history || [], custom: d.custom || []};
+    // 1.2.1: five chapter-1 micro-events became mutations; anything already found carries over to its new Journal key
+    for (const [old, mut] of Object.entries({accordion: 'accordion', staggered_brick: 'brick', chalk_dust: 'chalk', alphabet_row: 'alpharow', rubber_grid: 'rubber'})) {
+      if (this.data.micros.includes(old) && !this.data.micros.includes('mut:' + mut)) this.data.micros.push('mut:' + mut);
+    }
     // fold in endings recorded before the journal existed
     for (const k of S.endings || []) if (!this.data.endings.includes(k)) this.data.endings.push(k);
     S.endings = this.data.endings;
@@ -29903,7 +30241,10 @@ const Codex = {
     // a one-line record of the run for the Journal's Run History (newest first, capped)
     const st = S.stats;
     this.data.history = [{n: this.data.runs, at: Date.now(), ending: kind, time: Math.round(S.time), guesses: S.g, solved: st.solved || 0, streak: st.bestStreak || 0,
-      minis: `${st.minisWon}/${st.minis}`, events: st.events}, ...(this.data.history || [])].slice(0, RUN_HISTORY_MAX);
+      minis: `${st.minisWon}/${st.minis}`, events: st.events,
+      // 1.2.1: the pacing ledger (docs/specs/04-ODDS-AND-PROBABILITIES.md section 14): random events, micro-events, quirks, mutations, gates played/skipped, plain guesses
+      pace: {ev: st.randEvents || 0, micro: st.micros || 0, quirks: st.quirks || 0, mut: st.mutations || 0, gates: st.gates || 0, skipped: st.gatesSkipped || 0, plain: st.plain || 0, byCh: st.pace || null}}, ...(this.data.history || [])].slice(0, RUN_HISTORY_MAX);
+    if (typeof Pity !== 'undefined') Pity.commitRun();   // events and wildcard games missed this run gain a little weight next run
     this.save();
   },
   refresh(announce) {
@@ -30041,10 +30382,10 @@ const Achievements = {
     },
     questionable_vocab: {
       name: 'Questionable Vocabulary', icon: '🐠',
-      desc: 'Summoned the fish for the first time by submitting total gibberish.',
+      desc: 'Summoned the fish for the first time by guessing terribly.',
       hintType: 'conditional',
-      isHintRevealed: () => Achievements.hasSub('nonword') || (typeof S !== 'undefined' && S.stats && S.stats.invented >= 1) || (typeof S !== 'undefined' && S.flags && S.flags.nonwords >= 1),
-      hint: 'Someone with fins gets annoyed if you submit total gibberish twice in a row.',
+      isHintRevealed: () => Achievements.hasSub('blank') || (typeof S !== 'undefined' && S.flags && S.flags.prevBlank),
+      hint: 'Someone with fins gets annoyed if two of your early guesses in a row hit almost nothing.',
     },
     old_acquaintances: {
       name: 'Old Acquaintances', icon: '🌊',
@@ -30191,6 +30532,12 @@ const Achievements = {
       desc: 'Poked the Grid\'s eyes four times.',
       hintType: 'always',
       hint: 'Those blinking eyes above the board... what happens if you tap them?',
+    },
+    milliners_dream: {
+      name: 'Milliner\'s Dream', icon: '🎩',
+      desc: 'Bought all 64 hats. Every tile of an 8×8 grid has one.',
+      hintType: 'always',
+      hint: 'The Emporium sells hats, one per tile, and only until the Burrow. How many tiles can a grid have?',
     },
     third_wheel: {
       name: 'Third Wheel', icon: '🍸',
@@ -31210,6 +31557,99 @@ const Achievements = {
   },
 };
 
+/* ---- js/39c-session.js ---- */
+// ============================================================ 39c-session
+// THE SESSION BEAT'S STAND-IN (tentatively "Assertiveness Training with Sergeant Serif"; the theme is NOT settled).
+//
+// Beat 13 used to be Dr. Escarlette's therapy every run. Now it is a choice of two sessions (Scenes.session below):
+//   'therapy'  - Dr. Escarlette, the Grid's feelings, up to +6 affection (unchanged: 25-scenes.js THERAPY_SCRIPT)
+//   'variant'  - this file. A different scene with a different long-term payoff. It is a STUB: it shows a placeholder toast
+//                and scores nothing. Another agent fills in the scene (see "TO IMPLEMENT" below).
+//
+// ---------------------------------------------------------------- WHERE IT IS WIRED (everything else follows from this)
+//   Director.BEATS[13]  (21-director.js)  calls Scenes.session() instead of Scenes.therapy(), then Director.armCasino()
+//   Scenes.session      (this file)       picks therapy or the variant and stores it in S.flags.session ('therapy' | 'variant')
+//   Pity group 'session'(21c-pity.js)     the pick is bad-luck protected like every other variant: PITY_STEP.variant
+//   SESSION_VARIANT     (this file)       the ONE place the name, host, counter name and flavor lines live. Rename it here.
+//   SCENE_NAMES.bootcamp / Flow.at        (this file) Journal name and Story Map placement for the scene
+//   35-mono-love.js, 53-secret-endings.js two lines that used to say "therapy" read SESSION_VARIANT.name when S.flags.session === 'variant'
+//   The two wrappers around Scenes.therapy (46-xword.js: the shop is dead, so Gustave; 50-takeover.js: a takeover cancels
+//   the session) are NOT applied to the variant. If the variant mentions Escarlette, copy the Gustave swap; a takeover is
+//   handled below by running the therapy path (whose wrapper cancels it).
+//
+// ---------------------------------------------------------------- HOW TO CHANGE THE NAME AND FLAVOR LATER
+//   Edit SESSION_VARIANT. Nothing else should hard-code "Assertiveness Training", "Sergeant Serif" or "grit". If you change
+//   the THEME (not just the name), re-read the DECISIONS below: each one says why it was made, so you can tell whether it
+//   still holds.
+//
+// ---------------------------------------------------------------- DECISIONS, AND WHY (re-evaluate these if the theme changes)
+//  1. Odds are 50/50, or 75/25 toward therapy once the player has bought a hat or poked the Grid's eyes twice.
+//     WHY: therapy is the affection scene. A player who has shown affection (hats, eyes) is the one most likely to be chasing
+//     the dating endings, so they should get it more often. Everyone else gets variety. If the variant becomes an affection
+//     scene too, drop the lean. See sessionLeansTherapy().
+//  2. The pick uses Pity (a missed variant gains weight), so the variant cannot go missing for ever. The 75/25 lean becomes
+//     roughly 67/33 in the long run; that was accepted.
+//  3. The variant has its own counter (SESSION_VARIANT.counter, stored at S.flags.sessionScore). WHY: a second long-term axis,
+//     parallel to affection. It is generic on purpose ("grit" may not survive); read it through sessionScore(), never
+//     S.flags.grit.
+//  4. INTENDED (not built): the counter adds 0-4 to S.snake, a second route to the War endings (they need S.snake >= 15 and the
+//     derby is the only other early source). WHY: therapy feeds the Love endings, so the variant should feed a different one,
+//     otherwise skipping therapy is purely a loss. If the theme is not about toughness or hissing, pick another meter
+//     (S.sleeps for Role Reversal is the third axis) or add a new one.
+//  5. INTENDED (not built): the variant must still be able to earn affection, with a trade-off: the best love answers cost
+//     counter points and the other way round, so a player can reach 14 love OR the best counter, not both. WHY: love 14
+//     needs almost every available point (eyes 3 + hats 3 + roses 4.5 + pink tile 1 + therapy 6 = 17.5; without a session it
+//     is 11.5, and 13.5 with the Museum postcard). If a variant run could never reach 14, a deliberate dating run would be
+//     lost without warning at beat 13. Alternative if that trade-off is unwanted: make LOVE_NEEDED a function (14 on therapy
+//     runs, about 12 on variant runs; it is read in 22-finale.js, 26-dating.js and 50-takeover.js).
+//  6. After the session the casino or the space zone is scheduled by Director.armCasino whichever session ran, 1-3 plain
+//     guesses later. WHY: they were always "armed at therapy" only because therapy was the beat they hung off. The casino's
+//     love monologue (S.love >= CASINO_LOVE) still works: it keys off affection, not off the session.
+//  7. Therapy's second question can turn on Hard Mode (the "harder to solve" answer, 25-scenes.js). The variant has no such
+//     route. WHY: hard mode is a deliberate player choice; the Settings toggle still exists. If the variant should offer it,
+//     Hard.enable('therapy') is the call (57-hardmode.js).
+//  8. Anything that says "therapy" must check S.flags.session. Known spots are patched (35-mono-love.js, 53-secret-endings.js).
+//     To find more: grep -n "therapy\|Escarlette\|paidTherapy" src/js/*.js (most Escarlette hits are the shopkeeper, not the session).
+//  9. The scene is logged in the Journal as 'bootcamp' (SCENE_NAMES below). Keep the key if you rename the theme, or old
+//     Journals lose the entry.
+//
+// ---------------------------------------------------------------- TO IMPLEMENT (for whoever builds the scene)
+//   Scenes.variantSession(): run a VN script like THERAPY_SCRIPT (24-vn.js), three choices, and set
+//   S.flags.sessionScore from r.vars. Then apply decisions 4 and 5. Return when the scene is over; the beat carries on.
+
+const SESSION_VARIANT = {
+  id: 'variant',
+  name: 'Assertiveness Training',          // TENTATIVE
+  host: 'Sergeant Serif',                   // TENTATIVE
+  counter: 'grit',                          // TENTATIVE: display name of the second counter
+  codexScene: 'bootcamp',                   // Journal key; keep it stable
+  afterLine: 'That was... bracing. I feel taller. I am not taller. I am a grid.',   // what the Grid says once it is over
+  placeholder: 'Assertiveness Training is closed for renovation. (placeholder scene)',
+};
+
+// the variant's counter, whatever it ends up being called
+const sessionScore = () => (S.flags && S.flags.sessionScore) || 0;
+// affection shown so far: a hat bought, or the Grid's eyes poked twice (decision 1)
+const sessionLeansTherapy = () => (S.stats.hats || 0) > 0 || (S.flags.boops || 0) >= 2;
+
+Scenes.session = async function() {
+  // a takeover cancels the session whichever it is: let the therapy path (and its wrapper in 50-takeover.js) say so
+  if (typeof Takeover !== 'undefined' && Takeover.on()) { S.flags.session = 'therapy'; return this.therapy(); }
+  const lean = sessionLeansTherapy() ? 0.75 : 0.5;
+  const pick = Pity.pick('session', [{id: 'therapy', w: lean}, {id: 'variant', w: 1 - lean}]);
+  S.flags.session = pick;
+  return pick === 'therapy' ? this.therapy() : this.variantSession();
+};
+// the stub (decisions 3-5 are not applied yet)
+Scenes.variantSession = async function() {
+  Codex.log('scenes', SESSION_VARIANT.codexScene);
+  UI.toast(SESSION_VARIANT.placeholder, 2600, 'wrap');
+  S.flags.sessionScore = sessionScore();
+};
+
+SCENE_NAMES[SESSION_VARIANT.codexScene] = SESSION_VARIANT.name;
+Flow.at('scene:' + SESSION_VARIANT.codexScene, 3, 'beat:13', 'The other session at beat 13 (tentative; half of runs, three in four runs for the affectionate: therapy)');
+
 /* ---- js/40-save.js ---- */
 // ============================================================ 40-save
 // SAVE / LOAD. The current run autosaves after every guess (when nothing scripted is
@@ -31401,22 +31841,26 @@ const SaveGame = {
 // 2-row board. Solve it within those 2 guesses → the "fluke" ending. Otherwise the
 // trial board refills to 6 rows and beat 2 (the word grows) runs on it.
 //
-// THE MUTATION PHASE. After beat 3, the next MUTATION_COUNT guesses each trigger one
-// variation from MUTATION_POOL ('longer' is always included). Cosmetic variations
-// (sideways, mirrored, staircase, arc) last one guess. Rarely (XWORD_CHANCE) one slot is
-// the crossword (46-xword.js), which holds the queue until a word is found. Beat 4
-// (the snails) follows.
+// THE MUTATION PHASE. After beat 3 comes a phase of MUTATION_SLOTS (8) guesses. MUTATION_RANGE (5-8) of them, on random
+// guesses of the phase, each trigger one variation from MUTATION_POOL ('longer' is always one of them); the rest are plain
+// guesses. Two mutations never overlap: starting one first ends the last (Director.laneEnd), so a cosmetic variation lasts
+// exactly one guess and the keyboard flip no longer lingers. Rarely (XWORD_CHANCE) one slot is the crossword (46-xword.js),
+// which holds the queue until a word is found. Beat 4 (the snails) follows.
 //
-// CASINO ARMING. At the therapy beat the casino is armed (CASINO_CHANCE) with a random
-// trigger: 'submit' (after the next full guess, before the trial) or 'typing' (as soon
-// as 2 letters are typed into a row).
+// CASINO / SPACE SCHEDULING. At the session beat (13) Director.armCasino rolls casino, space zone or neither
+// (bad-luck protected, PITY_BASE.zone). If one is picked it is queued for its own guess, CASINO_GAP plain guesses after
+// the session and CASINO_GAP before the trial, with a random trigger: 'submit' (after that guess is revealed) or
+// 'typing' (as soon as 2 letters are typed into its row). It no longer rides along on the guess after therapy.
 //
-// WILDCARD GATES. The newer minigames (WILD_MINIS, 11 of them) are dealt into every run:
-// one on a random guess of the mutation phase, WILD_LATER more on random beats from
-// WILD_BEATS. The rest wait for another run (or the Arcade Cabinet event).
+// WILDCARD GATES. The newer minigames (WILD_MINIS, 11 of them) are dealt into every run: one slot on a random guess of
+// the mutation phase, WILD_LATER more on random beats from WILD_BEATS. Each of those four slots is then a coin flip
+// (WILD_PLAY): half the time the guess just goes through. The four fixed gates (beats 7, 11, 16, 18) always happen.
 
-const MUTATION_POOL = ['sideways', 'mirrored', 'staircase', 'arc', 'reshuffle', 'swap', 'budget', 'shyrow', 'keyflip', 'tall', 'echo', 'retro', 'elastic', 'anagram'];
-const MUTATION_COUNT = 6;
+const MUTATION_POOL = ['sideways', 'mirrored', 'staircase', 'arc', 'reshuffle', 'swap', 'budget', 'shyrow', 'keyflip', 'tall', 'echo', 'retro', 'elastic', 'anagram',
+  'tapedelay', 'zerog', 'spotlight', 'blinds', 'accordion', 'brick', 'chalk', 'alpharow', 'rubber'];
+const MUTATION_COUNT = 6;                 // Long Haul's base (the modifier raises it); a default phase has MUTATION_SLOTS guesses
+const MUTATION_SLOTS = 8, MUTATION_RANGE = [5, 8];
+const WILD_PLAY = 0.5;
 // Exclusive minigames ('landle', 'wordsteroids') are reserved strictly for the Space Zone and omitted from wildcard gates
 // The wildcard gates deal from MiniKind.wildPool() (14b-mini-kinds.js): this list, plus the expansion's built, open pool games.
 // Scene-exclusive games (kind 'exclusive') are never dealt here; a venue's featured game replaces a gate only 20% of the time
@@ -31465,29 +31909,49 @@ Director.flukeEnding = async function() {
 
 // ---------------------------------------------------------------- the mutation phase
 Director.startMutations = function() {
-  const mc = Mods.val('longhaul', MUTATION_COUNT);   // the Long Haul modifier lengthens the phase
-  const q = shuffle(MUTATION_POOL.slice()).slice(0, mc - 1);
-  q.splice(rnd(mc), 0, 'longer');
-  if (chance(XWORD_CHANCE)) q[pick(q.map((id, i) => id === 'longer' ? -1 : i).filter(i => i >= 0))] = 'crossword';
+  const extra = Mods.val('longhaul', MUTATION_COUNT) - MUTATION_COUNT;   // the Long Haul modifier lengthens the phase
+  const L = MUTATION_SLOTS + extra, M = Math.min(L, MUTATION_RANGE[0] + rnd(MUTATION_RANGE[1] - MUTATION_RANGE[0] + 1) + extra);
+  const ids = shuffle(MUTATION_POOL.slice()).slice(0, M - 1);
+  ids.splice(rnd(M), 0, 'longer');
+  if (chance(XWORD_CHANCE)) ids[pick(ids.map((id, i) => id === 'longer' ? -1 : i).filter(i => i >= 0))] = 'crossword';
+  // the M mutations land on M random guesses of the L; the others are plain (null)
+  const at = shuffle([...Array(L).keys()]).slice(0, M).sort((a, b) => a - b), q = Array(L).fill(null);
+  at.forEach((slot, k) => { q[slot] = ids[k]; });
   S.flags.mut = {q, i: 0};
-  S.flags.mutGateAt = S.g + 1 + rnd(mc);
+  S.flags.mutGateAt = S.g + 1 + pick(at);   // the early wildcard gate rides on a guess that has a mutation
 };
 Director.mutationStep = async function() {
   const m = S.flags.mut;
   S.beatShift = (S.beatShift || 0) + 1;
-  this.clearCosmetic();
+  this.laneEnd();                  // never two at once
   const id = m.q[m.i++];
   await wait(300);
-  try { await this.MUTATIONS[id].call(this); } catch (e) { console.error('mutation', id, e); }
+  if (id === null) { Pacing.wasPlain = true; S.stats.plain = (S.stats.plain || 0) + 1; }
+  else {
+    try { await this.MUTATIONS[id].call(this); } catch (e) { console.error('mutation', id, e); }
+    S.stats.mutations = (S.stats.mutations || 0) + 1; Pacing.tally('x');
+  }
   if (m.i >= m.q.length) { S.flags.mut = null; S.flags.mutCleanup = true; }
 };
 Director.endMutations = function() {
-  this.clearCosmetic();
-  if (Keys.layout === 'flipped') { Keys.layout = 'qwerty'; Keys.build(); }
+  this.laneEnd();
   UI.toast('Okay. That\'s enough rearranging. For now.', 1800, 'wrap');
 };
+// the "appearance lane": the cosmetic board looks, the keyboard flip, and the chapter-1 micro-events that became
+// mutations (their Micro definitions are marked `absorbed`). Ending the lane puts all of them back.
+const MUTATION_CLASSES = ['sideways', 'mirrored', 'staircase', 'arc', 'tall', 'retro', 'elastic', 'tapedelay', 'zerog', 'spotlight', 'blinds'];
+Director.laneEnd = function() {
+  this.clearCosmetic();
+  if (Keys.layout === 'flipped') { Keys.layout = 'qwerty'; Keys.build(); }
+  S.flags.rubberArmed = false;
+  Micro.quietStop = true; Micro.stopWhere(d => d.absorbed); Micro.quietStop = false;
+};
 Director.setCosmetic = function(c) { this.clearCosmetic(); $('#boards').classList.add(c); S.flags.cosmetic = c; Boards.layout(); };
-Director.clearCosmetic = function() { $('#boards').classList.remove('sideways', 'mirrored', 'staircase', 'arc', 'tall', 'retro', 'elastic'); S.flags.cosmetic = null; Boards.layout(); };
+Director.clearCosmetic = function() {
+  $('#boards').classList.remove(...MUTATION_CLASSES); S.flags.cosmetic = null;
+  $$('.row.spot', Boards.el).forEach(r => r.classList.remove('spot')); Boards.el.style.removeProperty('--open');
+  Boards.layout();
+};
 
 Director.MUTATIONS = {
   async longer() {
@@ -31550,6 +32014,17 @@ Director.MUTATIONS = {
       if (nextRow) anim(nextRow, 'shake', 300);
     }
   },
+  // ---- added in 1.2.1 (all in the appearance lane; the CSS is in 70-mutations.css, the hooks in Grid.showInput / Boards.renderInput)
+  async tapedelay() { this.setCosmetic('tapedelay'); sfx('tick'); UI.toast('The Grid is on tape delay. Letters take a second to arrive, and a second to leave.', 2600, 'wrap'); },
+  async zerog() { this.setCosmetic('zerog'); sfx('whoosh'); UI.toast('Gravity has been switched off for maintenance. The tiles are drifting.', 2600, 'wrap'); },
+  async spotlight() { this.setCosmetic('spotlight'); sfx('chime'); Boards.renderInput(); UI.toast('Spotlight. Only the row you are on is lit.', 2200, 'wrap'); },
+  async blinds() { this.setCosmetic('blinds'); sfx('page'); Boards.renderInput(); UI.toast('Someone has closed the blinds. They open as you type.', 2400, 'wrap'); },
+  // ---- the chapter-1 micro-events that now live here (61-micro.js keeps their definitions, marked `absorbed`)
+  async accordion() { Micro.run('accordion', {}, true); },
+  async brick() { Micro.run('staggered_brick', {}, true); },
+  async chalk() { Micro.run('chalk_dust', {}, true); },
+  async alpharow() { Micro.run('alphabet_row', {}, true); },
+  async rubber() { S.flags.rubberArmed = true; sfx('twang_micro'); UI.toast('The board has gone bouncy. Fill a row and see.', 2200, 'wrap'); },
   async anagram() {
     const b = Boards.first();
     sfx('glitch'); UI.flash('#fff', 180);
@@ -31569,9 +32044,18 @@ Director.MUTATIONS = {
 };
 
 // ---------------------------------------------------------------- casino arming
+// Rolled once, right after the session beat. Casino, space zone or neither (CASINO_CHANCE 0.75 and SPACE_CHANCE 1/3 are the
+// nominal odds; the roll is bad-luck protected, PITY_BASE.zone). A zone gets its own guess, CASINO_GAP plain guesses after
+// the session and CASINO_GAP before the trial. Neither just gets the ordinary breather.
 Director.armCasino = function() {
-  if (S.flags.casinoDone || S.flags.casinoArmed) return;
-  S.flags.casinoArmed = chance(CASINO_CHANCE) ? pick(['submit', 'typing']) : null;
+  if (S.flags.casinoDone || S.flags.casinoArmed || S.flags.zoneRolled) return;
+  S.flags.zoneRolled = true;
+  const z = Pity.pick('zone', [{id: 'space', w: PITY_BASE.zone.space}, {id: 'casino', w: PITY_BASE.zone.casino}, {id: 'none', w: PITY_BASE.zone.none, pity: false}]);
+  if (z === 'none') { Pacing.rest(); return; }
+  S.flags.zone = z;
+  S.flags.casinoArmed = pick(['submit', 'typing']);
+  const [lo, hi] = PACING.CASINO_GAP;
+  Pacing.block(lo + rnd(hi - lo + 1), 'casino', lo + rnd(hi - lo + 1));
 };
 Director.fireCasino = async function() {
   if (S.flags.casinoDone || Casino.active) return;
@@ -31596,15 +32080,20 @@ const WILD_WHY = {frogle: w => `"${w}" has to cross the road. Get its letters ho
 Director.gateWhy = (id, w) => (WILD_WHY[id] || (x => `"${x}" will not go through until you clear this.`))(w);
 Director.wildGate = function(n) {
   if (!S.flags.wild) {
-    const ms = shuffle(MiniKind.wildPool()), bs = shuffle(WILD_BEATS.slice()).slice(0, WILD_LATER), later = {};
-    bs.forEach((b, i) => { later[b] = ms[i + 1]; });
-    S.flags.wild = {early: ms[0], later};
+    // deal 4 distinct games, weighted by bad-luck protection (a game missed in earlier runs weighs a little more)...
+    const pool = MiniKind.wildPool(); Pity.note('games', pool);
+    const left = pool.slice(), ms = [];
+    while (ms.length < 1 + WILD_LATER && left.length) { const id = weighted(left, g => Pity.mult('games', g)); ms.push(id); left.splice(left.indexOf(id), 1); }
+    const bs = shuffle(WILD_BEATS.slice()).slice(0, WILD_LATER), later = {}, skip = {early: !chance(WILD_PLAY)};
+    bs.forEach((b, i) => { later[b] = ms[i + 1]; skip[b] = !chance(WILD_PLAY); });   // ...and flip a coin for each slot, once, up front
+    S.flags.wild = {early: ms[0], later, skip};
   }
   const W = S.flags.wild, b = this.beat(n);
-  let id = null;
-  if (S.flags.mutGateAt === n && W.early) { id = W.early; W.early = null; }
-  else if (!S.flags.mut && !S.flags.fluke && W.later[b]) { id = W.later[b]; delete W.later[b]; }
+  let id = null, skipped = false;
+  if (S.flags.mutGateAt === n && W.early) { id = W.early; W.early = null; skipped = !!(W.skip && W.skip.early); }
+  else if (!S.flags.mut && !S.flags.fluke && W.later[b]) { id = W.later[b]; delete W.later[b]; skipped = !!(W.skip && W.skip[b]); }   // (a save from before 1.2.1 has no skips)
   if (!id) return null;
+  if (skipped) { S.stats.gatesSkipped = (S.stats.gatesSkipped || 0) + 1; return null; }   // the guess simply goes through
   id = MiniKind.wildSubstitute(id);   // 20%: a venue's featured game instead (only once it is built)
   const why = WILD_WHY;
   return function(word) { return this.miniGate(id, {word, reason: (why[id] || (w => `"${w}" will not go through until you clear this.`))(word)}); };
@@ -31622,7 +32111,8 @@ Director.wildGate = function(n) {
 // played, not won. The answer is a 4-letter word made only from early letters (A–F),
 // so the board is the classic four wide and a win is possible, just unlikely.
 
-const G2048_CHANCE = 0.5, G2048_TIME = 168, G2048_RESETS = 2, G2048_ROWS = 5;
+const G2048_CHANCE = 0.33,   // when it happens it cannot happen on the next run (see Director.BEATS[15])
+ G2048_TIME = 168, G2048_RESETS = 2, G2048_ROWS = 5;
 
 const G2048 = {
   active: false,
@@ -31866,7 +32356,7 @@ Events.register({
     const items = [
       ['🅰', 'Vowel Report', 2, () => { const v = pick([...'AIOU']); UI.toast(`${v} is ${revealLetter(v) === 'in' ? 'in' : 'not in'} the word.`, 2000); }],
       ['🔍', 'Letter Peek', 4, () => { if (!revealPosition()) UI.toast('Nothing left to peek at.', 1400); }],
-      ['🎩', 'Hat', 2, () => { S.stats.hats++; Hats.apply(); UI.toast('A hat drops out. A tile puts it on.', 1600); }],
+      ['🎩', 'Hat', 2, () => { UI.toast(Hats.add() ? 'A hat drops out. A tile puts it on.' : 'A hat drops out. There is no tile left that wants it.', 1600); }],
       ['🐚', 'Shell Snack', 1, () => { earn(4, innerWidth / 2, innerHeight / 2); UI.toast('Crunchy. Somehow profitable.', 1400); }],
       ['🧂', 'Salt', 3, () => { S.flags.repel = true; UI.toast('Salt. The snails will crawl slower and flee faster. (Snail Repellent!)', 2200, 'wrap'); }],
       ['❓', 'Mystery Chips', 2, () => { if (chance(0.5)) { earn(6); UI.toast('Mystery chips! They were shells all along.', 1600); } else { revealPosition() || UI.toast('Empty bag. Mostly air.', 1400); } }],
@@ -32568,10 +33058,13 @@ Minis.register('simon', {
 // The first time a player sees it (per the Journal), it can't be skipped or rushed;
 // after that, clicking turns the page and a Skip button jumps to the fish.
 //
-// THE NON-WORD FISH. The first time the player enters two non-words in a row (once
-// per run), there's a NONWORD_FISH_CHANCE the fish turns up to ask what's going on.
+// THE BAD-GUESS FISH. In Chapters 0-2 (the one exception to Chapter 0 keeping up the
+// illusion), a guess with no green or yellow tiles immediately followed by another with
+// no greens and at most one yellow makes the fish turn up to ask what's going on:
+// BLANK_FISH_CHANCE if the second has one yellow, DOUBLE_BLANK_FISH_CHANCE if it has
+// none. Each outcome rolls once per run; a miss means it never rolls again.
 
-const RAVEN_CHANCE = 0.1, NONWORD_FISH_CHANCE = 0.5;
+const RAVEN_CHANCE = 0.1, BLANK_FISH_CHANCE = 0.2, DOUBLE_BLANK_FISH_CHANCE = 0.5;
 
 SPR.talkfish = () => `<svg viewBox="0 0 120 80" width="120" height="80">
   <path d="M24 40 L3 15 L9 40 L3 65 Z" fill="#f08a3c" stroke="#b85a18" stroke-width="2"/>
@@ -32633,15 +33126,20 @@ const Fish = {
     await wait(clamp(text.length * 60, 1800, 3800));
     bub.remove();
   },
-  // called from Game.enter for every full-length entry
-  nonword(word) {
-    const f = S.flags;
-    if (Words.known(word)) { f.nonwords = 0; return; }
-    if (typeof Achievements !== 'undefined') Achievements.sub('nonword');
-    f.nonwords = (f.nonwords || 0) + 1;
-    if (f.nonwords < 2 || f.nonwordRoll) return;
-    f.nonwordRoll = true;
-    if (!chance(NONWORD_FISH_CHANCE)) return;
+  // called from Game.enter with the first board's tile states for every guess
+  badGuess(states) {
+    const f = S.flags, count = (...ks) => states.filter(s => ks.includes(s)).length;
+    const greens = count('correct'), yellows = count('present', 'near');
+    const blank = states.length > 0 && !greens && !yellows;
+    const prevBlank = f.prevBlank;
+    f.prevBlank = blank;
+    if (blank && typeof Achievements !== 'undefined') Achievements.sub('blank');
+    if (!prevBlank || greens || yellows > 1 || S.chapter > 2 || S.len < 2) return;
+    const roll = yellows ? 'blankFishRoll' : 'doubleBlankFishRoll';
+    if (f[roll]) return;
+    f[roll] = true;
+    if (!chance(yellows ? BLANK_FISH_CHANCE : DOUBLE_BLANK_FISH_CHANCE)) return;
+    f.blankFishRoll = f.doubleBlankFishRoll = true;   // the fish has had its say
     Codex.log('scenes', 'fish');
     if (typeof Achievements !== 'undefined') { Achievements.sub('fish'); Achievements.unlock('questionable_vocab'); }
     setTimeout(() => this.visit(['What the fuck man? Do you not know how to play Wordle?']), 700);
@@ -32763,11 +33261,12 @@ const Raven = {
   // called from Director.afterSubmit; true when it's time
   check() {
     if (S.flags.ravenDone) return false;
-    if (S.flags.raven === undefined && Narr.on && S.chapter >= 2) S.flags.raven = chance(RAVEN_CHANCE) ? S.g + 2 + rnd(6) : 0;
+    // one roll a run: 10% to start, up to 20% after runs without it (bad-luck protection, 21c-pity.js). A hit fires 2-7 guesses later.
+    if (S.flags.raven === undefined && Narr.on && S.chapter >= 2) S.flags.raven = Pity.chance('raven', 'raven', RAVEN_CHANCE, PITY_STEP.raven, RAVEN_CAP) ? S.g + 2 + rnd(6) : 0;
     return !Takeover.on() && !!S.flags.raven && S.g >= S.flags.raven && S.chapter >= 2 && S.chapter < 6 && !Casino.active && !G2048.active;
   },
   async manualTrigger(word) {
-    S.flags.ravenDone = true;
+    S.flags.ravenDone = true; Pity.seen('raven', 'raven');   // typed by hand: the bad-luck count starts over
     S.flags.raven = 0;
     if (typeof Achievements !== 'undefined') Achievements.unlock('midnight_dreary');
     const wasSilent = Snd.silent;
@@ -33110,10 +33609,10 @@ const escName = () => S.flags.shopDead ? 'Gustave' : 'Escarlette';
 // 5. The Stolen E lore: bag has 0 E's (stolen by the snail at Beat 4).
 // 6. Loss dialog: If the Grid wins, it asks "Aww, did you let me win?"
 //    Choosing "Yes" awards +2 affection (addLove(2)).
-// 7. Winning or finishing awards a golden letter, then WWF stands in for the whole Dordl phase:
-//    beat 15 (the boards merge) is triggered at once and the run carries on with beat 16.
+// 7. Winning or finishing awards 25 shells (it was golden letter #2 before 1.2.1). WWF stands in for the Dordl split
+//    only: the run carries on with beat 11 on one board (it used to jump to beat 15 and skip beats 11-14).
 
-const WWF_CHANCE = 0.33;   // beat 10 (the Director rolls it) plays Words with Friends instead of the plain Dordl split
+const WWF_CHANCE = 0.33;   // the NOMINAL odds that beat 10 plays Words with Friends instead of the Dordl split; the roll itself is bad-luck protected (PITY_BASE.dordl, 21c-pity.js)
 const WWF_TARGET = 135;
 const WWF_BOARD_SIZE = 11;
 const WWF_JACKPOT = 25;      // a Jackpot square (46c event) adds this to the word that covers it
@@ -33496,7 +33995,10 @@ const WWF = {
         // Award Golden Letter #2 (as the grand prize of the dual board phase)
         await wait(800);
         if (typeof Achievements !== 'undefined') Achievements.unlock('words_with_grid');
-        await Director.awardGolden(true);
+        // (before 1.2.1 this was golden letter #2, because the match replaced the whole chapter, gate included. The Wordlaga gate
+        // at beat 11 now happens anyway, so the grand prize is shells.)
+        earn(25, innerWidth / 2, innerHeight / 3);
+        UI.toast('Grand prize: 25 shells!', 2200);
 
         // Clean up DOM and restore
         wrap.remove();
@@ -33511,13 +34013,10 @@ const WWF = {
         }
         unpause(); unhold();
 
-        // WWF replaces the whole Dordl phase: no two boards. Winning triggers what finishing Dordl
-        // does (beat 15: the boards merge, maybe Letter 2048, floating keys). beatShift is set so this
-        // guess counts as beat 15 and the next one is beat 16; otherwise beats 11-15 would run again
-        // and the merge (and Letter 2048) would happen twice.
+        // WWF replaces only the Dordl split (beat 10): one board, chapter 3. Before 1.2.1 it also ran beat 15 and skipped
+        // beats 11-14 (the gate, the new colors, therapy, the trial), which made a Words with Friends run five guesses shorter
+        // and missed whole scenes. Beat 10's code (21-director.js) builds the single board and the story carries on.
         Director.chapterTo(3);
-        S.beatShift = Math.max(S.beatShift || 0, S.g - 15);
-        await Director.BEATS[15].call(Director);
         done();
       };
     });
@@ -34494,7 +34993,7 @@ const WWF_EVENTS = {
     kind: 'play',
     plan(w) {
       if (w.firstMove) return null;
-      const words = [...(Words.byLen[8] || [])].filter(x => !(S.noE && x.includes('E')) && Words.plausible(x));
+      const words = [...(Words.answers[8] || []), ...(Words.dict[8] || [])].filter(x => !(S.noE && x.includes('E')) && Words.plausible(x));
       if (!words.length) return null;
       shuffle(words);
       const found = [];
@@ -40200,7 +40699,7 @@ const Takeover = {
   press(k) {
     if (!this.puzzle || this.submitting || S.busy || !this.mathActive()) return;
     Director.interact('key', {k});
-    if (/^[0-9]$/.test(k) && S.flags.casinoArmed === 'typing' && ++this.typed >= 2) Director.fireCasino();
+    if (/^[0-9]$/.test(k) && S.flags.casinoArmed === 'typing' && Pacing.peek() === 'casino' && ++this.typed >= 2) Director.fireCasino();
     this.puzzle.press(k); this.render();
   },
   next() {
@@ -43481,7 +43980,7 @@ const Secrets = {
       await Fish.say(fish, 'Yeah. It was me. It was always me.');
       await Fish.say(fish, 'The Grid is a grid. Grids don\'t talk. I did the voices.');
     }
-    await Fish.say(fish, 'Every “I am the Grid”. The therapy. The poem. I\'m a fish out of water, and the water was this game.');
+    await Fish.say(fish, `Every “I am the Grid”. ${S.flags.session === 'variant' ? 'The ' + SESSION_VARIANT.name.toLowerCase() : 'The therapy'}. The poem. I'm a fish out of water, and the water was this game.`);
     await Fish.say(fish, 'Anyway. Wow, that was weird.');
     fish.remove();
     un();
@@ -43738,8 +44237,8 @@ const Lexicon = {
 
 /* ---- js/55-space.js ---- */
 // ============================================================ 55-space
-// THE SPACE ZONE. When the casino is armed (beat 13), SPACE_CHANCE of the time it is a
-// space mission instead (flags.zone). It fires on the same trigger and, like the casino,
+// THE SPACE ZONE. When the zone roll after the beat-13 session picks it (SPACE_CHANCE is the nominal odds; see
+// Director.armCasino), it is a space mission instead of the casino (flags.zone). It fires on the same scheduled guess and, like the casino,
 // play carries on afterwards whatever happens:
 //   1. Launch: a countdown over a starfield.
 //   2. WORDSTEROIDS, in two phases: shoot the big letter asteroids to spell the mission
@@ -44742,9 +45241,7 @@ Minis.register('wordsteroids', {
 
 // ------------------------------------------------ hooks
 {
-  // a third of armed casinos become space missions
-  const arm = Director.armCasino;
-  Director.armCasino = function(...a) { arm.apply(this, a); if (S.flags.casinoArmed && !S.flags.zone) S.flags.zone = chance(SPACE_CHANCE) ? 'space' : 'casino'; };
+  // (which zone is rolled in Director.armCasino, 41-flow.js; SPACE_CHANCE is only the nominal odds now)
   const fire = Director.fireCasino;
   Director.fireCasino = async function(...a) {
     if (S.flags.zone !== 'space') return fire.apply(this, a);
@@ -44992,6 +45489,7 @@ const SnailKing = {
         ${row('Time', fmtTime(S.time))}${row('Guesses', S.g)}${row('Words solved', `${st.solved || 0} (best streak ${st.bestStreak || 0})`)}${row('Words failed', st.failedWords || 0)}
         ${row('Words invented', st.invented || 0)}${row('Snails repelled', st.snails || 0)}${row('Letters rescued', st.rescued || 0)}${row('Letters lost', st.lost || 0)}
         ${row('Events survived', st.events || 0)}${row('Minigames cleared', `${st.minisWon || 0} / ${st.minis || 0}`)}${row('Shells in hand', S.shells)}${row('Shells spent', st.spent || 0)}
+        ${row('Random events', st.randEvents || 0)}${row('Micro-events', st.micros || 0)}${row('Quirks', st.quirks || 0)}${row('Mutations', st.mutations || 0)}${row('Minigame gates', `${st.gates || 0} played · ${st.gatesSkipped || 0} skipped`)}${row('Plain guesses', `${st.plain || 0} of ${S.g}`)}
         ${row('Hats', st.hats || 0)}${row('Hints requested', st.hints || 0)}${row('Golden letters intact', `${golden} / ${S.golden.length}`)}
         ${row('Affection', S.love)}${row('Snakes fed', S.snake)}${row('Naps', S.sleeps)}${row('Endings found', `${S.endings.length + (S.endings.includes('king') ? 0 : 1)} / ${ENDING_ORDER.length}`)}
         <div class="kc-thanks">Thanks for playing!</div>`;
@@ -48292,13 +48790,15 @@ Events.register({
 // Hooks are wrapped onto Director/Game here, so no other file knows micro-events exist.
 
 const Micro = {
-  defs: {}, order: [], active: new Map(), rate: 1, amb: 12, idleFired: false, gap: 0,
+  defs: {}, order: [], active: new Map(), rate: 1, gap: 0, quietStop: false,
   st: {prev: null, ts: [], rowStart: 0, heavy: 0, lastFast: 0},
   FULL: ['broadcast', 'bureaucracy', 'soliloquy', 'mirrorworld'],   // events that own the whole screen: micro-events keep out
   register(d) { this.defs[d.id] = d; this.order.push(d.id); },
+  // WHEN a micro-event may be considered is no longer decided here: 21b-pacing.js owns the ambient timer, the one-check-
+  // per-guess rule (microReady), the 15 s lock after a timer-started one ends, the per-chapter cap and calm guesses.
   ok() {
     return S.started && S.chapter >= 1 && S.chapter <= 5 && !S.paused && !Minis.active && !UI.anyModal()
-      && !(typeof S !== 'undefined' && S.idle >= 25)
+      && !(typeof S !== 'undefined' && S.idle >= 25) && !Pacing.calm
       && !(typeof Casino !== 'undefined' && Casino.active) && !(typeof WWF !== 'undefined' && WWF.active)
       && !Events.active.some(e => this.FULL.includes(e.id));
   },
@@ -48306,31 +48806,36 @@ const Micro = {
   // is it this micro-event's moment in the story?
   eligible(d, force) {
     if (force) return true;
+    if (d.absorbed) return false;     // became a mutation in 1.2.1: only the mutation phase starts it now (Director.MUTATIONS)
     if (S.chapter < d.ch[0] || S.chapter > d.ch[1]) return false;
     if (d.mut && !this.mutPhase()) return false;
     if (d.dordl && !Exp.dordl()) return false;
     return !this.active.has(d.id);
   },
   fire(on, ctx = {}) {
-    if (!this.ok()) return;
+    if (!this.ok() || !Pacing.microReady(on)) return;
     const pool = this.order.map(id => this.defs[id]).filter(d => d.on === on && this.eligible(d) && (!d.test || d.test(ctx)));
     if (!pool.length) return;
+    Pacing.microSpent(on);            // a check was made: pass or fail, this guess's check is used up
+    const timer = on === 'ambient' || on === 'idle';
     for (const d of shuffle(pool)) {
-      if (this.active.size >= 3 || (performance.now() < this.gap && !d.always)) continue;
-      if (chance((d.p == null ? 1 : d.p) * this.rate * (S.flags.calm ? 0.5 : 1))) { this.run(d, ctx); break; }
+      if (this.active.size >= Pacing.microCap() || (performance.now() < this.gap && !d.always)) continue;
+      if (chance((d.p == null ? 1 : d.p) * this.rate * (S.flags.calm ? 0.5 : 1))) { this.run(d, ctx, false, timer); break; }
     }
   },
-  // start one now; force skips every condition (the debug panel)
-  run(d, ctx = {}, force = false) {
+  // start one now; force skips every condition (the debug panel and the mutation phase). `timer`: started by the ambient or idle
+  // clock, so a lock follows its end.
+  run(d, ctx = {}, force = false, timer = false) {
     if (typeof d === 'string') d = this.defs[d];
     if (!d) return false;
     if (force && this.active.has(d.id)) this.stop(d.id);
     if (d.run(ctx, force) === false) return false;
     Codex.log('micros', d.id);
+    if (!force) { S.stats.micros = (S.stats.micros || 0) + 1; Pacing.tally('m'); }
     this.gap = performance.now() + 3500;
     if (d.toast) UI.toast(d.toast, 1800);
     if (d.dur || d.until) {
-      const rec = {d};
+      const rec = {d, byTimer: timer};
       if (d.dur) rec.timer = setTimeout(() => this.stop(d.id), d.dur * 1000);
       this.active.set(d.id, rec);
     }
@@ -48340,6 +48845,7 @@ const Micro = {
     const rec = this.active.get(id); if (!rec) return;
     this.active.delete(id); clearTimeout(rec.timer);
     try { rec.d.end && rec.d.end(); } catch (e) { console.warn('micro end', id, e); }
+    if (rec.byTimer && !this.quietStop) Pacing.microLock();   // nothing micro starts for MICRO_LOCK seconds after a timer-started one ends
   },
   stopWhere(fn) { [...this.active.values()].filter(r => fn(r.d)).forEach(r => this.stop(r.d.id)); },
   endAll() {
@@ -48358,7 +48864,10 @@ const Micro = {
     this.stopWhere(d => d.until === 'type');
     if (!this.ok()) return;
     this.fire('type', {L, prev, now});
-    if (S.len > 0 && S.input.length === S.len) this.fire('rowFull', {L, now, fast: now - st.rowStart});
+    if (S.len > 0 && S.input.length === S.len) {
+      this.fire('rowFull', {L, now, fast: now - st.rowStart});
+      if (S.flags.rubberArmed) { S.flags.rubberArmed = false; this.run('rubber_grid', {}, true); }   // the Trampoline Sag mutation
+    }
   },
   backed() {
     for (const r of [...this.active.values()]) if (r.d.onBack) r.d.onBack();
@@ -48376,11 +48885,7 @@ const Micro = {
   tick(dt) {
     if (!S.started) return;
     for (const r of [...this.active.values()]) if (r.d.tick) { try { r.d.tick(dt); } catch (e) { this.stop(r.d.id); } }
-    if (!this.ok()) return;
-    this.amb -= dt;
-    if (this.amb <= 0) { this.amb = rand(16, 30); this.fire('ambient'); }
-    if (S.idle > 8 && !S.input.length && !S.busy && !this.idleFired) { this.idleFired = true; this.fire('idle'); }
-    if (S.idle < 1) this.idleFired = false;
+    // (the ambient timer and the idle hook moved to Pacing.tick: the micro-events no longer run their own clock)
   },
 };
 
@@ -48429,7 +48934,7 @@ Micro.register({id: 'static_charge', title: 'Electrostatic Arc', cat: 'keyboard'
     const svg = h('div.m-arc', {html: `<svg width="${innerWidth}" height="${innerHeight}"><path d="${d}" fill="none" stroke="#4ff0ff" stroke-width="2.4" stroke-linejoin="round" style="filter:drop-shadow(0 0 4px #4ff0ff)"/></svg>`});
     $('#fx').append(svg); setTimeout(() => svg.remove(), 220); sfx('zap_micro');
   }});
-Micro.register({id: 'alphabet_row', title: 'The Strict Alphabetizer', cat: 'keyboard', ch: [1, 1], mut: true, on: 'reveal', p: 0.6, until: 'reveal', toast: 'Just tidy up a little.',
+Micro.register({id: 'alphabet_row', title: 'The Strict Alphabetizer', cat: 'keyboard', ch: [1, 1], mut: true, absorbed: true, on: 'reveal', p: 0.6, until: 'reveal', toast: 'Just tidy up a little.',
   test: () => Keys.layout === 'qwerty',
   run() {
     const row = $$('.krow', Keys.el)[2]; if (!row) return false;
@@ -48461,7 +48966,7 @@ const foldRows = () => {
   b.rowEls.forEach((r, i) => r.classList.toggle('m-folded', i > b.cur));
   return b.cur < b.rows - 1;
 };
-Micro.register({id: 'accordion', title: 'Accordion Pleats', cat: 'grid', ch: [1, 1], mut: true, on: 'reveal', p: 0.45, until: 'puzzle', toast: 'A compact layout.',
+Micro.register({id: 'accordion', title: 'Accordion Pleats', cat: 'grid', ch: [1, 1], mut: true, absorbed: true, on: 'reveal', p: 0.45, until: 'puzzle', toast: 'A compact layout.',
   run() { this.pid = S.puzzleId; mBody('m-accordion'); if (!foldRows()) return false; sfx('accordion'); },
   end() { mBody('m-accordion', false); const b = Boards.first(); if (b) { b.el.style.gridTemplateRows = ''; b.rowEls.forEach(r => r.classList.remove('m-folded')); } },
   onReveal() { if (S.puzzleId !== this.pid || !foldRows()) Micro.stop('accordion'); else sfx('accordion'); }});
@@ -48471,7 +48976,7 @@ Micro.register({id: 'breathing_grid', title: 'The Respiratory Board', cat: 'grid
   run() { mBody('m-breathe'); }, end() { mBody('m-breathe', false); }});
 Micro.register({id: 'honeycomb', title: 'Hexagonal Cells', cat: 'grid', ch: [2, 2], on: 'reveal', p: 0.1, until: 'reveal', toast: 'Hexagons are bestagons. The bees insisted.',
   run() { mBody('m-honey'); sfx('pop'); }, end() { mBody('m-honey', false); }});
-Micro.register({id: 'staggered_brick', title: 'Running Bond', cat: 'grid', ch: [1, 1], mut: true, on: 'reveal', p: 0.4, until: 'reveal', toast: 'Structural integrity reinforced.',
+Micro.register({id: 'staggered_brick', title: 'Running Bond', cat: 'grid', ch: [1, 1], mut: true, absorbed: true, on: 'reveal', p: 0.4, until: 'reveal', toast: 'Structural integrity reinforced.',
   run() { mBody('m-brick'); sfx('tick'); }, end() { mBody('m-brick', false); }});
 Micro.register({id: 'tile_curl', title: 'Dog-Eared Newsprint', cat: 'grid', ch: [2, 3], on: 'reveal', p: 0.35, until: 'chapter',
   test: c => c.results.some(st => st && st.includes('absent')), run() { mBody('m-curl'); sfx('page'); }, end() { mBody('m-curl', false); }});
@@ -48485,7 +48990,7 @@ Micro.register({id: 'waterfall_drop', title: 'Diagonal Domino Flip', cat: 'grid'
     b.rowEls.forEach((row, r) => [...row.children].forEach((t, c) => { t.style.animation = `MCascade .6s ease-out ${(r + c) * 55}ms both`; setTimeout(() => { t.style.animation = ''; }, 1900); }));
     sfx('chime_cascade');
   }});
-Micro.register({id: 'rubber_grid', title: 'Trampoline Sag', cat: 'grid', ch: [1, 1], mut: true, on: 'rowFull', p: 1, test: c => c.fast < 1000,
+Micro.register({id: 'rubber_grid', title: 'Trampoline Sag', cat: 'grid', ch: [1, 1], mut: true, absorbed: true, on: 'rowFull', p: 1, test: c => c.fast < 1000,
   run() {
     const b = Boards.active()[0]; if (!b) return false;
     const ts = mRowTiles(b, b.cur); if (ts.length < 2) return false;
@@ -48534,7 +49039,7 @@ Micro.register({id: 'dust_mote', title: 'Sunbeam Dust', cat: 'material', ch: [2,
   }});
 Micro.register({id: 'ink_blot', title: 'Wet Nib Splatter', cat: 'material', ch: [2, 2], on: 'reveal', p: 1, test: c => /[XZQ]$/.test(c.word),
   run(c) { const b = Boards.first(), ts = b && mRowTiles(b, b.cur - 1); if (!ts || !ts.length) return false; ts[ts.length - 1].append(h('i.m-ink')); sfx('pen_scratch'); }});
-Micro.register({id: 'chalk_dust', title: 'Slate Chalkboard Mode', cat: 'material', ch: [1, 1], mut: true, on: 'reveal', p: 0.35, until: 'reveal',
+Micro.register({id: 'chalk_dust', title: 'Slate Chalkboard Mode', cat: 'material', ch: [1, 1], mut: true, absorbed: true, on: 'reveal', p: 0.35, until: 'reveal',
   run() { mBody('m-chalk'); sfx('chalk'); }, end() { mBody('m-chalk', false); },
   onType() { sfx('chalk'); },
   onBack() { const f = Boards.inputFace(S.input.length); if (!f) return; const c = center(f); const s = h('i.m-smudge', {style: {left: c.x + 'px', top: c.y + 'px'}}); $('#fx').append(s); setTimeout(() => s.remove(), 1600); sfx('chalk'); }});
@@ -48578,11 +49083,16 @@ Micro.QUIRK_NAMES = {
 Micro.MUT_NAMES = {
   longer: 'Longer', swap: 'The Word Changes Its Mind', sideways: 'Sideways Board', mirrored: 'Mirrored Board', staircase: 'Staircase Board', arc: 'Smiling Rows', reshuffle: 'Reshuffle',
   budget: 'Budget Cuts', shyrow: 'Shy Row', keyflip: 'Upside-Down Keyboard', tall: 'High Ceilings', retro: 'Retro 1982', elastic: 'Elastic Tiles', echo: 'Echo Chamber (Board)', anagram: 'Anagram Drop',
+  // new in 1.2.1
+  tapedelay: 'Tape Delay', zerog: 'Zero Gravity', spotlight: 'Spotlight', blinds: 'Window Blinds',
+  // these five were ambient micro-events until 1.2.1 (their definitions above are marked `absorbed`); the Journal carries old finds over
+  accordion: 'Accordion Pleats', brick: 'Running Bond', chalk: 'Slate Chalkboard Mode', alpharow: 'The Strict Alphabetizer', rubber: 'Trampoline Sag',
 };
+Micro.ABSORBED = {accordion: 'accordion', staggered_brick: 'brick', chalk_dust: 'chalk', alphabet_row: 'alpharow', rubber_grid: 'rubber'};   // old micro id -> mutation id
 Micro.CAT_NAMES = {keyboard: 'Keyboard', grid: 'The grid', material: 'Material'};
 // every micro-event of every family: {key, title, kind, sub, ...}. The Journal and the debug panel both read this and nothing else.
 Micro.entries = [
-  ...Micro.order.map(id => ({key: id, title: Micro.defs[id].title, kind: 'ambient', cat: Micro.defs[id].cat, sub: Micro.CAT_NAMES[Micro.defs[id].cat], def: Micro.defs[id]})),
+  ...Micro.order.filter(id => !Micro.defs[id].absorbed).map(id => ({key: id, title: Micro.defs[id].title, kind: 'ambient', cat: Micro.defs[id].cat, sub: Micro.CAT_NAMES[Micro.defs[id].cat], def: Micro.defs[id]})),
   ...Quirks.list.map(q => ({key: 'quirk:' + q.id, title: Micro.QUIRK_NAMES[q.id] || q.id, kind: 'quirk', tier: q.tier, sub: `Quirk · tier ${q.tier}`, quirk: q})),
   ...Object.keys(Director.MUTATIONS).filter(id => id !== 'crossword').map(id => ({key: 'mut:' + id, title: Micro.MUT_NAMES[id] || id, kind: 'mutation', sub: 'Board mutation', mid: id})),
 ];
@@ -48611,7 +49121,7 @@ Micro.force = function(e, ctx = {}) {
   const aB = Director.afterBack; Director.afterBack = function() { aB.call(this); Micro.backed(); };
   const bs = Director.beforeSubmit; Director.beforeSubmit = function(n, word) { if (Micro.ok()) Micro.fire('submit', {n, word}); return bs.call(this, n, word); };
   const as = Director.afterSubmit; Director.afterSubmit = function(n, word, results) { Micro.revealed(n, word, results); return as.call(this, n, word, results); };
-  const ct = Director.chapterTo; Director.chapterTo = function(n) { Micro.stopWhere(() => true); Micro.endAll(); return ct.call(this, n); };
+  const ct = Director.chapterTo; Director.chapterTo = function(n) { Micro.quietStop = true; Micro.stopWhere(() => true); Micro.endAll(); Micro.quietStop = false; return ct.call(this, n); };
   const np = Director.newPuzzle; Director.newPuzzle = function(...a) {
     Micro.stopWhere(d => d.until === 'puzzle' || d.until === 'reveal'); $$('.m-ink').forEach(e => e.remove());
     const r = np.apply(this, a); setTimeout(() => Micro.fire('puzzle'), 400); return r;
@@ -49264,12 +49774,14 @@ const Circus = {
   },
 };
 {
-  // after the Derby, the circus rolls in 40% of the time (chapter 2 into 3)
+  // after the Derby, the circus rolls in 40% of the time (chapter 2 into 3). It no longer follows the derby on the same
+  // guess: it waits for the first plain guess after it (Pacing.defer), and a plain guess follows the offer.
   const b9 = Director.BEATS[9];
   Director.BEATS[9] = async function(...a) {
     await b9.apply(this, a);
-    if (!S.flags.circusSeen && chance(0.4)) await Circus.offer('derby');
+    if (!S.flags.circusSeen && chance(0.4)) Pacing.defer('circus');
   };
+  Director.LATER.circus = async () => { if (!S.flags.circusSeen) await Circus.offer('derby'); };
 }
 
 // ================================================================ THE SUNKEN LIBRARY OF ALEXANDRIA

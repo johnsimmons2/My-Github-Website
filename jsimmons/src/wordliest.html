@@ -5372,6 +5372,19 @@ div.raven.speed-2x .rav-speed{display:block}
   animation: RavenGuessFlash 0.35s ease-in-out 2 !important;
 }
 
+/* ---- the Nevermore hint (Secrets.nevermoreHint, 53-secret-endings.js): "Quoth the Raven..." then a ghostly NEVERMORE drifting left to right.
+   Slate-blue on the white finale board, pale lavender in dark mode; both glow, neither takes a click. ---- */
+.nm-quoth{position:fixed;left:0;right:0;top:42%;z-index:9000;pointer-events:none;text-align:center;font-family:Georgia,'Times New Roman',serif;font-style:italic;font-size:clamp(22px,4.2vw,46px);
+  color:#3d4b8a;text-shadow:0 0 16px rgba(110,130,215,.65),0 0 2px rgba(255,255,255,.9);opacity:0;animation:NmQuoth 5s ease-in-out forwards}
+html.dark .nm-quoth{color:#dfe6ff;text-shadow:0 0 18px rgba(170,190,255,.75),0 0 3px rgba(0,0,0,.6)}
+@keyframes NmQuoth{0%{opacity:0;transform:translateY(8px)}25%{opacity:.95;transform:none}72%{opacity:.95}100%{opacity:0}}
+.nm-word{position:fixed;left:0;top:34%;z-index:8999;pointer-events:none;display:flex;gap:.04em;font-family:Georgia,'Times New Roman',serif;font-weight:700;font-size:clamp(70px,13vw,190px);line-height:1;
+  color:rgba(70,88,160,.42);text-shadow:0 0 26px rgba(120,140,225,.75),0 0 54px rgba(140,160,235,.45);filter:blur(1.4px);will-change:transform;animation:NmDrift 10s linear forwards}
+html.dark .nm-word{color:rgba(215,225,255,.5);text-shadow:0 0 28px rgba(150,175,255,.9),0 0 60px rgba(120,140,230,.55)}
+.nm-word i{font-style:normal;display:inline-block;animation:NmBob 3.2s ease-in-out infinite;animation-delay:calc(var(--i) * -.35s)}
+@keyframes NmDrift{from{transform:translateX(-105%)}to{transform:translateX(100vw)}}
+@keyframes NmBob{0%,100%{transform:translateY(-.06em);opacity:.6}50%{transform:translateY(.07em);opacity:1}}
+
 /* ---- css/76-wwf.css ---- */
 /* ---- 76-wwf.css: Words with Friends Mode (Blue Vaporwave) ---- */
 
@@ -5840,6 +5853,14 @@ html.theme-vapor-blue #eyes.blushing::after {
   font-weight: 800;
 }
 
+/* ---- css/77-word-triggers.css ---- */
+/* One-run word triggers (39d-word-triggers.js): TABLE crashes onto the keyboard, FROG steals F, R, O and G. All overlays ignore the pointer. */
+.wt-table{position:fixed;z-index:9500;pointer-events:none;filter:drop-shadow(0 10px 10px rgba(0,0,0,.4));will-change:transform}
+.wt-chip{position:fixed;z-index:9501;pointer-events:none;border-radius:1px}
+.wt-frog{position:fixed;z-index:9500;pointer-events:none;will-change:transform}
+.wt-tongue{position:fixed;z-index:9499;pointer-events:none;height:9px;border-radius:5px;background:linear-gradient(#ff8fae,#e8416f);transform-origin:0 50%}
+.wt-letter{position:fixed;z-index:9498;pointer-events:none;display:flex;align-items:center;justify-content:center;border-radius:4px;background:var(--key-bg,#d3d6da);color:var(--text,#111);font-weight:700;font-size:1.1rem}
+
 /* ---- css/80-arcade-events.css ---- */
 /* ==========================================================================
    80-arcade-events: the solved-word counter and SOLVED burst (05-ui, 21-director),
@@ -6061,8 +6082,10 @@ body.takeover #mathboard{flex:none;margin:30px auto 8px}
 .sl-row span[data-state=correct]{background:#538d4e}
 .sl-row span[data-state=present]{background:#b59f3b}
 .sl-title{align-self:center;font:600 15px Georgia,serif;padding:8px 10px;border:1px solid #b58a12;border-radius:6px;width:min(320px,80%);text-align:center}
-#nm-over{position:fixed;left:50%;bottom:calc(var(--kbd-h, 220px) + 10px);translate:-50% 0;z-index:40;font:italic 400 28px Georgia,'Times New Roman',serif;letter-spacing:.18em;color:#555;pointer-events:none}
-#nm-over.final{color:#111;animation:Bump .6s}
+/* the letters past the fifth on the final board (Secrets.showOverflow): tiles beside the grid, in the row being typed */
+.row.nm-wide .tile.nm-x{position:absolute;top:0;left:calc((var(--tile) + var(--gap)) * (var(--nm-n, 5) + var(--i, 0)))}
+/* on submit all nine tiles bump together and keep exactly the look of the typed tiles (a filled "final" look inverted into a pale block under the Raven's invert effect) */
+.row.nm-final .face{animation:Bump .6s}
 
 /* Lorem Ipsum: the color drains out (54-lexicon) */
 body.lorem-gray #app{filter:grayscale(1) brightness(.92);transition:filter 3s}
@@ -6166,11 +6189,6 @@ body.rocket-launching #app {
 .tm-send.sent .tm-text{transform:translateY(-90px) scale(.2);opacity:0}
 
 /* E chase: thief hit feedback, the Grid at the side of the screen */
-.sprite.chasebar{display:flex;gap:3px;pointer-events:none;cursor:default}
-.chasebar i{width:11px;height:11px;border-radius:50%;background:rgba(0,0,0,.45);border:2px solid #fff;box-sizing:border-box}
-.chasebar i.on{background:#e2463f;border-color:#fff}
-.chasebar i.pippop{animation:PipPop .35s ease-out}
-@keyframes PipPop{0%{transform:scale(2.2)}100%{transform:scale(1)}}
 .sprite.hurt svg{animation:HurtFlash .26s}
 @keyframes HurtFlash{0%,60%{filter:brightness(2.2) saturate(2.5) hue-rotate(-30deg)}100%{filter:none}}
 .grid-side{position:fixed;left:max(8px,env(safe-area-inset-left));bottom:10px;z-index:2250;display:flex;align-items:flex-end;gap:6px;max-width:min(96vw,560px);pointer-events:none;transform:translateX(-130%);transition:transform .45s cubic-bezier(.3,1.3,.5,1)}
@@ -8278,7 +8296,7 @@ html.crt body::after {
 // Tiny helpers shared by every module. Everything is a global on purpose:
 // the build concatenates files into one <script>, so top-level names are shared.
 
-const GAME_VERSION = '1.2.1';
+const GAME_VERSION = '1.2.2';
 
 const $ = (sel, root = document) => root.querySelector(sel);
 const $$ = (sel, root = document) => [...root.querySelectorAll(sel)];
@@ -10706,7 +10724,7 @@ const Game = {
     if (S.len < 0) return Director.negSubmit();
     if (S.input.length < S.len) return this.invalid(this.shortMsg());
     let word = S.input.join('');
-    if (S.chapter === 6 && word === 'NEVERMORE' && S.flags.ravenFull && !S.busy) { const un = lock(); return Secrets.nevermore().finally(un); }
+    if (S.chapter === 6 && word === 'NEVERMORE' && S.flags.ravenDone && !S.busy) { const un = lock(); return Secrets.nevermore().finally(un); }
     if (word === 'RAVEN' && S.len === 5 && !S.flags.ravenDone && !S.busy) {
       const unlockManual = lock();
       try {
@@ -10719,7 +10737,9 @@ const Game = {
       S.stats.invented++;
       UI.toast(pick(['Not in word list. Added to word list.', 'That is not a word. It is now.', 'Bold.', 'We\'ll allow it.', 'Coining a term, are we?']), 1300);
     };
-    if (S.chapter <= 4 && !S.flags.lorem && !S.flags.xword) {
+    if (WordTriggers.frogFree()) {
+      // the frog has F, R, O and G: for two guesses any word at all is accepted, and none counts as invented
+    } else if (S.chapter <= 4 && !S.flags.lorem && !S.flags.xword) {
       // a guess typed while the dictionary is still downloading waits for it (briefly) rather than slipping through on "looks like a word"
       if (!Words.dictLoaded && Words.dictReady) { const un = lock(); try { await Promise.race([Words.dictReady, wait(3000)]); } finally { un(); } }
       // real words only, until the Emporium sells the player a licence to coin their own.
@@ -10733,7 +10753,7 @@ const Game = {
     try {
       const n = S.g + 1;
       const typed = word;
-      Scare.check(typed);
+      Scare.check(typed); WordTriggers.check(typed);   // SNAIL every time; TABLE and FROG once per run (39d-word-triggers.js)
       const pre = await Director.beforeSubmit(n, word);
       if (pre === false) return;
       if (pre && pre.word) {   // failed minigame gate: the guess is lost, X's go through instead
@@ -10787,6 +10807,7 @@ const Game = {
     if ((S.g > 0 || S.chapter > 0) && !confirm('Start a new game? Your current run will be lost.')) return;
     UI.closeModals(true);
     $$('.credits, .king-credits, .king-stage, .king-close, #loser, .planet, .queen-crown, .smack').forEach(e => e.remove());
+    WordTriggers.reset();
     Events.endAll();
     Events.enabled = false;
     Keys.float(false);
@@ -10875,7 +10896,7 @@ const Game = {
     if (typeof Achievements !== 'undefined') Achievements.refreshUI();
     Mods.apply();
     Snd.init();
-    Snd.silent = false;
+    Snd.silent = true;   // a new run starts as silent chapter-0 Wordle, like a fresh page; beat 2 (or the fluke) un-mutes it (this used to be false)
 
     UI.clearToasts();
     UI.hud();
@@ -10978,7 +10999,10 @@ const Quirks = {
   profile() {
     const ch = S.chapter;
     if (ch === 0 || ch === 6) return null;
-    if (ch === 1) return {p: 0.28 + S.g * 0.06, tier: S.g >= 3 ? 2 : 1};
+    // Chapter 1 begins after the second guess (1.2.2), so the guess counter is shifted by one to keep the same curve:
+    // 34% on the first chapter-1 guess, +6% a guess, tier 2 from the third. The cap at 52% is what the docs always said
+    // ("34% at g = 1, 52% at g >= 4"); the code had no cap, so the mutation phase pushed it to 94% by guess 11, far above chapter 2's 42%.
+    if (ch === 1) return {p: Math.min(0.52, 0.28 + (S.g - 1) * 0.06), tier: S.g >= 4 ? 2 : 1};
     if (ch === 2) return {p: 0.42, tier: Mods.chaos() > 1 ? 3 : 2};   // the Chaos Dial brings tier 3 forward
     return {p: 0.5, tier: 3};
   },
@@ -11296,6 +11320,14 @@ const SNAIL = {
       if (c.type === 'gold') { Shop.lose({kind: 'gold', gi: c.gi}); UI.toast(`A snail stole a golden ${c.letter}!`, 1800); }
     }
   },
+  // The thief's speed: it picks up speed the longer it is on its way (THIEF_ACCEL, 52-chase.js), scaled to the screen so a wide window
+  // is not easier, and a click slows it for a moment (Chase.thiefClick sets slowT / slowF; the slowdown shrinks click by click).
+  thiefSpeed(sn, dt) {
+    sn.age = (sn.age || 0) + dt;
+    let s = (sn.speed + THIEF_ACCEL * sn.age) * clamp(innerWidth / 1024, 0.6, 2);
+    if (sn.slowT > 0) { sn.slowT -= dt; s *= sn.slowF; }
+    return s;
+  },
   // the scripted E thief: wears a crown, cannot be stopped, is extremely polite about it
   thief(ev) {
     const spans = $$('#title span'), eSpan = spans[spans.length - 1], c = center(eSpan);
@@ -11324,7 +11356,7 @@ const SNAIL = {
         sn.backT -= dt; if (sn.backT <= 0) sn.state = 'seek';
         if (offscreen(sn.x, sn.y, 70)) this.gone(sn);
       } else if (sn.state === 'carry') {
-        if (sn.stun > 0) sn.stun -= dt; else moveToward(sn, sn.exit.x, sn.exit.y, sp * (sn.thief ? 1 : 0.7), dt);
+        if (sn.stun > 0) sn.stun -= dt; else moveToward(sn, sn.exit.x, sn.exit.y, sn.thief ? this.thiefSpeed(sn, dt) : sp * 0.7, dt);
         moveAng = faceAng = Math.atan2(sn.vy, sn.vx);
         if (offscreen(sn.x, sn.y, 70)) {
           if (sn.thief) Director.eStolen(sn); else this.drop(sn, false);
@@ -12814,8 +12846,8 @@ const MiniKind = {
 
 const Flow = {
   CHAPTERS: [
-    {id: 0, name: 'The Disguise', title: 'Wordle', blurb: 'An authentic Wordle. Silent.'},
-    {id: 1, name: 'The Awakening', title: 'Wordle?', blurb: 'Beats 1–3 and the mutation phase'},
+    {id: 0, name: 'The Disguise', title: 'Wordle', blurb: 'Two authentic Wordle guesses. Silent.'},
+    {id: 1, name: 'The Awakening', title: 'Wordle?', blurb: 'Beats 2–3 and the mutation phase'},
     {id: 2, name: 'Wordl', title: 'Wordl', blurb: 'Beats 4–9: the E is stolen, the shop opens'},
     {id: 3, name: 'Dordl', title: 'Dordl', blurb: 'Beats 10–15: two boards, therapy, the trial'},
     {id: 4, name: 'The Burrow', title: 'The Burrow', blurb: 'Beats 16–20: the words shrink'},
@@ -12826,8 +12858,8 @@ const Flow = {
   // the story spine, in order: [key, chapter, label, what happens]
   SPINE: [
     ['beat:0', 0, 'Guess 1', 'Authentic Wordle: silent, strict, ordinary'],
-    ['beat:1', 1, 'Beat 1: the first note', 'One synth note. Solve on guess 1 or 2 and it is a fluke'],
-    ['beat:2', 1, 'Beat 2: the word grows', 'Six letters; the music box begins'],
+    ['beat:1', 0, 'Beat 1: nothing yet', 'Still plain, silent Wordle. Solve on guess 1 or 2 and it is a fluke'],
+    ['beat:2', 1, 'Beat 2: the word grows', 'Chapter 1 begins: the first note, six letters, the music box'],
     ['beat:3', 1, 'Beat 3: the rows sort', 'Seven rows; the board sorts itself'],
     ['beat:mut', 1, 'The mutation phase', 'Six guesses of rearranging; one wildcard gate'],
     ['beat:4', 2, 'Beat 4: snails steal the E', 'Chapter 2 begins'],
@@ -12911,7 +12943,7 @@ const Flow = {
     ['mini:shellshock', 6, 'scene:war', 'Siding with the snails'],
     ['mini:slither', 6, 'scene:war', 'Siding with the snakes'],
     // ---- endings
-    ['ending:fluke', 1, 'beat:1', 'Solve guess 1 or 2, then the two-row trial'],
+    ['ending:fluke', 0, 'beat:1', 'Solve guess 1 or 2, then the two-row trial'],
     ['ending:excavation', 2, 'scene:smack', 'Dig all the way down'],
     ['ending:nerd', 2, 'scene:tcgduel', 'Win the duel'],
     ['ending:still_life', 2, ['scene:museum', 'beat:final'], 'Hang in the Museum, unsold'],
@@ -12927,7 +12959,7 @@ const Flow = {
     ['ending:reversal', 6, 'scene:reversal', 'Score the Grid honestly'], ['ending:reversal_lie', 6, 'scene:reversal', 'Lie about the colors'],
     ['ending:solved', 6, 'beat:final', 'Solve the word'], ['ending:failed', 6, 'beat:final', 'Run out of guesses'],
     ['ending:world', 6, 'beat:final', 'Type WORLD'], ['ending:snail', 6, 'beat:final', 'Type SNAIL'],
-    ['ending:nevermore', 6, ['beat:final', 'scene:raven'], 'Hear the whole Raven, then type NEVERMORE'],
+    ['ending:nevermore', 6, ['beat:final', 'scene:raven'], 'Let the Raven visit; the finale hints at the word. Type NEVERMORE'],
     ['ending:loser', 6, 'scene:loser', 'Any ending on hard mode in debt'],
   ],
   // dashed cross-links: [from, to, why]. An event may also say `leadsTo: [...]` itself.
@@ -22853,10 +22885,12 @@ const Director = {
   // casino/space guess. Pacing keeps the queue of non-story guesses (21b-pacing.js); Pacing.endGuess() runs after
   // each one to note whether it was big and to decide whether the next plain guess is calm.
   async afterSubmit(n, word, results) {
-    try { return await this.afterSubmitInner(n, word, results); } finally { Pacing.endGuess(); }
+    const typedIn = S.chapter;
+    try { return await this.afterSubmitInner(n, word, results); } finally { Pacing.endGuess(typedIn); }
   },
   async afterSubmitInner(n, word, results) {
     await this.celebrate(n);
+    WordTriggers.afterGuess();   // the frog's two guesses
     Events.onSubmit(word, results);
     if ((word === 'BOX' || word === 'BOXES') && typeof Corkboard !== 'undefined' && !Corkboard.isUnlocked() && Corkboard.shouldDrop('box_guess', 8)) {
       Corkboard.acquireBox('box_guess');
@@ -22995,7 +23029,7 @@ const Director = {
     Quirks.reset();
     // the snails return everything they took at chapter boundaries (except the E and jailed letters)
     Shop.lost = Shop.lost.filter(it => it.kind !== 'key');
-    for (const L in Keys.disabled) if (!(L === 'E' && S.noE) && !(S.flags && L === S.flags.jailedLetter) && Keys.disabled[L] !== 'migrating') Keys.enable(L);
+    for (const L in Keys.disabled) if (!(L === 'E' && S.noE) && !(S.flags && L === S.flags.jailedLetter) && Keys.disabled[L] !== 'migrating' && Keys.disabled[L] !== 'frogged') Keys.enable(L);
     if (n >= 2 && n < 6) Events.enabled = true;
     setTimeout(() => Boards.layout(), 50);
 
@@ -23340,14 +23374,16 @@ Director.digSwarm = async function() {
 
 Director.BEATS = {
   // 1: the first sound in the game. One note. Then Wordle is never quite Wordle again.
-  1: async function() {
+  // (Before 1.2.2 this beat unmuted the game, began chapter 1 and played the first note, so the second guess already had quirks and
+  // micro-events ("End of the line."). The first two guesses are now plain chapter-0 Wordle: this beat does nothing.
+  // Solving on guess 1 or 2 is handled by the fluke rule, 41-flow.js.)
+  1: async function() {},
+  // 2: chapter 1 begins: the first sound, then the word grows a letter and old rows are re-scored. The music box begins.
+  2: async function() {
     Snd.silent = false;
     this.chapterTo(1);
     await wait(650);
-    sfx('note', 76, 0.1);   // (solving on guess 1 or 2 is handled by the fluke rule, 41-flow.js)
-  },
-  // 2: the word grows a letter; old rows are re-scored. The music box begins.
-  2: async function() {
+    sfx('note', 76, 0.1);   // the one note that used to follow guess 1
     await wait(250);
     UI.toast('Hmm.', 900); await wait(1000);
     const b = Boards.first();
@@ -23689,16 +23725,17 @@ const Pacing = {
   gateAllowed() { return !this.peek(); },   // (any queued slot: plain, casino, later)
   // ------------------------------------------------------------ calm guesses and per-chapter tallies
   nextIsPlain() { const m = S.flags.mut; return this.peek() === 'plain' || !!(m && m.q[m.i] === null); },
-  endGuess() {
+  // `typedIn` is the chapter the guess was typed in (the chapter can change during the guess: beat 2 starts chapter 1, beat 4 starts chapter 2)
+  endGuess(typedIn = S.chapter) {
     if (S.chapter >= 6 || S.chapter === 0) { this.majorNow = false; return; }
     const p = this.st();
     p.lastMajor = this.majorNow; this.majorNow = false;
-    this.tally('g'); if (this.wasPlain) { this.tally('p'); this.wasPlain = false; }
+    this.tally('g', 1, typedIn); if (this.wasPlain) { this.tally('p', 1, typedIn); this.wasPlain = false; }
     this.calm = this.nextIsPlain() && chance(PACING.CALM_CHANCE);
     if (this.calm) this.tally('c');
   },
   // S.stats.pace[chapter] = {g guesses, p plain, c calm, q quirks, m micro-events, e random events, x mutations}
-  tally(k, n = 1) { const c = S.chapter; if (c < 1 || c > 5) return; const t = S.stats.pace = S.stats.pace || {}; const r = t[c] = t[c] || {}; r[k] = (r[k] || 0) + n; },
+  tally(k, n = 1, c = S.chapter) { if (c < 1 || c > 5) return; const t = S.stats.pace = S.stats.pace || {}; const r = t[c] = t[c] || {}; r[k] = (r[k] || 0) + n; },
   report() {
     const t = S.stats.pace || {}, rows = {};
     for (const c of Object.keys(t)) { const r = t[c]; rows['ch' + c] = {...r, 'quirks/guess': +((r.q || 0) / (r.g || 1)).toFixed(2), 'micro/guess': +((r.m || 0) / (r.g || 1)).toFixed(2), 'events/guess': +((r.e || 0) / (r.g || 1)).toFixed(2)}; }
@@ -24360,7 +24397,7 @@ const Debug = {
     document.body.classList.remove('takeover', 'umbrella', 'tired-keys', 'lorem-gray', 'raven', 'teeth', 'sadtiles', 'disco', 'asleep', 'quake', 'holding');
     document.documentElement.classList.remove('raven');
     $$('.king-taken').forEach(e => e.classList.remove('king-taken'));
-    const nm = $('#nm-over'); if (nm) nm.remove();
+    if (typeof Secrets !== 'undefined') Secrets.clearOverflow();
   },
 
   golden(n = 5) {
@@ -24850,7 +24887,7 @@ const Debug = {
     if (kind !== 'shame') S.shame = 0;
     if (kind !== 'fish') S.flags.fishSeen = 0;
     if (kind !== 'still_life') S.flags.museum = false;
-    if (kind !== 'nevermore') S.flags.ravenFull = false;
+    if (kind !== 'nevermore') { S.flags.ravenFull = false; S.flags.ravenDone = false; S.flags.nevermoreHinted = false; }
     if (kind !== 'lorem') S.flags.lorem = false;
 
     switch (kind) {
@@ -24931,7 +24968,7 @@ const Debug = {
         Secrets.intervention();
         break;
       case 'nevermore':
-        S.flags.ravenFull = true;
+        S.flags.ravenFull = true; S.flags.ravenDone = true; S.flags.nevermoreHinted = false;
         Finale.reset();
         S.input = ['N', 'E', 'V', 'E', 'R', 'M', 'O', 'R', 'E'];
         Secrets.showOverflow();
@@ -25549,7 +25586,7 @@ const Debug = {
       still_life: {cat: 'Secret', desc: 'Keep art at Museum, then solve puzzle in ≤ 4'},
       fish: {cat: 'Secret', desc: 'See the Fish 3×, answer "a fish" at finale'},
       shame: {cat: 'Secret', desc: 'Carry 3 Snails of Shame to the finale'},
-      nevermore: {cat: 'Secret', desc: 'Hear all 18 Raven stanzas, type NEVERMORE in Ch 6'},
+      nevermore: {cat: 'Secret', desc: 'Let the Raven visit, then type NEVERMORE in Ch 6 (a ghostly hint drifts past a few seconds into the finale)'},
       lexicographer: {cat: 'Secret', desc: '8 solves outside the Burrow → join the Dictionary Committee at beat 21'},
       lorem: {cat: 'Secret', desc: 'Invent ≥ 16 words → Lorem Ipsum + beat Queen'},
       dearme: {cat: 'Secret', desc: 'Open the monolith in Wordsteroids (3 hits), then land on the Moon\'s TIME spot'},
@@ -31563,8 +31600,8 @@ const Achievements = {
 //
 // Beat 13 used to be Dr. Escarlette's therapy every run. Now it is a choice of two sessions (Scenes.session below):
 //   'therapy'  - Dr. Escarlette, the Grid's feelings, up to +6 affection (unchanged: 25-scenes.js THERAPY_SCRIPT)
-//   'variant'  - this file. A different scene with a different long-term payoff. It is a STUB: it shows a placeholder toast
-//                and scores nothing. Another agent fills in the scene (see "TO IMPLEMENT" below).
+//   'variant'  - this file. A different scene with a different long-term payoff. It is a STUB and DISABLED (SESSION_VARIANT.ready is
+//                false, so it can never be chosen): it would show a placeholder toast and score nothing. Another agent fills in the scene (see "TO IMPLEMENT" below).
 //
 // ---------------------------------------------------------------- WHERE IT IS WIRED (everything else follows from this)
 //   Director.BEATS[13]  (21-director.js)  calls Scenes.session() instead of Scenes.therapy(), then Director.armCasino()
@@ -31616,8 +31653,11 @@ const Achievements = {
 // ---------------------------------------------------------------- TO IMPLEMENT (for whoever builds the scene)
 //   Scenes.variantSession(): run a VN script like THERAPY_SCRIPT (24-vn.js), three choices, and set
 //   S.flags.sessionScore from r.vars. Then apply decisions 4 and 5. Return when the scene is over; the beat carries on.
+//   LAST, set SESSION_VARIANT.ready = true. Until then the variant cannot be chosen: Scenes.session always runs therapy.
 
 const SESSION_VARIANT = {
+  ready: false,                             // THE SWITCH. While false the variant can never be chosen: every run gets therapy and the pity count is untouched.
+                                            // Set it to true only once Scenes.variantSession is a finished scene (and decisions 4 and 5 above are applied).
   id: 'variant',
   name: 'Assertiveness Training',          // TENTATIVE
   host: 'Sergeant Serif',                   // TENTATIVE
@@ -31633,8 +31673,9 @@ const sessionScore = () => (S.flags && S.flags.sessionScore) || 0;
 const sessionLeansTherapy = () => (S.stats.hats || 0) > 0 || (S.flags.boops || 0) >= 2;
 
 Scenes.session = async function() {
-  // a takeover cancels the session whichever it is: let the therapy path (and its wrapper in 50-takeover.js) say so
-  if (typeof Takeover !== 'undefined' && Takeover.on()) { S.flags.session = 'therapy'; return this.therapy(); }
+  // a takeover cancels the session whichever it is: let the therapy path (and its wrapper in 50-takeover.js) say so.
+  // An unfinished variant is never offered at all (SESSION_VARIANT.ready), so no broken scene can run.
+  if (!SESSION_VARIANT.ready || (typeof Takeover !== 'undefined' && Takeover.on())) { S.flags.session = 'therapy'; return this.therapy(); }
   const lean = sessionLeansTherapy() ? 0.75 : 0.5;
   const pick = Pity.pick('session', [{id: 'therapy', w: lean}, {id: 'variant', w: 1 - lean}]);
   S.flags.session = pick;
@@ -31649,6 +31690,188 @@ Scenes.variantSession = async function() {
 
 SCENE_NAMES[SESSION_VARIANT.codexScene] = SESSION_VARIANT.name;
 Flow.at('scene:' + SESSION_VARIANT.codexScene, 3, 'beat:13', 'The other session at beat 13 (tentative; half of runs, three in four runs for the affectionate: therapy)');
+
+/* ---- js/39d-word-triggers.js ---- */
+// ============================================================ 39d-word-triggers
+// ONE-RUN WORD TRIGGERS. Submit the right word and something happens, once per run, whatever the answer is. (SNAIL, in
+// 30-scare.js, happens every time; RAVEN, in 45-fish-raven.js, once per run; these two follow RAVEN's example.) Hooked from
+// Game.enter (WordTriggers.check, next to Scare.check) and Director.afterSubmitInner (WordTriggers.afterGuess).
+//
+//   TABLE (5 letters)  A table falls from above and crashes onto the keyboard, shoving the letters aside for a few seconds.
+//                      Meant as a jump scare: it comes down fast, with a crash that starts as it falls, a flash and a shake.
+//   FROG  (4 letters)  A frog hops in and snatches F, R, O and G off the keyboard with its tongue. For the next TWO guesses
+//                      those four keys are gone, and in exchange any word at all is accepted (nonsense included, and it does
+//                      not count as an invented word), in case the player cannot spell what they need without them.
+//                      The frog gives the letters back when the second guess is revealed.
+//
+// Neither works in the finale (chapter 6). Both sound even when the game is still silent (chapter 0), like the snail scare,
+// but respect the Sound Effects setting. FROG can only be submitted on a 4-letter board.
+
+SPR.table = () => `<svg viewBox="0 0 200 130" width="100%" height="100%" preserveAspectRatio="xMidYMid meet">
+  <ellipse cx="100" cy="124" rx="86" ry="6" fill="rgba(0,0,0,.2)"/>
+  <rect x="50" y="40" width="13" height="74" rx="3" fill="#7a4f26" stroke="#4a2d12" stroke-width="3"/>
+  <rect x="137" y="40" width="13" height="74" rx="3" fill="#7a4f26" stroke="#4a2d12" stroke-width="3"/>
+  <rect x="20" y="42" width="17" height="82" rx="3" fill="#92602d" stroke="#4a2d12" stroke-width="3.5"/>
+  <rect x="163" y="42" width="17" height="82" rx="3" fill="#92602d" stroke="#4a2d12" stroke-width="3.5"/>
+  <rect x="26" y="30" width="148" height="16" fill="#8a5a2b" stroke="#4a2d12" stroke-width="3"/>
+  <rect x="4" y="8" width="192" height="26" rx="5" fill="#b07a40" stroke="#4a2d12" stroke-width="4"/>
+  <path d="M14 15 H186 M18 26 H120" stroke="#d3a066" stroke-width="3" stroke-linecap="round" opacity=".75"/>
+  <path d="M60 10 q6 8 0 20 M142 10 q-5 8 0 20" stroke="#8a5a2b" stroke-width="2.5" fill="none" opacity=".7"/>
+</svg>`;
+SPR.frog = () => `<svg viewBox="0 0 140 110" width="100%" height="100%" overflow="visible">
+  <ellipse cx="70" cy="102" rx="46" ry="6" fill="rgba(0,0,0,.18)"/>
+  <path d="M26 96 Q8 74 24 58 Q34 48 46 60 L50 90Z" fill="#4caf50" stroke="#2c6b30" stroke-width="3.5" stroke-linejoin="round"/>
+  <path d="M114 96 Q132 74 116 58 Q106 48 94 60 L90 90Z" fill="#4caf50" stroke="#2c6b30" stroke-width="3.5" stroke-linejoin="round"/>
+  <ellipse cx="70" cy="68" rx="44" ry="34" fill="#5cc25c" stroke="#2c6b30" stroke-width="4"/>
+  <ellipse cx="70" cy="82" rx="28" ry="19" fill="#dff7bd"/>
+  <circle cx="46" cy="36" r="17" fill="#5cc25c" stroke="#2c6b30" stroke-width="4"/><circle cx="94" cy="36" r="17" fill="#5cc25c" stroke="#2c6b30" stroke-width="4"/>
+  <circle cx="46" cy="35" r="10.5" fill="#fff" stroke="#2c6b30" stroke-width="2"/><circle cx="94" cy="35" r="10.5" fill="#fff" stroke="#2c6b30" stroke-width="2"/>
+  <circle cx="48" cy="36" r="5" fill="#111"/><circle cx="92" cy="36" r="5" fill="#111"/>
+  <circle cx="50" cy="33" r="1.8" fill="#fff"/><circle cx="94" cy="33" r="1.8" fill="#fff"/>
+  <path d="M40 66 Q70 84 100 66" fill="none" stroke="#1d4d20" stroke-width="4" stroke-linecap="round"/>
+  <ellipse cx="52" cy="99" rx="14" ry="6.5" fill="#4caf50" stroke="#2c6b30" stroke-width="3"/><ellipse cx="88" cy="99" rx="14" ry="6.5" fill="#4caf50" stroke="#2c6b30" stroke-width="3"/>
+</svg>`;
+
+Object.assign(SFX, {
+  // the whistle and rush of something heavy coming down for 0.3 s, then the impact: splinters, a thud, a low boom, clatter
+  tablecrash() {
+    const t = Snd.t, g = Snd.sfxOut, hit = t + 0.3;
+    Snd.voice(g, 'sine', 1100, t, 0.3, 0.1, 160);
+    Snd.noise(g, t, 0.3, 0.12, 'bandpass', 500, 1, 2600);
+    Snd.noise(g, hit, 0.9, 0.55, 'highpass', 1200);
+    Snd.noise(g, hit, 0.6, 0.5, 'lowpass', 900);
+    Snd.voice(g, 'tri', 140, hit, 0.5, 0.35, 38);
+    Snd.voice(g, 'sq', 220, hit + 0.02, 0.2, 0.08, 70);
+    for (let k = 0; k < 7; k++) Snd.noise(g, hit + 0.15 + Math.random() * 0.5, 0.05, 0.15, 'bandpass', rand(900, 3200), 3);
+  },
+  ribbit() {
+    const t = Snd.t, g = Snd.sfxOut;
+    Snd.voice(g, 'saw', 120, t, 0.11, 0.11, 240, {vib: 40, rate: 30});
+    Snd.voice(g, 'saw', 150, t + 0.15, 0.14, 0.11, 300, {vib: 40, rate: 30});
+  },
+  gulp() { const t = Snd.t; Snd.voice(Snd.sfxOut, 'sine', 260, t, 0.12, 0.14, 90); Snd.noise(Snd.sfxOut, t, 0.06, 0.07, 'lowpass', 700); },
+  tongue() { const t = Snd.t; Snd.noise(Snd.sfxOut, t, 0.1, 0.1, 'bandpass', 2200, 2, 5000); },
+});
+// these sounds, like the snail's scream, ignore the "silent" first-guess rule but respect the Sound Effects setting
+const wtSfx = name => { if (Snd.ctx && Snd.sfxOn) try { SFX[name](); } catch (e) {} };
+
+const WordTriggers = {
+  run: 0,   // bumped by a new game, so a scene still animating from the old run does nothing to the new one
+  reset() { this.run++; $$('.wt-table, .wt-frog, .wt-chip, .wt-tongue, .wt-letter').forEach(e => e.remove()); },
+  check(word) {
+    if (!word || S.chapter === 6) return;
+    const w = word.toUpperCase();
+    if (w === 'TABLE' && !S.flags.tableDone) { S.flags.tableDone = true; this.table().catch(e => console.warn('table', e)); }
+    else if (w === 'FROG' && !S.flags.frogDone) { S.flags.frogDone = true; this.frog().catch(e => console.warn('frog', e)); }
+  },
+  // after every guess is revealed: count down the frog's two guesses
+  afterGuess() {
+    if (!S.flags.frogLeft || S.g <= S.flags.frogFrom) return;
+    if (--S.flags.frogLeft > 0) return;
+    this.frogGivesBack();
+  },
+  // the frog's two guesses are on: any word at all is accepted (read by Game.enter)
+  frogFree() { return (S.flags.frogLeft || 0) > 0 && S.chapter !== 6; },
+
+  // ------------------------------------------------------------ TABLE
+  async table() {
+    Codex.log('scenes', 'table'); const run = this.run;
+    const kbd = Keys.el, kr = kbd.getBoundingClientRect();
+    const tw = Math.min(kr.width * 0.64, 330), th = tw * 0.65, cx = kr.left + kr.width * rand(0.42, 0.58), top = kr.top + kr.height * 0.12;
+    const tbl = h('div.wt-table', {html: SPR.table(), style: {left: (cx - tw / 2) + 'px', top: top + 'px', width: tw + 'px', height: th + 'px'}});
+    document.body.append(tbl);
+    const fall = tbl.animate([{transform: `translateY(${-(top + th + 60)}px) rotate(-17deg) scale(1.2)`}, {transform: 'translateY(0) rotate(-2deg) scale(1)'}], {duration: 300, easing: 'cubic-bezier(.62,0,1,.5)', fill: 'forwards'});
+    await fall.ready.catch(() => {});
+    wtSfx('tablecrash');                                  // the crash begins as it falls (started when the fall really starts, so the thud and the impact line up)
+    await fall.finished.catch(() => {});
+    // impact: a flash, a shake, a bounce, wood chips, and every key near it flung aside
+    UI.flash('#fff', 110); anim($('#app'), 'wobble', 800);
+    tbl.animate([{transform: 'translateY(0) rotate(-2deg)'}, {transform: 'translateY(-16px) rotate(1.5deg)'}, {transform: 'translateY(0) rotate(-1deg)'}], {duration: 420, easing: 'ease-out', fill: 'forwards'});
+    for (let i = 0; i < 18; i++) {
+      const s = rand(4, 10), chip = h('i.wt-chip', {style: {left: (cx + rand(-tw / 2, tw / 2)) + 'px', top: (top + th * 0.5) + 'px', width: s + 'px', height: s * rand(0.5, 1.4) + 'px', background: pick(['#b07a40', '#8a5a2b', '#d3a066', '#6b4420'])}});
+      document.body.append(chip);
+      const dx = rand(-170, 170), up = rand(40, 150);
+      chip.animate([{transform: 'translate(0,0) rotate(0)', opacity: 1}, {transform: `translate(${dx * 0.6}px,${-up}px) rotate(${rand(-200, 200)}deg)`, opacity: 1, offset: 0.4}, {transform: `translate(${dx}px,${rand(10, 90)}px) rotate(${rand(-400, 400)}deg)`, opacity: 0}], {duration: rand(650, 1000), easing: 'ease-out'}).finished.then(() => chip.remove(), () => chip.remove());
+    }
+    const moved = [];
+    $$('.key', kbd).forEach(k => {
+      const r = k.getBoundingClientRect(), dx = r.left + r.width / 2 - cx, reach = tw / 2 + r.width * 0.6;
+      if (Math.abs(dx) >= reach) return;
+      const dir = Math.abs(dx) < 6 ? (chance(0.5) ? -1 : 1) : Math.sign(dx);
+      let push = dir * (reach - Math.abs(dx) + rand(4, 26));
+      push = clamp(push, 6 - r.left, innerWidth - 6 - r.right);          // never off the screen
+      moved.push({k, t: k.style.translate, r: k.style.rotate, tr: k.style.transition});
+      k.style.transition = 'translate .26s cubic-bezier(.2,1.7,.4,1), rotate .26s';
+      k.style.translate = `${push}px ${rand(-12, 12)}px`; k.style.rotate = `${rand(-16, 16)}deg`;
+    });
+    await wait(11000);
+    if (run !== this.run) return;
+    // the table slides off the bottom, the keys spring back
+    wtSfx('whoosh');
+    tbl.animate([{transform: 'translateY(0) rotate(-1deg)', opacity: 1}, {transform: `translateY(${innerHeight}px) rotate(8deg)`, opacity: 0}], {duration: 700, easing: 'ease-in', fill: 'forwards'}).finished.then(() => tbl.remove(), () => tbl.remove());
+    for (const m of moved) if (m.k.isConnected) { m.k.style.transition = 'translate .6s cubic-bezier(.3,1.4,.5,1), rotate .6s'; m.k.style.translate = m.t; m.k.style.rotate = m.r; }
+    await wait(800);
+    for (const m of moved) if (m.k.isConnected) m.k.style.transition = m.tr;
+  },
+
+  // ------------------------------------------------------------ FROG
+  async frog() {
+    Codex.log('scenes', 'frog'); const run = this.run;
+    S.flags.frogLeft = 2; S.flags.frogFrom = S.g + 1;      // this guess (n) is the FROG; guesses n+1 and n+2 are the frog's
+    const kbd = Keys.el, kr = kbd.getBoundingClientRect();
+    const W = clamp(kr.width * 0.27, 84, 130), H = W * 110 / 140;
+    const landX = kr.left + kr.width / 2 - W / 2, landY = kr.top - H * 0.15, side = chance(0.5) ? -1 : 1;
+    const frog = h('div.wt-frog', {html: SPR.frog(), style: {left: landX + 'px', top: landY + 'px', width: W + 'px', height: H + 'px'}});
+    document.body.append(frog);
+    const svg = frog.firstElementChild; svg.style.transformOrigin = '50% 100%';
+    const hop = async (fromX, fromY, toX, toY, ms, arc = 150) => {         // a parabola, in 14 keyframes
+      const kf = Array.from({length: 15}, (_, i) => { const u = i / 14; return {transform: `translate(${fromX + (toX - fromX) * u}px,${fromY + (toY - fromY) * u - 4 * arc * u * (1 - u)}px)`}; });
+      await frog.animate(kf, {duration: ms, easing: 'linear', fill: 'forwards'}).finished.catch(() => {});
+    };
+    const startX = side < 0 ? -(landX + W + 30) : innerWidth - landX + 30;
+    wtSfx('ribbit');
+    await hop(startX, 40, 0, 0, 760);
+    svg.animate([{transform: 'scale(1.22,.76)'}, {transform: 'scale(1)'}], {duration: 240, easing: 'ease-out'});
+    wtSfx('ribbit');
+    await wait(450);
+    // the tongue: out to a key, back with the letter, a gulp
+    for (const L of 'FROG') {
+      if (run !== this.run) return;
+      const key = Keys.key(L);
+      if (key && key.isConnected) {
+        const fr = frog.getBoundingClientRect(), mx = fr.left + fr.width * 0.5, my = fr.top + fr.height * 0.62;
+        const kk = key.getBoundingClientRect(), kx = kk.left + kk.width / 2, ky = kk.top + kk.height / 2;
+        const dist = Math.hypot(kx - mx, ky - my), ang = Math.atan2(ky - my, kx - mx) * 180 / Math.PI;
+        const tg = h('i.wt-tongue', {style: {left: mx + 'px', top: (my - 4) + 'px', width: dist + 'px', transform: `rotate(${ang}deg) scaleX(0)`}});
+        const letter = h('div.wt-letter', {text: L, style: {left: (kx - kk.width / 2) + 'px', top: (ky - kk.height / 2) + 'px', width: kk.width + 'px', height: kk.height + 'px'}});
+        document.body.append(tg, letter); wtSfx('tongue');
+        await tg.animate([{transform: `rotate(${ang}deg) scaleX(0)`}, {transform: `rotate(${ang}deg) scaleX(1)`}], {duration: 120, easing: 'ease-out', fill: 'forwards'}).finished.catch(() => {});
+        Keys.disable(L, 'frogged');                            // the key goes empty the instant the tongue touches it
+        const back = tg.animate([{transform: `rotate(${ang}deg) scaleX(1)`}, {transform: `rotate(${ang}deg) scaleX(0)`}], {duration: 170, easing: 'ease-in', fill: 'forwards'});
+        letter.animate([{transform: 'translate(0,0) scale(1)', opacity: 1}, {transform: `translate(${mx - kx}px,${my - ky}px) scale(.25)`, opacity: .9}], {duration: 170, easing: 'ease-in', fill: 'forwards'});
+        await back.finished.catch(() => {});
+        tg.remove(); letter.remove(); wtSfx('gulp');
+        svg.animate([{transform: 'scale(1.14,.92)'}, {transform: 'scale(1)'}], {duration: 150, easing: 'ease-out'});
+      } else Keys.disable(L, 'frogged');
+      await wait(110);
+    }
+    UI.toast('Ribbit. The frog has F, R, O and G. For two guesses, any word will do.', 3600, 'wrap');
+    wtSfx('ribbit');
+    await wait(900);
+    if (run !== this.run) return;
+    await hop(0, 0, -startX * 0.9, 30, 720, 170);                 // away, with the letters
+    frog.remove();
+  },
+  frogGivesBack() {
+    let n = 0;
+    for (const L of 'FROG') if (Keys.disabled[L] === 'frogged') { Keys.enable(L); n++; const k = Keys.key(L); if (k) anim(k, 'pop', 400); }
+    if (n) { wtSfx('ribbit'); UI.toast('The frog coughs up F, R, O and G. They are a little damp.', 2800, 'wrap'); }
+  },
+};
+
+SCENE_NAMES.table = 'A Table Falls'; SCENE_NAMES.frog = 'A Frog With Taste';
+Flow.at('scene:table', 0, 'beat:0', 'Submit TABLE once per run (any chapter but the finale)');
+Flow.at('scene:frog', 0, 'beat:0', 'Submit FROG once per run, on a 4-letter board (any chapter but the finale)');
 
 /* ---- js/40-save.js ---- */
 // ============================================================ 40-save
@@ -31837,9 +32060,12 @@ const SaveGame = {
 // advancing the beat script; they bump S.beatShift instead. Fixed GATES also use
 // the beat index, so nothing downstream had to be renumbered.
 //
+// THE FIRST TWO GUESSES are chapter 0 (1.2.2): plain, silent Wordle with no quirks, micro-events or sounds. Beat 1 does nothing;
+// beat 2 (after the second guess) begins chapter 1: the first note, "Hmm.", the word grows.
+//
 // THE FLUKE RULE. Solve on beat 1 or 2 and the game calls it a fluke: new word, a
-// 2-row board. Solve it within those 2 guesses → the "fluke" ending. Otherwise the
-// trial board refills to 6 rows and beat 2 (the word grows) runs on it.
+// 2-row board (still chapter 0, so the fluke un-mutes the game itself). Solve it within those 2 guesses → the "fluke"
+// ending. Otherwise the trial board refills to 6 rows and beat 2 (chapter 1, the word grows) runs on it.
 //
 // THE MUTATION PHASE. After beat 3 comes a phase of MUTATION_SLOTS (8) guesses. MUTATION_RANGE (5-8) of them, on random
 // guesses of the phase, each trigger one variation from MUTATION_POOL ('longer' is always one of them); the rest are plain
@@ -31873,6 +32099,7 @@ Director.beat = function(n = S.g) { return n - (S.beatShift || 0); };
 // ---------------------------------------------------------------- the fluke rule
 Director.startFluke = async function() {
   S.flags.flukeUsed = true;
+  Snd.silent = false;   // the first two guesses are silent chapter-0 Wordle (1.2.2); the fluke is the first thing that makes a sound
   await wait(500);
   UI.toast('...Wait.', 1200); await wait(1400);
   UI.toast('That was a fluke.', 1600); sfx('glitch'); UI.flash('#fff', 250); await wait(1700);
@@ -41237,7 +41464,9 @@ Minis.register('gridboss', {
 // ============================================================ 52-chase
 // THE E CHASE: a secret ending that branches at beat 4.
 //   1. Click the crowned snail that steals the E CHASE_CLICKS times before it escapes
-//      (each click makes it stumble instead of speeding it up; a pip bar shows the progress).
+//      (each click makes it stumble instead of speeding it up; since 1.2.2 nothing shows how many clicks it takes or how many you have made). Since 1.2.2 a click no longer
+//      stops it: it slows to 35% of its speed for 0.8 s, and each later click slows it less (+8% a click, 91% by the eighth),
+//      while its top speed creeps up the whole time it is on screen. See THIEF_* below and docs/specs/measure/thief-sim.mjs.
 //   2. The screen flashes red twice, battle-style, and the chase begins (echase):
 //      dodge rubble left and right, then jump the pits. It starts slow and speeds up; every
 //      mistake lets the snail pull ahead, and if it leaves the screen you lose the chase and
@@ -41253,6 +41482,10 @@ Minis.register('gridboss', {
 // treasure is left within reach to buy the next shovel): the Grid hauls you out, back to the normal run.
 
 const CHASE_CLICKS = 8;
+// The E thief's escape (SNAIL.update in 11-events-a.js uses these). Speed = (95 + THIEF_ACCEL x seconds moving) x screen width / 1024.
+// A click slows it to THIEF_SLOW_FIRST of that for THIEF_SLOW_TIME s; click k slows it to FIRST + STEP x (k - 1), at most 95%.
+// (It used to freeze for 0.45 s per click at a flat 95 px/s, which made 8 clicks a formality.)
+const THIEF_ACCEL = 22, THIEF_SLOW_FIRST = 0.35, THIEF_SLOW_STEP = 0.08, THIEF_SLOW_TIME = 0.8;
 const CHASE_HIT_LINES = ['Non!', 'Unhand me!', 'Stop that!', 'Ow! My antenna!', 'Do you MIND?', 'I have a royal appointment!', 'Fine. FINE.', 'Very well. Catch me if you can.'];
 const SHOVELS = [
   {name: 'WOODEN', cost: 0, col: '#a0784a', bag: 8, h: 1, desc: 'Soft topsoil & roots.'},
@@ -41279,27 +41512,15 @@ const Chase = {
   // called by SNAIL.click for the crowned thief
   thiefClick(ev, sn) {
     if (S.flags.chased || sn.chasing) return false;
-    sn.hits = (sn.hits || 0) + 1; sn.stun = 0.45;
-    // feedback: a pip bar that follows the snail, a red flash, a counter, a line, and a sound
-    if (!sn.hitbar) this.hitBar(ev, sn);
-    sn.hitbar.el.querySelectorAll('i').forEach((pip, i) => pip.classList.toggle('on', i < sn.hits));
-    anim(sn.hitbar.el.querySelectorAll('i')[sn.hits - 1], 'pippop', 350);
+    sn.hits = (sn.hits || 0) + 1;
+    sn.slowT = THIEF_SLOW_TIME; sn.slowF = Math.min(0.95, THIEF_SLOW_FIRST + THIEF_SLOW_STEP * (sn.hits - 1));   // a stumble that shrinks with every click
+    // feedback: it flinches, a sound, and a line that gets more desperate. (Until 1.2.2 a pip bar followed the snail and a "HIT 3 / 8"
+    // counter floated up; the player was told how many clicks it takes. Now they only know that something is happening.)
     anim(sn.el, 'hurt', 260);
     sfx('bonk');
-    UI.float(sn.hits >= CHASE_CLICKS ? 'GOT IT!' : `HIT ${sn.hits} / ${CHASE_CLICKS}`, sn.x, sn.y < 90 ? sn.y + 64 : sn.y - 66, '#e2463f');
     Quirks.bubble(sn.el, CHASE_HIT_LINES[Math.min(CHASE_HIT_LINES.length - 1, sn.hits - 1)], 1300);
     if (sn.hits >= CHASE_CLICKS) { sn.chasing = true; sn.stun = 9999; this.begin(ev, sn); }
     return true;
-  },
-  // a row of pips above the thief, one per click needed
-  hitBar(ev, sn) {
-    const el = spr(ev, '<i></i>'.repeat(CHASE_CLICKS), 'chasebar');
-    sn.hitbar = {el};
-    const stop = Loop.add(() => {
-      if (ev.done || sn.state === 'gone') { el.remove(); return false; }
-      place(el, sn.x, sn.y < 90 ? sn.y + 44 : sn.y - 46);   // below the snail while it is up at the title
-    });
-    ev.stops.push(stop);
   },
   flash() {
     return new Promise(res => {
@@ -43903,9 +44124,11 @@ Minis.register('duckhunt', {
 //     along. Answer "you, a fish" and it was the narrator all along.
 //   shame      — SHAME SPIRAL: reach the finale with SHAME_NEEDED or more Snails of Shame
 //     (the Snail Remover clears them). They stage an intervention instead of the finale.
-//   nevermore  — NEVERMORE: the Raven fired and you heard all 18 stanzas (flags.ravenFull;
-//     the encore Skip forfeits it). On the final board, type NEVERMORE: the board lets you
-//     type past five letters only along that word. The only 9-letter guess ever accepted.
+//   nevermore  — NEVERMORE: the Raven fired this run (flags.ravenDone; since 1.2.1 you no longer have to hear
+//     all 18 stanzas, the encore Skip is fine). On the final board, type NEVERMORE: the board lets you
+//     type past five letters only along that word. The only 9-letter guess ever accepted. A few seconds
+//     after the final board appears, "Quoth the Raven..." and a ghostly NEVERMORE drift across the screen
+//     as the hint (Secrets.nevermoreHint).
 // Order at the finale: shame, then the fish's question, then the meters (Finale.alternates).
 
 const STILL_LIFE_GUESSES = 4, FISH_NEEDED = 3, SHAME_NEEDED = 3;
@@ -43914,7 +44137,7 @@ Object.assign(ENDINGS, {
   still_life: ['You hang in the Museum now. Visitors say you look correct.', 'Still Life with Grid', 'Be invited somewhere for being right. Sell nothing. Then finish quickly.'],
   fish: ['The fish was the narrator all along.', 'Fish Out of Water', 'Meet the fish three times. Then answer it honestly.'],
   shame: ['Your Snails of Shame staged an intervention. It went well, actually.', 'Shame Spiral', 'Collect shame. Keep it.'],
-  nevermore: ['Quoth the player: Nevermore.', 'Nevermore', 'Listen to all of it. Then, at the very end, say the word.'],
+  nevermore: ['Quoth the player: Nevermore.', 'Nevermore', 'Let the Raven visit. Then, at the very end, listen for what it says, and say the word.'],
 });
 ENDING_ORDER.push('still_life', 'fish', 'shame', 'nevermore');
 
@@ -44019,23 +44242,59 @@ const Secrets = {
   },
   // the final board accepts letters past five only along N-E-V-E-R-M-O-R-E
   nevermoreExtends(L) {
-    if (S.chapter !== 6 || !S.flags.ravenFull || S.input.length >= 9) return false;
+    if (S.chapter !== 6 || !S.flags.ravenDone || S.input.length >= 9) return false;
     return 'NEVERMORE'.startsWith(S.input.join('') + L);
   },
+  // The hint. If the Raven came this run, 4-6 s after the final board appears the screen says "Quoth the Raven..." and the
+  // word NEVERMORE drifts across it in large ghostly letters (once per run; it never blocks typing).
+  nevermoreHint() {
+    if (!S.flags.ravenDone || S.flags.nevermoreHinted) return;
+    S.flags.nevermoreHinted = true;
+    setTimeout(() => this.floatNevermore(), 4000 + Math.random() * 2000);
+  },
+  async floatNevermore() {
+    const b = Boards.first();
+    if (S.chapter !== 6 || !b || b.done || document.querySelector('.nm-quoth')) return;
+    const quoth = h('div.nm-quoth', 'Quoth the Raven...');
+    document.body.append(quoth);
+    await wait(3600);                                   // the line fades in, holds, then fades out as the letters start
+    if (S.chapter !== 6) { quoth.remove(); return; }
+    const word = h('div.nm-word', [...'NEVERMORE'].map((L, i) => h('i', {text: L, style: {'--i': i}})));
+    document.body.append(word);
+    await wait(1400); quoth.remove();
+    await wait(9000); word.remove();                    // the CSS carries it from off the left edge to off the right in about 10 s
+  },
+  // The letters past the fifth are real tiles: the row being typed grows to the right, beside the grid, one tile per letter
+  // (they are children of the row, absolutely positioned, so the other rows and the five real tiles never move). On a
+  // viewport too narrow to show them, the whole board slides left just far enough.
   showOverflow() {
-    let el = $('#nm-over');
-    if (S.chapter !== 6 || S.input.length <= S.len) { if (el) el.remove(); return; }
-    if (!el) { el = h('div#nm-over'); document.body.append(el); }
-    el.textContent = S.input.join('');
+    const b = Boards.active()[0], row = b && b.rowEls[b.cur];
+    if (S.chapter !== 6 || S.input.length <= S.len || !row) { this.clearOverflow(); return; }
+    const extra = S.input.slice(S.len);
+    row.classList.add('nm-wide'); row.style.setProperty('--nm-n', S.len);
+    const tiles = $$('.nm-x', row);
+    while (tiles.length > extra.length) tiles.pop().remove();
+    while (tiles.length < extra.length) {
+      const t = h('div.tile.nm-x', h('div.face', {'data-state': 'tbd'}));
+      t.style.setProperty('--i', tiles.length);   // (a custom property: it has to go through setProperty)
+      row.append(t); tiles.push(t); anim($('.face', t), 'pop', 140);
+    }
+    tiles.forEach((t, i) => { $('.face', t).textContent = extra[i]; });
+    const last = tiles[tiles.length - 1].getBoundingClientRect(), over = last.right - (innerWidth - 10);
+    Boards.el.style.transition = 'translate .25s'; Boards.el.style.translate = over > 0 ? `${-Math.ceil(over)}px 0` : '';
+  },
+  clearOverflow() {
+    $$('.nm-x').forEach(e => e.remove()); $$('.nm-wide').forEach(r => r.classList.remove('nm-wide', 'nm-final'));
+    if (Boards.el) Boards.el.style.translate = '';
   },
   async nevermore() {
-    const el = $('#nm-over'); if (el) el.classList.add('final');
+    $$('.nm-wide').forEach(r => r.classList.add('nm-final'));
     Snd.silent = false; sfx('thunder'); document.documentElement.classList.add('raven');
     await wait(1800);
     const q = h('div.raven', h('div.rav-who', 'quoth the player'), h('div.rav-title', h('b', 'Nevermore.')));
     document.body.append(q);
     await wait(3600);
-    q.remove(); if (el) el.remove(); document.documentElement.classList.remove('raven');
+    q.remove(); this.clearOverflow(); document.documentElement.classList.remove('raven');
     if (typeof Achievements !== 'undefined') Achievements.unlock('breaking_five');
     await Finale.roll('nevermore');
   },
@@ -44090,6 +44349,9 @@ const Secrets = {
     if (await Secrets.beforeFinale()) { S.chapter = 6; SaveGame.clear(); return; }
     return begin();
   };
+  // the final board is (re)built by Finale.reset: that is when the Nevermore hint's few seconds begin
+  const resetBoard = Finale.reset;
+  Finale.reset = function(...a) { const r = resetBoard.apply(this, a); Secrets.nevermoreHint(); return r; };
   const after = Finale.afterGuess.bind(Finale);
   Finale.afterGuess = word => {
     const b = Boards.first();

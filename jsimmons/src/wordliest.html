@@ -1044,7 +1044,9 @@ body.quake #app{animation:Quake .18s infinite}
 .shop-head{display:flex;align-items:center;gap:16px;margin:8px 0 16px}
 .shop-merchant{flex:none;animation:SnailBob 1.4s ease-in-out infinite}
 .shop-quote{font-family:var(--hand);font-size:17px;background:var(--bg);border:2px solid var(--text);border-radius:12px;padding:8px 12px;position:relative}
-.shop-wallet{margin-top:8px;display:flex;align-items:center;gap:6px;font-size:15px}
+.shop-wallet{margin-top:8px;display:flex;align-items:center;gap:6px;font-size:15px;flex-wrap:wrap}
+.shop-chk{padding:3px 10px !important;font-size:12px !important;margin-left:4px}
+.chk-neg{color:#e2463f}
 .shop-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:8px}
 .shop-item{display:flex;align-items:center;gap:10px;border:1px solid var(--line);border-radius:8px;padding:8px}
 .shop-item.lost{border-color:var(--gold);background:rgba(232,185,49,.08)}
@@ -1818,6 +1820,27 @@ body.quake #app{animation:Quake .18s infinite}
 .vault-slot small{font-size:10px;color:var(--muted)}
 .vault-slot.locked{border-style:solid;background:rgba(232,185,49,.15)}
 .bank-box.v-deposit{margin-top:12px}
+/* checking account */
+.bank-cols + .bank-box{margin-top:8px}
+.bank-offer{border-color:var(--gold);background:rgba(232,185,49,.1)}
+.bank-offer > b{font-size:17px}
+.bank-card{position:relative;display:flex;flex-direction:column;gap:2px;align-self:flex-start;min-width:170px;padding:8px 12px;border-radius:9px;color:#fff6d6;background:linear-gradient(135deg,#2f6a6c,#1f4a63 55%,#6a4a8a);box-shadow:0 2px 6px rgba(0,0,0,.25);font-size:10px;letter-spacing:.04em;text-transform:uppercase;margin-bottom:4px}
+.bank-card b{font-size:15px;letter-spacing:.18em}
+.bank-card i{position:absolute;right:10px;top:8px;font-style:normal;font-size:18px}
+.bank-checking.overdrawn{border-color:#e2463f}
+.bank-checking.overdrawn > b{color:#e2463f}
+.bank-xfer{margin-top:8px}
+.xfer-dirs{display:flex;gap:6px;flex-wrap:wrap}
+.xfer-dir{border:1px solid var(--line);background:none;color:var(--text);border-radius:14px;padding:5px 10px;font-size:12px;cursor:pointer}
+.xfer-dir.on{background:var(--gold);color:#222;border-color:var(--gold);font-weight:700}
+.xfer-display{font-size:26px;font-weight:800;text-align:right;padding:6px 10px;border:1px solid var(--line);border-radius:8px;font-variant-numeric:tabular-nums;min-height:38px}
+.xfer-pad{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;max-width:260px}
+.xfer-key{padding:10px 0;font-size:18px;font-weight:700;border:1px solid var(--line);border-radius:8px;background:var(--bg);color:var(--text);cursor:pointer}
+.xfer-key:active{transform:scale(.96)}
+.xfer-progress{display:flex;flex-direction:column;gap:8px;padding:10px 0}
+.xfer-label{font-size:20px}
+.xfer-bar{height:16px;border:1px solid var(--line);border-radius:9px;overflow:hidden;background:rgba(0,0,0,.08)}
+.xfer-bar i{display:block;height:100%;width:0;background:linear-gradient(90deg,#6aaa64,#9ccf7a);transition:width .08s steps(2)}
 @media (max-width:520px){ .bank-cols{grid-template-columns:1fr} }
 .gslot.vaulted{position:relative}
 .gslot.vaulted::after{content:"🔒";position:absolute;right:-6px;bottom:-6px;font-size:11px}
@@ -2105,6 +2128,28 @@ body.quake #app{animation:Quake .18s infinite}
   align-items: center;
   justify-content: center;
   box-sizing: border-box;
+}
+
+.tc-claim-all-btn {
+  height: 26px;
+  padding: 0 12px;
+  font-size: 12px;
+  font-weight: 800;
+  background: #ffd700;
+  color: #222;
+  border: 1px solid #b58a12;
+  border-radius: 13px;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.18);
+  cursor: pointer;
+  white-space: nowrap;
+}
+.tc-claim-all-btn:hover:not(:disabled) {
+  background: #ffe34d;
+  transform: scale(1.04);
+}
+.tc-claim-all-btn:disabled {
+  opacity: 0.6;
+  cursor: default;
 }
 
 .tc-claim-btn:hover {
@@ -8296,7 +8341,7 @@ html.crt body::after {
 // Tiny helpers shared by every module. Everything is a global on purpose:
 // the build concatenates files into one <script>, so top-level names are shared.
 
-const GAME_VERSION = '1.2.2';
+const GAME_VERSION = '1.2.3';
 
 const $ = (sel, root = document) => root.querySelector(sel);
 const $$ = (sel, root = document) => [...root.querySelectorAll(sel)];
@@ -10077,7 +10122,8 @@ const UI = {
     $('#streakN').textContent = (stk >= 2 ? `🔥${stk}` : '') + (S.flags.takeover ? ` · ∑${S.stats.mathSolved || 0}` : '');
     $('#shells').classList.toggle('hidden', !S.flags.shellsUI);
     $('#shellN').textContent = S.shells;
-    $('#shells').classList.toggle('debt', S.shells < 0);   // hard mode: failed minigames can put you in debt
+    $('#shells').classList.toggle('debt', S.shells < 0 || (typeof Bank !== 'undefined' && Bank.checking < 0));   // hard mode: failed minigames can put you in debt; an overdrawn checking account does too
+    $('#shells').title = typeof Bank !== 'undefined' && Bank.hasCard() ? `Wallet ${S.shells} · Checking ${Bank.checking}` : '';
     if (typeof Achievements !== 'undefined' && S.shells >= 10000) Achievements.sub('shells_10k');
     if (S.shells >= 500 && typeof store !== 'undefined' && !store.get('cardShopUnlocked', false)) {
       store.set('cardShopUnlocked', true);
@@ -10819,13 +10865,7 @@ const Game = {
     if (typeof Takeover !== 'undefined' && Takeover.leaveMath) Takeover.leaveMath();
 
     const saved = SaveGame.get();
-    const bankBal = (typeof Bank !== 'undefined' && typeof Bank.balance === 'number' && Bank.balance > 0)
-      ? Bank.balance
-      : ((saved && saved.bank && saved.bank.balance > 0) ? saved.bank.balance : 0);
-    if (bankBal > 0) {
-      const rate = (typeof Bank !== 'undefined' && Bank.getCarryRate) ? Bank.getCarryRate() : 0.35;
-      store.set('bank_carryover', Math.max(0, Math.floor(bankBal * rate)));
-    }
+    if (typeof Bank !== 'undefined') Bank.carryAbandoned(saved && saved.bank);   // savings and checking carry over, as at an ending
     SaveGame.clear();
 
     // Reset state
@@ -19066,6 +19106,7 @@ const Shop = {
     if (id === 'third_tank') return (d.tanks || 0) >= 3;
     if (id === 'pressure') return (d.pressure || 0) > 0;
     if (id === 'multiplier') return (d.shellMult || 0) > 0;
+    if (id === 'savings') return (d.savings || 0) > 0;
     if (id === 'polish') return (d.polish || 0) > 0;
     if (id === 'sprinkler') return (d.sprinklers || 0) > 0;
     if (id === 'irrigation') return (d.irrigation || 0) > 0;
@@ -19100,6 +19141,8 @@ const Shop = {
       bought = d.pressure || 0;
     } else if (it.id === 'multiplier') {
       bought = d.shellMult || 0;
+    } else if (it.id === 'savings') {
+      bought = d.savings || 0;
     } else if (it.id === 'second_tank') {
       bought = d.tanks >= 2 ? 1 : 0;
     } else if (it.id === 'third_tank') {
@@ -19176,10 +19219,12 @@ const Shop = {
         when: () => S.chapter <= 4,
         buy() { S.flags.coinage = true; Shop.say('A licence to coin words! Filed under "Bold". Do not tell the dictionary.'); }
       },
-      {id: 'tank', name: 'Snail Tank', icon: '🐌', price: 50, limit: 1,
+      {id: 'tank', name: 'Snail Tank', icon: '🐌', price: TANK_PRICE, limit: 1,
         soldOut: !!(S.inc && S.inc.tanks),
-        desc: (S.inc && S.inc.tanks) ? 'Purchased. A cozy swaying terrarium housing your snails.' : 'A cozy swaying terrarium for a snail. Sits on your screen and spits out shells.',
-        when: () => ((S.stats.shopSpent || 0) >= 30 || (S.inc && S.inc.tanks)) && S.chapter < 4,
+        desc: (S.inc && S.inc.tanks) ? 'Purchased. A cozy swaying terrarium housing your snails.'
+          : Tank.ownedBefore() ? 'Your old terrarium, kept on the shelf for a loyal customer. Sits on your screen and spits out shells.'
+          : 'A cozy swaying terrarium for a snail. Sits on your screen and spits out shells.',
+        when: () => ((S.stats.shopSpent || 0) >= 30 || (S.inc && S.inc.tanks) || Tank.ownedBefore()) && Tank.chapterOk(),
         buy() { Tank.buyTank(); Shop.say('Magnifique! A home for snails. Take good care of it.'); }
       },
       {id: 'trophy', name: 'Trophy Case', icon: '🏆', price: 150, limit: 1,
@@ -19222,6 +19267,8 @@ const Shop = {
   },
   price(it) {
     if (it.id === 'card') return typeof Cards !== 'undefined' ? Cards.getPrice() : 50;
+    // the loyalty price is flat: inflation doesn't touch it
+    if (it.id === 'tank' && !it.soldOut && Tank.ownedBefore()) return TANK_REBUY_PRICE;
     const base = this.basePrice(it);
     return it.soldOut ? base : Math.max(1, Math.round(base * S.inflation * (S.flags.coupon ? 0.5 : 1)));
   },
@@ -19436,40 +19483,50 @@ const Shop = {
     const view = () => (page === 1 ? this.items().map(it => {
         const p = this.price(it);
         const hasBought = this.hasBought(it.id) || !!it.soldOut;
-        const isRevealed = hasBought || S.shells >= Math.floor(p * 2 / 3);
+        const isRevealed = hasBought || Bank.funds() >= Math.floor(p * 2 / 3);
         const lim = isRevealed ? this.getItemLimit(it) : null;
-        return [it.id, !it.soldOut && S.shells >= p, lim ? lim.bought : null];
+        return [it.id, !it.soldOut && Bank.canPay(p), lim ? lim.bought : null];
       })
       : page === 2
       ? Tank.page2Items().map(it => {
           const d = (typeof S !== 'undefined' && S.inc) || {};
           if (it.id === 'third_tank') {
-            const isRevealed = (d.tanks >= 3) || this.hasBought('third_tank') || (d.tanks >= 2 && (S.shells >= 200 || (S.flags && S.flags.thirdTankRevealed)));
+            const isRevealed = (d.tanks >= 3) || this.hasBought('third_tank') || Tank.everOwned('third_tank') || (d.tanks >= 2 && (Bank.funds() >= 200 || (S.flags && S.flags.thirdTankRevealed)));
             if (!isRevealed) return null;
             const lim = this.getItemLimit(it);
-            return [it.id, it.maxed, it.price, true, S.shells >= it.price, lim ? lim.bought : null];
+            return [it.id, it.maxed, it.price, true, Bank.canPay(it.price), lim ? lim.bought : null];
           }
           const isSecret = it.id !== 'food' && it.id !== 'puzzle';
-          const hasBought = this.hasBought(it.id) || !!it.maxed;
-          const isRevealed = hasBought || !isSecret || S.shells >= Math.floor(it.price * 2 / 3);
+          const hasBought = this.hasBought(it.id) || !!it.maxed || Tank.everOwned(it.id);
+          const isRevealed = hasBought || !isSecret || Bank.funds() >= Math.floor(it.price * 2 / 3);
           if (it.id === 'takeover_offer' && !isRevealed) return null;
           const lim = isRevealed ? this.getItemLimit(it) : null;
-          return [it.id, it.maxed, it.price, isRevealed, isRevealed && S.shells >= it.price, lim ? lim.bought : null];
+          return [it.id, it.maxed, it.price, isRevealed, isRevealed && Bank.canPay(it.price), lim ? lim.bought : null];
         })
-      : this.lakeItems().map(it => [it.id, it.soldOut, it.price, S.shells >= it.price]));
+      : this.lakeItems().map(it => [it.id, it.soldOut, it.price, Bank.canPay(it.price)]));
     let shown = '';
     const wallet = () => {
-      const p2 = S.inc && S.inc.page2Unlocked && S.chapter < 4;
+      const p2 = S.inc && S.inc.page2Unlocked && Tank.chapterOk();
       const wEl = $('.shop-wallet');
-      if (wEl) wEl.innerHTML = `${SPR.shellIcon()} <b>${S.shells}</b> shells${S.flags.coupon ? ' · <i>coupon: 50% off!</i>' : ''}${p2 ? `<span class="shop-droplet-badge">💧 ${(S.inc && S.inc.droplets) || 0}/${Tank.maxDropletCapacity()}</span>` : ''}`;
+      if (wEl) wEl.innerHTML = `${SPR.shellIcon()} <b>${S.shells}</b> shells${Bank.hasCard() ? ` · 💳 <b${Bank.checking < 0 ? ' class="chk-neg"' : ''}>${Bank.checking}</b> checking` : ''}${S.flags.coupon ? ' · <i>coupon: 50% off!</i>' : ''}${p2 ? `<span class="shop-droplet-badge">💧 ${(S.inc && S.inc.droplets) || 0}/${Tank.maxDropletCapacity()}</span>` : ''}`;
     };
-    this.refresh = () => { wallet(); if (JSON.stringify(view()) !== shown) render(); };
+    // with a credit card: the switch for paying out of the checking account, at the top of the shop
+    const checkingSwitch = () => {
+      const wEl = $('.shop-wallet');
+      if (!wEl || !Bank.hasCard()) return;
+      const on = store.get('checkingOn', true) !== false;
+      wEl.append(h('button.btn.ghost.shop-chk', {type: 'button', text: `Pay with checking: ${on ? 'ON' : 'OFF'}`,
+        title: on ? 'Purchases come out of the checking account first, then the wallet, and may overdraw it. Click to pay from the wallet only.' : 'Purchases come out of the wallet only. Click to pay from the checking account first.',
+        onclick: () => Bank.setChecking(!on)}));
+      if (Bank.checking < 0) wEl.append(h('small.chk-neg', 'Overdrawn: checking pays for nothing until it is paid off at the bank.'));
+    };
+    this.refresh = () => { wallet(); checkingSwitch(); if (JSON.stringify(view()) !== shown) render(); };
     const render = () => {
       grid.innerHTML = '';
       tabs.innerHTML = '';
       shown = JSON.stringify(view());
 
-      const p2Available = S.inc && S.inc.page2Unlocked && S.chapter < 4;
+      const p2Available = S.inc && S.inc.page2Unlocked && Tank.chapterOk();
       const hasDeed = (typeof store !== 'undefined' && store.get('lakeDeed', false)) || (typeof S !== 'undefined' && S.flags && S.flags.deed);
       if (p2Available || hasDeed) {
         const b1 = h('button.shop-tab-btn' + (page === 1 ? '.active' : ''), {type: 'button', text: 'Emporium (Page 1)'});
@@ -19487,20 +19544,21 @@ const Shop = {
         }
       }
 
-      wallet();
+      wallet(); checkingSwitch();
 
       if (page === 1) {
         for (const it of this.items()) {
           const p = this.price(it);
           const hasBought = this.hasBought(it.id) || !!it.soldOut;
-          const isRevealed = hasBought || S.shells >= Math.floor(p * 2 / 3);
+          const isRevealed = hasBought || Bank.funds() >= Math.floor(p * 2 / 3);
           const lim = isRevealed ? this.getItemLimit(it) : null;
           const limBadge = lim ? h('span.shop-item-limit', {text: ` (${lim.bought}/${lim.max})`}) : null;
-          const btn = h('button.btn.buy', {html: it.soldOut ? 'Sold out' : `${p} ${SPR.shellIcon()}`, disabled: it.soldOut || S.shells < p, type: 'button'});
+          const btn = h('button.btn.buy', {html: it.soldOut ? 'Sold out' : `${p} ${SPR.shellIcon()}`, disabled: it.soldOut || !Bank.canPay(p), type: 'button'});
           btn.addEventListener('click', () => {
-            if (S.shells < p) { this.say('Insufficient shells. Have you tried clicking snails?'); sfx('deny'); return; }
+            if (!Bank.canPay(p)) { this.say('Insufficient shells. Have you tried clicking snails?'); sfx('deny'); return; }
             if (it.buy() === false) return;
-            S.shells -= p; S.stats.spent += p; S.stats.shopSpent = (S.stats.shopSpent || 0) + p;
+            if (!Bank.pay(p)) S.shells -= p;
+            S.stats.spent += p; S.stats.shopSpent = (S.stats.shopSpent || 0) + p;
             this.recordPurchase(it.id);
             Takeover.onSpend();
             if (S.flags.coupon) S.flags.coupon = false;
@@ -19515,20 +19573,20 @@ const Shop = {
         for (const it of items) {
           const d = (typeof S !== 'undefined' && S.inc) || {};
           if (it.id === 'third_tank') {
-            const isRevealed = (d.tanks >= 3) || this.hasBought('third_tank') || (d.tanks >= 2 && (S.shells >= 200 || (S.flags && S.flags.thirdTankRevealed)));
+            const isRevealed = (d.tanks >= 3) || this.hasBought('third_tank') || Tank.everOwned('third_tank') || (d.tanks >= 2 && (Bank.funds() >= 200 || (S.flags && S.flags.thirdTankRevealed)));
             if (!isRevealed) continue;
-            if (d.tanks >= 2 && S.shells >= 200) {
+            if (d.tanks >= 2 && Bank.funds() >= 200) {
               if (!S.flags) S.flags = {};
               S.flags.thirdTankRevealed = true;
             }
           }
           const p = it.price;
           const isSecret = it.id !== 'food' && it.id !== 'puzzle';
-          const hasBought = this.hasBought(it.id) || !!it.maxed;
-          const isRevealed = it.id === 'third_tank' ? true : (hasBought || !isSecret || S.shells >= Math.floor(p * 2 / 3));
+          const hasBought = this.hasBought(it.id) || !!it.maxed || Tank.everOwned(it.id);
+          const isRevealed = it.id === 'third_tank' ? true : (hasBought || !isSecret || Bank.funds() >= Math.floor(p * 2 / 3));
           if (it.id === 'takeover_offer' && !isRevealed) continue;
           const isHidden = isSecret && !isRevealed;
-          const canAfford = !isHidden && S.shells >= p;
+          const canAfford = !isHidden && Bank.canPay(p);
 
           const lim = isRevealed ? this.getItemLimit(it) : null;
           const limBadge = lim ? h('span.shop-item-limit', {text: ` (${lim.bought}/${lim.max})`}) : null;
@@ -19544,8 +19602,10 @@ const Shop = {
             if (it.maxed) return;
             if (!canAfford) { this.say('Insufficient shells for this upgrade.'); sfx('deny'); return; }
             if (it.buy() === false) return;
-            S.shells -= p; S.stats.spent += p; S.stats.shopSpent = (S.stats.shopSpent || 0) + p;
+            if (!Bank.pay(p)) S.shells -= p;
+            S.stats.spent += p; S.stats.shopSpent = (S.stats.shopSpent || 0) + p;
             this.recordPurchase(it.id);
+            Tank.notePeak();
             sfx('coin'); UI.hud(); render();
             if (typeof SaveGame !== 'undefined') SaveGame.autoSave();
           });
@@ -19560,7 +19620,7 @@ const Shop = {
         // Page 3: Lake Property Furnishings (Phase 2 items only appear once the house is owned)
         for (const it of this.lakeItems()) {
           const p = it.price;
-          const canAfford = S.shells >= p;
+          const canAfford = Bank.canPay(p);
           const btn = h('button.btn.buy', {
             html: it.soldOut ? 'Installed' : `${p} ${SPR.shellIcon()}`,
             disabled: it.soldOut || !canAfford,
@@ -19569,12 +19629,12 @@ const Shop = {
 
           btn.addEventListener('click', () => {
             if (it.soldOut) return;
-            if (S.shells < p) {
+            if (!Bank.canPay(p)) {
               this.say('Insufficient shells for this property upgrade.');
               sfx('deny');
               return;
             }
-            S.shells -= p;
+            if (!Bank.pay(p)) S.shells -= p;
             S.stats.spent += p;
             S.stats.shopSpent = (S.stats.shopSpent || 0) + p;
             const lakeItems = (typeof store !== 'undefined' && store.get('lakeItems', null)) || {};
@@ -19642,6 +19702,30 @@ const Shop = {
 //   - stackable upgrades cost TANK_PRICE_GROWTH× the last price, rounded up to 25.
 
 const TANK_PRICE_GROWTH = 1.2, SPRINKLER_MIN = 2, SPRINKLER_MAX = 3, TANK_DT_CAP = 5;
+const TANK_PRICE = 50, TANK_REBUY_PRICE = 5, TANK_REBUY_DISCOUNT = 0.5;
+const TANK_SAVINGS_STEP = 0.2, TANK_SAVINGS_MAX = 5;   // Snail Savings: +20% of tank shells to the bank per level, five levels
+
+// The upgrades that remember how far you got. Level of each in a run's terrarium data; the highest
+// level ever reached is kept across runs (store 'tankPeak'), and re-buying up to it costs half.
+// Word Puzzle (a consumable), the Salt Shaker (a prestige) and the takeover offer are not upgrades.
+const TANK_UPGRADE_LEVELS = {
+  food: d => d.food || 0,
+  hormones: d => d.hormones || 0,
+  polish: d => d.polish || 0,
+  pressure: d => d.pressure || 0,
+  multiplier: d => d.shellMult || 0,
+  savings: d => d.savings || 0,
+  sprinkler: d => d.sprinklers || 0,
+  irrigation: d => d.irrigation || 0,
+  gene: d => d.gene ? 1 : 0,
+  second_tank: d => d.tanks >= 2 ? 1 : 0,
+  third_tank: d => d.tanks >= 3 ? 1 : 0,
+  watertower: d => d.watertower ? 1 : 0,
+  plumber: d => d.plumber ? 1 : 0,
+  gardener: d => d.gardener ? 1 : 0,
+};
+// remembered only so the item stays visible; never discounted (a prestige, not an upgrade)
+const TANK_REVEAL_LEVELS = {salt: d => d.saltShakers || 0};
 
 const Tank = {
   active: false,
@@ -19674,6 +19758,8 @@ const Tank = {
         droplets: 0,
         pressure: 0,
         shellMult: 0,
+        savings: 0,
+        saveFrac: 0,
         spentTotal: 0,
         notifiedIds: [],
       };
@@ -19711,6 +19797,12 @@ const Tank = {
     return p;
   },
 
+  priceSavings() {
+    let p = 200;
+    for (let i = 0; i < (this.data().savings || 0); i++) p = this.roundUp25(p * 1.5);
+    return p;
+  },
+
   priceSprinkler() {
     const n = this.data().sprinklers || 0;
     return n === 0 ? 450 : (n === 1 ? 700 : 1000);
@@ -19739,16 +19831,14 @@ const Tank = {
     return Math.max(1, Math.round(n * mult));
   },
 
+  // A tank drops a shell every 10-30 s with no Snail Food (it was 20-60 s in 1.2.2: one tank made ~90
+  // shells an hour, so the first hours did nothing). Each of the first 20 levels shortens the top of the
+  // range by 1 s until it is 10-10; after that both ends fall 9/19 s a level, to 1 s at level 39 (maxed).
   dropBounds() {
     const f = this.data().food || 0;
-    let upper = 60, lower = 20;
-    if (f <= 20) {
-      upper = Math.max(20, 60 - f * 2);
-    } else {
-      lower = Math.max(1, 20 - (f - 20));
-      upper = Math.max(lower, 20 - (f - 20));
-    }
-    return [lower, upper];
+    if (f <= 20) return [10, Math.max(10, 30 - f)];
+    const v = Math.max(1, 10 - (f - 20) * 9 / 19);
+    return [v, v];
   },
 
   dropInterval() {
@@ -19863,21 +19953,74 @@ const Tank = {
     return l;
   },
 
-  buyTank() {
+  // Once you have bought a tank, Escarlette keeps it on the shelf for good: from the first
+  // shop visit of every later run, at a flat TANK_REBUY_PRICE (no inflation, no 30-shell wait).
+  ownedBefore() { return !!store.get('tankOwned', false); },
+
+  tankPrice() { return this.ownedBefore() ? TANK_REBUY_PRICE : TANK_PRICE; },
+
+  // Half price for an upgrade level you have owned in an earlier run. The Salt Shaker refunds 2x what
+  // you spent and resets every level, so once it has been used this run the discount is off (otherwise
+  // salt, re-buy at half, salt again would print shells).
+  peak() { return store.get('tankPeak', {}); },
+
+  notePeak() {
+    const d = this.data(), peak = this.peak();
+    let changed = false;
+    for (const table of [TANK_UPGRADE_LEVELS, TANK_REVEAL_LEVELS]) {
+      for (const id in table) {
+        const lv = table[id](d);
+        if (lv > (peak[id] || 0)) { peak[id] = lv; changed = true; }
+      }
+    }
+    if (changed) store.set('tankPeak', peak);
+  },
+
+  // An upgrade you have ever bought, in this run or an earlier one, stays on page 2 even when you
+  // cannot afford it (the others show as ??? until you hold two thirds of the price).
+  everOwned(id) { return (this.peak()[id] || 0) > 0; },
+
+  rebuyable(id) {
+    const lv = TANK_UPGRADE_LEVELS[id];
+    const d = this.data();
+    return !!lv && !(d.saltShakers > 0) && lv(d) + 1 <= (this.peak()[id] || 0);
+  },
+
+  buyTank(cost = this.tankPrice()) {
     const d = this.data();
     d.tanks = Math.max(1, d.tanks);
     d.page2Unlocked = true;
-    d.spentTotal = (d.spentTotal || 0) + 50;
+    d.spentTotal = (d.spentTotal || 0) + cost;
+    store.set('tankOwned', true);
     this.restore();
     UI.toast('Snail Tank installed! Sits gently on your screen.', 2600);
   },
 
+  // The terrarium now lives through the Burrow (chapters 4-5), is put away while the finale plays out,
+  // and comes back in endless mode. Only the shovel route (the E chase), the takeover offer and a new
+  // game destroy it. (It used to be destroyed by chapter 4's dig.)
+  chapterOk() { return S.chapter !== 6; },
+
+  // Out of sight and out of the loop, but kept: S.inc stays so endless mode can restore it.
+  hide() {
+    const layer = $('#tankLayer');
+    if (layer) layer.remove();
+    this.tanks = [];
+    this.sprinklers = [];
+    this.rovers = [];
+    this.shellsOnScreen = [];
+    this.dropsOnScreen = [];
+  },
+
   restore() {
-    // Digging check: burrows destroy incremental mode
-    if (!S.inc || S.inc.tanks <= 0 || S.chapter >= 4 || S.flags.shovel) {
+    if (!S.inc || S.inc.tanks <= 0 || S.flags.shovel) {
       this.clearAll(false);
       return;
     }
+    if (!this.chapterOk()) { this.hide(); return; }
+    // a save from before the tank was remembered across runs: having a tank counts
+    store.set('tankOwned', true);
+    this.notePeak();
     const layer = this.ensureLayer();
     layer.innerHTML = '';
     this.tanks = [];
@@ -20102,6 +20245,21 @@ const Tank = {
     }
   },
 
+  // Snail Savings: a share of every shell the tank pays goes straight into the bank (once it is open),
+  // where it earns interest and part of it survives the run. Whole shells only; the remainder carries.
+  savingsShare() { return Math.min(1, TANK_SAVINGS_STEP * (this.data().savings || 0)); },
+
+  bankShare(val) {
+    const share = this.savingsShare();
+    if (!share || !S.flags.bank || typeof Bank === 'undefined') return 0;
+    const d = this.data();
+    d.saveFrac = (d.saveFrac || 0) + val * share;
+    const n = Math.floor(d.saveFrac + 1e-9);
+    d.saveFrac -= n;
+    if (n > 0) Bank.balance += n;
+    return n;
+  },
+
   collectShell(item) {
     if (item.collected) return;
     item.collected = true;
@@ -20112,13 +20270,14 @@ const Tank = {
     setTimeout(() => el.remove(), 400);
     this.shellsOnScreen = this.shellsOnScreen.filter(s => s !== item);
 
-    S.shells += val;
+    const banked = this.bankShare(val);
+    S.shells += val - banked;
     UI.hud();
     sfx('coin');
 
     // Float notification text
     const pop = h('div.score-float', {
-      text: `+${val} 🐚`,
+      text: `+${val} 🐚${banked ? ` (${banked} 🏦)` : ''}`,
       style: {left: `${x}px`, top: `${y - 10}px`, color: '#f5c518', position: 'fixed', zIndex: 9999, fontWeight: 800}
     });
     document.body.append(pop);
@@ -20198,7 +20357,9 @@ const Tank = {
 
     let last = performance.now();
     Loop.add(() => {
-      if (!S.inc || S.inc.tanks <= 0 || S.chapter >= 4 || S.flags.shovel) { this.loopRunning = false; return false; }
+      if (!S.inc || S.inc.tanks <= 0 || S.flags.shovel) { this.loopRunning = false; return false; }
+      // the finale sets the chapter directly, so this is where the terrarium notices and steps out
+      if (!this.chapterOk()) { this.hide(); this.loopRunning = false; return false; }
       // the tank's own real-time clock: Loop's dt is capped at 0.05 s per frame, which
       // ran the terrarium slow whenever the frame rate dipped
       const now = performance.now(), dt = Math.min(TANK_DT_CAP, (now - last) / 1000);
@@ -20314,7 +20475,6 @@ const Tank = {
         maxed: this.isFoodMaxed(),
         buy: () => {
           if (this.isFoodMaxed()) return false;
-          d.spentTotal += this.priceFood();
           d.food = (d.food || 0) + 1;
           Shop.say('Nutritious! The snails are energized.');
         }
@@ -20326,7 +20486,6 @@ const Tank = {
         price: this.priceHormones(),
         desc: `Increases the size and max value of shells dropped (current max: ${1 + d.hormones}).`,
         buy: () => {
-          d.spentTotal += this.priceHormones();
           d.hormones = (d.hormones || 0) + 1;
           Shop.say('Bigger shells, bigger profits.');
         }
@@ -20343,7 +20502,6 @@ const Tank = {
         buy: () => {
           if (d.gene) return false;
           d.gene = true;
-          d.spentTotal += 500;
           this.restore();
           Shop.say('Double the shells, double the glory.');
         }
@@ -20360,7 +20518,6 @@ const Tank = {
         buy: () => {
           if (d.tanks >= 2) return false;
           d.tanks = 2;
-          d.spentTotal += 200;
           this.restore();
           Shop.say('A second home! More room for the gastropods.');
         }
@@ -20377,7 +20534,6 @@ const Tank = {
         buy: () => {
           if (d.tanks >= 3) return false;
           d.tanks = 3;
-          d.spentTotal += 400;
           this.restore();
           Shop.say('A third home! A sprawling gastropod empire.');
         }
@@ -20395,7 +20551,6 @@ const Tank = {
             sfx('deny');
             return false;
           }
-          d.spentTotal += this.pricePolish();
           d.polish = (d.polish || 0) + 1;
           Shop.say('Look at that shine! High minimum value.');
         }
@@ -20410,9 +20565,22 @@ const Tank = {
         desc: `Adds a +5% multiplier to all shell values (events, minigames, word solves, drops). Current: +${(d.shellMult || 0) * 5}% (${Math.round(this.shellMultiplier() * 100)}% value).`,
         buy: () => {
           if ((d.shellMult || 0) >= 30) return false;
-          d.spentTotal += this.priceShellMult();
           d.shellMult = (d.shellMult || 0) + 1;
           Shop.say(`Multiplier boosted! All shells are now worth ${Math.round(this.shellMultiplier() * 100)}%.`);
+        }
+      },
+      {
+        id: 'savings',
+        name: 'Snail Savings',
+        icon: '🏦',
+        price: this.priceSavings(),
+        limit: TANK_SAVINGS_MAX,
+        maxed: (d.savings || 0) >= TANK_SAVINGS_MAX,
+        desc: `Banks ${Math.round(TANK_SAVINGS_STEP * 100 * Math.min(TANK_SAVINGS_MAX, (d.savings || 0) + 1))}% of every shell the tanks pay straight into the First National Bank of Slime, once it is open: it earns interest and part of it survives the run (now: ${Math.round(this.savingsShare() * 100)}%).`,
+        buy: () => {
+          if ((d.savings || 0) >= TANK_SAVINGS_MAX) return false;
+          d.savings = (d.savings || 0) + 1;
+          Shop.say('Straight to Gustave. He says thank you. He says it with interest.');
         }
       },
       {
@@ -20429,7 +20597,6 @@ const Tank = {
             sfx('deny');
             return false;
           }
-          d.spentTotal += this.priceSprinkler();
           d.sprinklers = (d.sprinklers || 0) + 1;
           this.restore();
           Shop.say('Sprinkler online! Catch the droplets.');
@@ -20450,7 +20617,6 @@ const Tank = {
             return false;
           }
           if ((d.irrigation || 0) >= (d.sprinklers || 0)) return false;
-          d.spentTotal += this.priceIrrigation();
           d.irrigation = (d.irrigation || 0) + 1;
           this.restore();
           Shop.say('Piped up! Automation engaged.');
@@ -20466,7 +20632,6 @@ const Tank = {
         maxed: (d.pressure || 0) >= 35,
         buy: () => {
           if ((d.pressure || 0) >= 35) return false;
-          d.spentTotal += this.pricePressure();
           d.pressure = (d.pressure || 0) + 1;
           const cap = this.maxDropletCapacity();
           if (d.droplets > cap) d.droplets = cap;
@@ -20486,7 +20651,6 @@ const Tank = {
         buy: () => {
           if (d.watertower) return false;
           d.watertower = true;
-          d.spentTotal += 1500;
           this.restore();
           Shop.say('Water tower constructed! Pressure is rising.');
         }
@@ -20508,7 +20672,6 @@ const Tank = {
           }
           if (d.plumber) return false;
           d.plumber = true;
-          d.spentTotal += 800;
           const cap = this.maxDropletCapacity();
           if (d.droplets > cap) d.droplets = cap;
           this.restore();
@@ -20527,7 +20690,6 @@ const Tank = {
         buy: () => {
           if (d.gardener) return false;
           d.gardener = true;
-          d.spentTotal += 375;
           this.restore();
           Shop.say('A dedicated gardener. Leave the shell-harvesting to him.');
         }
@@ -20566,6 +20728,8 @@ const Tank = {
           d.gardener = false;
           d.pressure = 0;
           d.shellMult = 0;
+          d.savings = 0;
+          d.saveFrac = 0;
           d.droplets = 0;
           d.spentTotal = 0;
           d.tanks = 1;
@@ -20585,12 +20749,27 @@ const Tank = {
         limit: 1,
         desc: 'An offer Escarlette cannot refuse. Triggers the Hostile Takeover.',
         buy: () => {
-          if (S.shells < 12345) return false;
+          if (!Bank.canPay(12345)) return false;
           this.triggerTakeoverOffer();
           return true;
         }
       },
     ];
+    // upgrades: half price up to the level you reached in an earlier run, and spentTotal (what the
+    // Salt Shaker refunds) records what was actually paid
+    list.forEach(it => {
+      if (!TANK_UPGRADE_LEVELS[it.id]) return;
+      const buy = it.buy;
+      if (this.rebuyable(it.id)) {
+        it.price = Math.max(1, Math.round(it.price * TANK_REBUY_DISCOUNT));
+        it.desc += ' Re-buy: half price, you owned this in an earlier run.';
+      }
+      it.buy = (...a) => {
+        const r = buy(...a);
+        if (r !== false) { d.spentTotal = (d.spentTotal || 0) + it.price; this.notePeak(); }
+        return r;
+      };
+    });
     return list;
   },
 
@@ -21059,6 +21238,19 @@ const Inventory = {
             if (typeof TcgDuel !== 'undefined') setTimeout(() => TcgDuel.interrupt(), 150);
           }
         }
+      });
+    }
+
+    // 12b. Credit Card (given when the checking account is opened; persists across runs)
+    if (typeof Bank !== 'undefined' && Bank.hasCard()) {
+      items.push({
+        id: 'creditcard',
+        name: 'Slime Bank Credit Card',
+        type: 'Banking',
+        badge: Bank.checking < 0 ? 'Overdrawn' : `${Bank.checking} 🐚`,
+        renderGraphic: () => `<div class="inv-deed-wrap"><span class="inv-deed-icon">💳</span></div>`,
+        desc: `Your card for the First National Bank of Slime checking account. It pays for shop purchases out of the checking account first, even before the bank opens in a run, and it is yours for good.`,
+        lore: '“Do try not to overdraw.” — Gustave, who will notice.'
       });
     }
 
@@ -23019,7 +23211,7 @@ const Director = {
   // ------------------------------------------------------------ chapters
   chapterTo(n) {
     S.chapter = n;
-    if (n >= 4 && typeof Tank !== 'undefined') Tank.clearAll(true);
+    if (typeof Tank !== 'undefined') { if (n === 6) Tank.hide(); else if (n === 7) Tank.restore(); }   // the terrarium sits out the finale
     UI.hud();
     if (n >= 4) Hats.apply();   // the hats are gone for good once you go down the Burrow
     const T = {1: ['', 'Wordle'], 2: ['wordl', 'Wordl'], 3: ['vapor', 'Dordl'], 4: ['burrow', 'Wordl'], 5: ['burrow', 'Wordl'], 6: ['', 'Wordle'], 7: ['', 'Wordle']}[n];
@@ -23536,7 +23728,6 @@ Director.BEATS = {
   // 16: (gate) Word Pool — golden letter #3. Then Chapter 4: dig down. Words shrink.
   16: async function() {
     Keys.float(false);
-    if (typeof Tank !== 'undefined') Tank.clearAll(true);
     await Narr.say('I want to know what\'s underneath me.');
     await Narr.say('Let\'s dig.');
     anim($('#app'), 'descend', 1400); sfx('rumble');
@@ -24201,6 +24392,7 @@ const Finale = {
 const Debug = {
   activeTab: 'jumps',
   filterText: '',
+  achFilter: 'all',
   godmode: false,
   panelEl: null,
   authEl: null,
@@ -25339,6 +25531,8 @@ const Debug = {
   render() {
     const p = this.panelEl;
     if (!p) return;
+    // a button press re-renders the whole panel: keep the scroll position of the tab body when the tab has not changed
+    const oldBody = p.querySelector('.dbg-body'), keepScroll = oldBody && this._bodyTab === this.activeTab ? oldBody.scrollTop : 0;
     p.innerHTML = '';
 
     const answers = Boards.answers().join(' / ') || S.original.answer || '—';
@@ -25428,7 +25622,7 @@ const Debug = {
     const evCount = Object.keys(Events.defs).length;
     const endCount = ENDING_ORDER.length;
     const miniCount = Object.keys(Minis.defs).length;
-    const tabs = ['jumps', 'endings', 'minis', 'events', 'micro', 'cheats', 'mods', 'audio'];
+    const tabs = ['jumps', 'endings', 'minis', 'events', 'micro', 'cheats', 'achievements', 'mods', 'audio'];
     const tabLabels = {
       jumps: 'Jumps',
       endings: `Endings (${endCount})`,
@@ -25436,6 +25630,7 @@ const Debug = {
       events: `Events (${evCount})`,
       micro: `Micro-events (${typeof Micro !== 'undefined' ? Micro.entries.length : 0})`,
       cheats: 'Cheats & Unlocks',
+      achievements: `Achievements (${typeof Achievements !== 'undefined' ? Achievements.totalCount() : 0})`,
       mods: 'Mods & Map',
       audio: 'Audio & FX'
     };
@@ -25461,11 +25656,14 @@ const Debug = {
     else if (this.activeTab === 'events') body.append(this.renderEvents());
     else if (this.activeTab === 'micro') body.append(this.renderMicro());
     else if (this.activeTab === 'cheats') body.append(this.renderCheats());
+    else if (this.activeTab === 'achievements') body.append(this.renderAchievements());
     else if (this.activeTab === 'mods') body.append(this.renderMods());
     else if (this.activeTab === 'audio') body.append(this.renderAudio());
 
     p.append(hdr, statsBar, actBar, tabEl, body, h('div.dbg-resize', {title: 'Drag to resize (double-click to reset)', onpointerdown: e => this.startResize(e), ondblclick: () => { store.set('debug_size', null); this.applySize(); }}));
+    this._bodyTab = this.activeTab;
     this.applySize();
+    body.scrollTop = keepScroll;
   },
 
   // ------------------------------------------------ Tab Renderers
@@ -25867,7 +26065,6 @@ const Debug = {
 
     const hintOn = !$('#bHint').classList.contains('hidden');
     const journalOn = Codex.unlocked();
-    const trophyOn = typeof Achievements !== 'undefined' && Achievements.hasTrophyCase();
     const cardShopOn = !!store.get('cardShopUnlocked', false);
     const shovelLabel = S.flags.shovel ? (typeof SHOVELS !== 'undefined' && SHOVELS[S.flags.shovel] ? SHOVELS[S.flags.shovel].name : `Tier ${S.flags.shovel}`) : 'OFF';
 
@@ -25889,30 +26086,6 @@ const Debug = {
         row(
           btn(`📔 Journal: ${journalOn ? 'UNLOCKED' : 'LOCKED'}`, () => { if (journalOn) this.resetCodex(); else this.unlockCodex(); }, journalOn ? 'good' : ''),
           btn('Open Journal', () => Codex.open()),
-          btn(`🏆 Trophy Case: ${trophyOn ? 'UNLOCKED' : 'LOCKED'}`, () => {
-            if (trophyOn) { store.set('wl_achievements', null); Achievements.init(); UI.toast('Trophy Case locked & reset.'); }
-            else Achievements.buyTrophyCase();
-            this.render();
-          }, trophyOn ? 'good' : ''),
-          btn('Open Trophy Case', () => Achievements.open()),
-          btn('Unlock All (Unclaimed)', () => {
-            if (!Achievements.hasTrophyCase()) Achievements.buyTrophyCase();
-            Object.keys(Achievements.defs).forEach(id => { Achievements.data.unlocked[id] = {claimed: false, at: Date.now()}; });
-            Achievements.data.stars = 0;
-            Achievements.save();
-            Achievements.refreshUI(true);
-            UI.toast(`All ${Achievements.totalCount()} achievements unlocked (unclaimed — ready to claim)!`);
-            this.render();
-          }, 'good'),
-          btn('Unlock & Claim All', () => {
-            if (!Achievements.hasTrophyCase()) Achievements.buyTrophyCase();
-            Object.keys(Achievements.defs).forEach(id => { Achievements.data.unlocked[id] = {claimed: true, at: Date.now()}; });
-            Achievements.data.stars = Achievements.totalCount();
-            Achievements.save();
-            Achievements.refreshUI();
-            UI.toast(`All ${Achievements.totalCount()} achievements unlocked & claimed!`);
-            this.render();
-          }, 'accent'),
           btn(`🎴 Card Shop: ${cardShopOn ? 'UNLOCKED' : 'LOCKED'}`, () => {
             store.set('cardShopUnlocked', !cardShopOn);
             UI.toast(`Card Shop: ${!cardShopOn ? 'UNLOCKED' : 'LOCKED'}`);
@@ -26282,6 +26455,77 @@ const Debug = {
     return wrap;
   },
 
+  // ------------------------------------------------ Achievements (39b-achievements.js)
+  // Every achievement with its state, and the Trophy Case and star controls (they used to sit in Cheats & Unlocks and in Mods & Map).
+  renderAchievements() {
+    const wrap = h('div');
+    const row = (...children) => h('div.dbg-row', ...children);
+    const btn = (t, fn, cls = '') => h('button.dbg-btn' + (cls ? '.' + cls.trim().split(/\s+/).join('.') : ''), {type: 'button', text: t, onclick: fn});
+    const A = Achievements, ids = Object.keys(A.defs), caseOn = A.hasTrophyCase();
+    const stars = () => (A.data && A.data.stars) || 0;
+    const ensureCase = () => { if (!A.hasTrophyCase()) A.buyTrophyCase(); };
+    const stateOf = id => { const u = A.data && A.data.unlocked && A.data.unlocked[id]; return !u ? 'locked' : (u.claimed ? 'claimed' : 'unclaimed'); };
+    const setAll = claimed => {
+      ensureCase();
+      ids.forEach(id => { A.data.unlocked[id] = {claimed, at: Date.now()}; });
+      A.data.stars = claimed ? A.totalCount() : 0;
+      A.save(); A.refreshUI(!claimed);
+      UI.toast(claimed ? `All ${A.totalCount()} achievements unlocked & claimed!` : `All ${A.totalCount()} achievements unlocked (unclaimed: ready to claim)!`);
+      this.render();
+    };
+    const setStars = n => { if (!A.data) return; A.data.stars = Math.max(0, n); A.save(); this.render(); };
+
+    wrap.append(h('div.dbg-sec',
+      h('div.dbg-sec-title', `Trophy Case & stars · ${A.unlockedCount()} / ${ids.length} unlocked · ${A.claimedCount()} claimed · ⭐ ${stars()}`),
+      row(
+        btn(`🏆 Trophy Case: ${caseOn ? 'UNLOCKED' : 'LOCKED'}`, () => {
+          if (caseOn) { store.set('wl_achievements', null); A.init(); UI.toast('Trophy Case locked & reset.'); }
+          else A.buyTrophyCase();
+          this.render();
+        }, caseOn ? 'good' : ''),
+        btn('Open Trophy Case', () => A.open()),
+        btn('Unlock All (Unclaimed)', () => setAll(false), 'good'),
+        btn('Unlock & Claim All', () => setAll(true), 'accent'),
+        btn('Lock All (keep case)', () => { if (!A.data) return; A.data.unlocked = {}; A.data.stars = 0; A.save(); A.refreshUI(); this.render(); }, 'danger')
+      ),
+      row(
+        btn('+5 Stars', () => setStars(stars() + 5)),
+        btn('+25 Stars', () => setStars(stars() + 25)),
+        btn(`Stars = Max (${A.totalCount()})`, () => setStars(A.totalCount())),
+        btn('Stars = 0', () => setStars(0), 'danger')
+      )
+    ));
+
+    const ft = this.filterText, ff = this.achFilter || 'all';
+    const counts = {locked: 0, unclaimed: 0, claimed: 0};
+    ids.forEach(id => { counts[stateOf(id)]++; });
+    const shown = ids.filter(id => {
+      const d = A.defs[id], st = stateOf(id);
+      return (!ft || id.toLowerCase().includes(ft) || (d.name || '').toLowerCase().includes(ft) || (d.desc || '').toLowerCase().includes(ft))
+        && (ff === 'all' || (ff === 'unlocked' ? st !== 'locked' : st === ff));
+    });
+    const label = {locked: '🔒 Locked', unclaimed: '✨ Unclaimed', claimed: '⭐ Claimed'};
+    const card = id => {
+      const d = A.defs[id], st = stateOf(id);
+      return h('div.dbg-card',
+        h('div.dbg-card-head', h('b', `${d.icon || '🏆'} ${d.name}`), h('small', label[st])),
+        h('small', {style: {color: '#9aa4b2'}}, d.desc || d.hint || ''),
+        h('small', {style: {color: '#6f7a8b', fontFamily: 'monospace'}}, id),
+        h('div.dbg-card-btns',
+          st === 'locked'
+            ? btn('Unlock', () => { ensureCase(); A.unlock(id); this.render(); }, 'accent sm')
+            : btn('Lock', () => { const u = A.data.unlocked[id]; if (u && u.claimed) A.data.stars = Math.max(0, stars() - 1); delete A.data.unlocked[id]; A.save(); A.refreshUI(); this.render(); }, 'danger sm'),
+          st === 'unclaimed' ? btn('Claim', () => { A.claim(id); this.render(); }, 'good sm') : ''
+        ));
+    };
+    wrap.append(
+      this.searchBox(`Search ${ids.length} achievements by name, id or description...`),
+      this.chipRow([['all', `All (${ids.length})`], ['locked', `Locked (${counts.locked})`], ['unlocked', `Unlocked (${counts.unclaimed + counts.claimed})`], ['unclaimed', `Unclaimed (${counts.unclaimed})`], ['claimed', `Claimed (${counts.claimed})`]], ff, k => { this.achFilter = k; }),
+      h('div.dbg-sec', h('div.dbg-sec-title', `${shown.length} shown`), h('div.dbg-grid.endings', shown.map(card)))
+    );
+    return wrap;
+  },
+
   // ------------------------------------------------ Mods & Story Map (58-mods.js, 59-storymap.js)
   renderMods() {
     const wrap = h('div');
@@ -26294,9 +26538,7 @@ const Debug = {
         h('div.dbg-sec-title', `Points: ${Mods.points()} to spend · ${Mods.spent()} spent · ${stars()} stars claimed`),
         h('small', `Price list: ${bud.normal} points for everything but the specials (${bud.achievements} achievements exist, so ${bud.affordableAtFull ? 'all of it is' : 'NOT all of it is'} affordable at 100%); ${bud.all} with the specials.`),
         row(
-          btn('+5 Stars', () => { Achievements.data.stars = stars() + 5; Achievements.save(); this.render(); }),
-          btn('+25 Stars', () => { Achievements.data.stars = stars() + 25; Achievements.save(); this.render(); }),
-          btn(`Stars = Max (${Achievements.totalCount()})`, () => { Achievements.data.stars = Achievements.totalCount(); Achievements.save(); this.render(); }),
+          btn('Stars: open the Achievements tab', () => { this.activeTab = 'achievements'; this.render(); }),
           btn('Own EVERY Mod (Free)', () => { const m = Mods.data(); Mods.order.forEach(id => { m.owned[id] = true; m.on[id] = m.on[id] != null ? m.on[id] : false; }); Achievements.save(); Mods.apply(); this.render(); }, 'good'),
           btn('Reset All Mods & Spending', () => { Achievements.data.mods = {spent: 0, owned: {}, on: {}, opt: {}}; delete S.flags.modsRun; Achievements.save(); Mods.apply(); this.render(); }, 'danger')
         )
@@ -29955,28 +30197,163 @@ Events.register({
 const BANK_RATE = 0.08;
 const BANK_CARRY_RATE = 0.35;
 
+// The checking account (a bank upgrade): a second wallet that sits in the bank, earns no interest and
+// carries between runs like the savings does. Opening it moves CHECKING_OPEN_MIN shells out of the
+// savings into it and gives you a credit card, which you keep for good.
+const CHECKING_OPEN_MIN = 600;
+const OVERDRAFT_FEE = 50;            // charged once per run, the first time the checking account goes negative
+const OVERDRAFT_LIMIT = 500;         // the most it can be overdrawn by (the fee counts)
+const TRANSFER_MS = [5000, 15000];   // a transfer to or from the checking account takes this long
+
 const Bank = {
-  balance: 0,
+  balance: 0,    // the savings account
   earned: 0,
   carriedIn: 0,
+  checking: 0,   // the checking account; negative when overdrawn
+  pending: null, // a transfer in flight: {from, to, amt, dur, start, marks}
   getCarryRate() {
     if (typeof Mods !== 'undefined' && Mods.active && Mods.active('vault100')) return 1.0;
     return BANK_CARRY_RATE;
   },
-  init() {
-    this.balance = (typeof store !== 'undefined' && store.get('bank_carryover', 0)) || 0;
+  hasCard() { return !!store.get('creditCard', false); },
+  loadCarry() {
+    this.balance = store.get('bank_carryover', 0) || 0;
+    this.checking = this.hasCard() ? (store.get('bank_checking', 0) || 0) : 0;
     this.earned = 0;
     this.carriedIn = this.balance;
+    clearTimeout(this._tt); this.pending = null;
   },
-  initRun() {
-    this.balance = (typeof store !== 'undefined' && store.get('bank_carryover', 0)) || 0;
-    this.earned = 0;
-    this.carriedIn = this.balance;
+  init() { this.loadCarry(); },
+  initRun() { this.loadCarry(); },
+  // what survives into the next run: the carry rate of a positive balance; a debt in the checking account is never forgiven
+  carryOf(bal, chk) {
+    const rate = this.getCarryRate();
+    return {savings: Math.max(0, Math.floor((bal || 0) * rate)), checking: chk < 0 ? chk : Math.max(0, Math.floor((chk || 0) * rate))};
+  },
+  storeCarry(bal, chk) {
+    const c = this.carryOf(bal, chk);
+    store.set('bank_carryover', c.savings);
+    if (this.hasCard()) store.set('bank_checking', c.checking);
   },
   onRunEnd() {
-    const rate = this.getCarryRate();
-    const carry = Math.max(0, Math.floor((this.balance || 0) * rate));
-    if (typeof store !== 'undefined') store.set('bank_carryover', carry);
+    this.settlePending();
+    this.storeCarry(this.balance, this.checking);
+  },
+  // abandoning a run for a new game carries what is in the bank, from the live bank or from the saved one
+  carryAbandoned(saved) {
+    this.settlePending();
+    const sv = this.settled(saved);
+    const live = this.balance > 0 || this.checking !== 0;
+    const bal = this.balance > 0 ? this.balance : sv.balance, chk = live ? this.checking : sv.checking;
+    const c = this.carryOf(bal, chk);
+    if (bal > 0) store.set('bank_carryover', c.savings);
+    if (this.hasCard() && chk !== 0) store.set('bank_checking', c.checking);
+  },
+  // a saved bank with any transfer that was still in flight counted as arrived
+  settled(b) {
+    let balance = (b && b.balance) || 0, checking = (b && b.checking) || 0;
+    const p = b && b.pending;
+    if (p) { if (p.to === 'savings') balance += p.amt; if (p.to === 'checking') checking += p.amt; }
+    return {balance, checking};
+  },
+  snapshot() {
+    return {balance: this.balance, earned: this.earned, checking: this.checking, pending: this.pending ? {from: this.pending.from, to: this.pending.to, amt: this.pending.amt} : null};
+  },
+  restore(b) {
+    clearTimeout(this._tt); this.pending = null;
+    this.balance = (b && b.balance) || 0; this.earned = (b && b.earned) || 0; this.checking = (b && b.checking) || 0;
+    if (b && b.pending) this.credit(b.pending.to, b.pending.amt);   // a transfer in flight when the game was saved arrives on load
+  },
+
+  // ------------------------------------------------ paying: the checking account as a second wallet
+  // With a credit card and "pay with checking" on, a purchase comes out of the checking account first, then the
+  // wallet, and may overdraw the checking account (the one place a purchase can create a debt). While it is
+  // overdrawn, or with the switch off, purchases come out of the wallet alone.
+  usingChecking() { return this.hasCard() && store.get('checkingOn', true) !== false && this.checking >= 0; },
+  funds() { return Math.max(0, S.shells) + (this.usingChecking() ? this.checking : 0); },
+  overdraftOk(short) { return short + (S.flags && S.flags.overdraftFee ? 0 : OVERDRAFT_FEE) <= OVERDRAFT_LIMIT; },
+  canPay(p) {
+    if (!(p > 0)) return true;
+    const f = this.funds();
+    return p <= f || (this.usingChecking() && this.overdraftOk(p - f));
+  },
+  pay(p) {
+    if (!(p > 0)) return true;
+    if (!this.canPay(p)) return false;
+    if (!this.usingChecking()) { S.shells -= p; return true; }
+    let r = p;
+    const fromC = Math.min(this.checking, r); this.checking -= fromC; r -= fromC;
+    const fromW = Math.min(Math.max(0, S.shells), r); S.shells -= fromW; r -= fromW;
+    if (r > 0) this.overdraw(r);
+    UI.hud();
+    return true;
+  },
+  overdraw(short) {
+    this.checking -= short;
+    let msg = `Overdrawn by ${short} 🐚.`;
+    if (!S.flags.overdraftFee) { S.flags.overdraftFee = true; this.checking -= OVERDRAFT_FEE; msg += ` Overdraft fee: ${OVERDRAFT_FEE} 🐚.`; }
+    sfx('deny');
+    UI.toast(`🏦 ${msg} The checking account will not pay for anything until it is back in the black.`, 4200, 'wrap');
+  },
+  setChecking(on) { store.set('checkingOn', !!on); UI.hud(); },
+  debt() { return Math.max(0, -S.shells) + Math.max(0, -this.checking); },
+
+  // ------------------------------------------------ transfers to and from the checking account
+  have(acct) { return acct === 'wallet' ? Math.max(0, S.shells) : acct === 'savings' ? this.balance : Math.max(0, this.checking); },
+  credit(acct, n) { if (acct === 'wallet') S.shells += n; else if (acct === 'savings') this.balance += n; else this.checking += n; },
+  debit(acct, n) { this.credit(acct, -n); },
+  // returns an error message, or '' when the transfer has started
+  startTransfer(from, to, amt) {
+    amt = Math.floor(amt);
+    if (this.pending) return 'Another transfer is still on its way. Patience is a banking virtue.';
+    if (!this.hasCard()) return 'You need a checking account for that.';
+    if (!(amt > 0)) return 'Type an amount first.';
+    if (from === to || (from !== 'checking' && to !== 'checking')) return 'Transfers go to or from the checking account.';
+    if (amt > this.have(from)) return from === 'checking' && this.checking < 0 ? 'The checking account is overdrawn. There is nothing to move.' : `You do not have that much in the ${from}.`;
+    this.debit(from, amt);
+    const dur = Math.round(rand(TRANSFER_MS[0], TRANSFER_MS[1]));
+    this.pending = {from, to, amt, dur, start: performance.now(), marks: this.transferMarks()};
+    clearTimeout(this._tt); this._tt = setTimeout(() => this.finishTransfer(), dur);
+    UI.hud();
+    return '';
+  },
+  // [share of the time, share of the bar]: the bar jumps, stalls and jumps again instead of creeping
+  transferMarks() {
+    const n = 7 + Math.floor(Math.random() * 7), ts = [], ps = [];
+    for (let i = 0; i < n; i++) { ts.push(Math.random()); ps.push(Math.random()); }
+    ts.sort((a, b) => a - b); ps.sort((a, b) => a - b);
+    return ts.map((t, i) => [t * 0.94, ps[i] * 0.97]);
+  },
+  progress(p, now = performance.now()) {
+    const e = (now - p.start) / p.dur;
+    if (e >= 1) return 1;
+    let v = 0;
+    for (const [t, q] of p.marks) if (e >= t) v = q;
+    return v;
+  },
+  finishTransfer() {
+    const p = this.pending;
+    if (!p) return;
+    this.pending = null;
+    this.credit(p.to, p.amt);
+    UI.hud(); sfx('coin');
+    UI.toast(`🏦 Transfer complete: ${p.amt} 🐚 from ${p.from} to ${p.to}.`, 2600, 'wrap');
+    if (S.chapter >= 6) this.onRunEnd();
+    if (typeof SaveGame !== 'undefined') SaveGame.autoSave();
+    if (this.onChange) this.onChange();
+  },
+  // a run ending (or a new game) must not lose money that is still in flight
+  settlePending() {
+    const p = this.pending;
+    if (!p) return;
+    clearTimeout(this._tt); this.pending = null;
+    this.credit(p.to, p.amt);
+  },
+  openChecking() {
+    if (this.hasCard() || this.balance < CHECKING_OPEN_MIN) return false;
+    this.balance -= CHECKING_OPEN_MIN; this.checking += CHECKING_OPEN_MIN;   // nothing is spent: the shells simply move
+    store.set('creditCard', true);
+    return true;
   },
   onEnding(kind) {
     if (kind !== 'loser' && this.balance > 0) {
@@ -30006,6 +30383,68 @@ const Bank = {
     const body = h('div.bank');
     let tab = 'accounts';
     const HOUSE_COST = 25000;
+    let dir = 'savings>checking', amt = '', note = '';   // the transfer keypad: which way, how much; and a line from Gustave for the next render
+    this.onChange = () => { if (body.isConnected) render(); };   // a transfer arrived while this menu is open
+
+    // the checking account: the offer to open one, or the account, its on/off switch and the transfer keypad
+    const checkingSection = (carryRate) => {
+      const carryPct = Math.round(carryRate * 100);
+      const btn = (t, fn, cls = '') => { const b = h('button.btn' + cls, {type: 'button', text: t}); b.addEventListener('click', fn); return b; };
+      if (!this.hasCard()) {
+        if (this.balance < CHECKING_OPEN_MIN) return [];
+        return [h('div.bank-box.bank-offer',
+          h('small', 'A bank upgrade'),
+          h('b', '💳 Checking Account'),
+          h('small', `Open a checking account: a second wallet that lives in the bank. It earns no interest, comes with a credit card you keep for good, and keeps what is in it between runs. Nothing is spent to open it: ${CHECKING_OPEN_MIN} shells simply move from your savings into it.`),
+          h('div.bank-row', btn('Open a checking account', () => {
+            if (!this.openChecking()) { sfx('deny'); return; }
+            sfx('fanfare'); UI.hud();
+            note = 'Congratulations! A checking account, and a credit card to go with it, yours to keep. Do try not to overdraw. I will notice.';
+            UI.toast('💳 Gustave hands you a credit card. The checking account is yours for good.', 4200, 'wrap');
+            render();
+            if (typeof SaveGame !== 'undefined') SaveGame.autoSave();
+            if (typeof Inventory !== 'undefined') Inventory.updateButton();
+          }))
+        )];
+      }
+      const chk = this.checking, on = store.get('checkingOn', true) !== false;
+      const names = {wallet: 'Wallet', savings: 'Savings', checking: 'Checking'};
+      const dirs = [['savings', 'checking'], ['wallet', 'checking'], ['checking', 'savings'], ['checking', 'wallet']];
+      const [from, to] = dir.split('>');
+      const account = h('div.bank-box.bank-checking' + (chk < 0 ? '.overdrawn' : ''),
+        h('div.bank-card', h('span', 'First National Bank of Slime'), h('b', 'CHECKING'), h('i', '💳')),
+        h('small', 'Checking account · no interest'),
+        h('b', {html: `${SPR.shellIcon()} ${chk}`}),
+        h('small.bank-carry-note', chk < 0
+          ? 'Overdrawn. It pays for nothing until you move shells into it, and the debt carries over in full.'
+          : `${carryPct}% (${Math.floor(chk * carryRate)}🐚) persists between runs${carryRate === 1.0 ? ' ★' : ''}`),
+        h('small', on ? `Paying with checking: purchases come out of it first, then your wallet, and may overdraw it (${OVERDRAFT_FEE}🐚 fee, once per run).` : 'Paying with checking is off: purchases come out of your wallet only.'),
+        h('div.bank-row', btn(`Pay with checking: ${on ? 'ON' : 'OFF'}`, () => { this.setChecking(!on); render(); }, on ? '' : '.ghost'))
+      );
+      const xfer = h('div.bank-box.bank-xfer', h('small', 'Transfer (takes a few seconds)'));
+      if (this.pending) {
+        const p = this.pending, fill = h('i'), bar = h('div.xfer-bar', fill);
+        xfer.append(h('div.xfer-progress', h('b.xfer-label', 'Transferring...'), bar, h('small', `${p.amt} 🐚 from ${names[p.from].toLowerCase()} to ${names[p.to].toLowerCase()}`)));
+        const tick = () => { if (!bar.isConnected || this.pending !== p) return; fill.style.width = (this.progress(p) * 100).toFixed(1) + '%'; setTimeout(tick, 90); };
+        setTimeout(tick, 0);   // after the menu is attached, or the bar looks disconnected and stops
+      } else {
+        const disp = h('div.xfer-display', {text: `${amt || 0} 🐚`});
+        const set = v => { amt = v.replace(/^0+(?=\d)/, '').slice(0, 7); disp.textContent = `${amt || 0} 🐚`; };
+        const key = (t, fn) => h('button.xfer-key', {type: 'button', text: t, onclick: fn});
+        const pad = h('div.xfer-pad', ...[7, 8, 9, 4, 5, 6, 1, 2, 3].map(d => key(String(d), () => set(amt + d))), key('C', () => set('')), key('0', () => set(amt + '0')), key('⌫', () => set(amt.slice(0, -1))));
+        xfer.append(
+          h('div.xfer-dirs', dirs.map(([f, t]) => h('button.xfer-dir' + (f === from && t === to ? '.on' : ''), {type: 'button', text: `${names[f]} → ${names[t]}`, onclick: () => { dir = f + '>' + t; render(); }}))),
+          h('small', `Available in ${names[from].toLowerCase()}: ${this.have(from)} 🐚`),
+          disp, pad,
+          h('div.bank-row', btn('Max', () => set(String(this.have(from))), '.ghost'), btn('Transfer', () => {
+            const err = this.startTransfer(from, to, +amt);
+            if (err) { note = err; sfx('deny'); render(); return; }
+            amt = ''; sfx('coin'); render();
+          }))
+        );
+      }
+      return [account, xfer];
+    };
 
     const render = () => {
       body.innerHTML = '';
@@ -30020,7 +30459,7 @@ const Bank = {
           this.say(pick(['Deposited. Your shells are now earning. Slowly. Like a snail.', 'Splendid. Into the vault they go.', 'A wise investment. In me.']));
         } else {
           if (this.balance < n) { this.say('The bank cannot give you shells it does not have. That is the one rule of banks.'); sfx('deny'); return; }
-          this.balance -= n; S.shells -= n;
+          this.balance -= n; S.shells += n;   // a withdrawal puts shells in the wallet (it used to take them out of it: a debt only got deeper)
           this.say(pick(['Withdrawn. Do not spend it all on pachinko.', 'There you are. Counted twice, slimed once.']));
         }
         sfx('coin'); UI.hud(); render();
@@ -30109,7 +30548,8 @@ const Bank = {
           ]);
 
       const headEl = h('div.bank-head', bankerEl,
-        h('div', h('div.bank-quote.shop-quote', {text: defaultQuote})));
+        h('div', h('div.bank-quote.shop-quote', {text: note || defaultQuote})));
+      note = '';
 
       body.append(headEl);
       if (tabRow) body.append(tabRow);
@@ -30165,6 +30605,7 @@ const Bank = {
             h('div.bank-box', h('small', Hard.on() ? `Bank balance · ${HARD_BANK.rate * 100}% every ${HARD_BANK.every}th guess` : `Bank balance · ${Math.round(BANK_RATE * 100)}% per guess`), h('b', {html: `${SPR.shellIcon()} ${this.balance}`}), h('small', `interest earned so far: ${this.earned}`),
               h('small.bank-carry-note', {style: 'display:block;margin-top:2px;font-size:10px;opacity:0.8;color:var(--muted);'}, `${carryPct}% (${Math.floor(this.balance * carryRate)}🐚) persists between runs${carryRate === 1.0 ? ' ★' : ''}`),
               h('div.bank-row', btn('Withdraw 5', () => move(5, -1), '.ghost'), btn('Withdraw all', () => move('all', -1), '.ghost')))),
+          ...checkingSection(carryRate),
           h('h4', 'The Vault'),
           gold.length
             ? h('div.bank-vault', gold.map(([g, i]) => {
@@ -31463,6 +31904,58 @@ const Achievements = {
     let m = null;
 
     let tab = 'achievements';
+    let claiming = false;   // Claim All is running: single claims and re-renders wait
+    const CLAIM_ALL_GAP = 750;   // ms from one claim to the next
+
+    const scrollToFirstUnclaimed = () => {
+      const c = body.querySelector('.tc-card.unclaimed');
+      if (c) c.scrollIntoView({block: 'center', behavior: 'auto'});
+    };
+
+    // flips one card to claimed without rebuilding the grid, so the scroll position is never disturbed
+    const claimInPlace = (id, card) => {
+      if (!this.claim(id)) return false;
+      const btn = card && card.querySelector('.tc-claim-btn');
+      if (btn) {
+        const r = btn.getBoundingClientRect();
+        UI.float('⭐ +1 Star', r.left + r.width / 2, r.top - 10, '#ffd700');
+        btn.replaceWith(h('span.tc-claimed-tag', '⭐ Claimed'));
+      }
+      if (card) { card.classList.remove('unclaimed', 'shimmer'); card.classList.add('claimed'); anim(card, 'pop', 450); }
+      const starEl = body.querySelector('.tc-star-stat b');
+      if (starEl) starEl.textContent = `⭐ ${(this.data && this.data.stars) || 0}`;
+      const left = this.unclaimedCount();
+      const notice = body.querySelector('.tc-unclaimed-notice'), all = body.querySelector('.tc-claim-all-btn');
+      if (left > 0) {
+        if (notice) notice.textContent = `${left} ready to claim!`;
+        if (all) all.textContent = `Claim all (${left})`;
+      } else {
+        if (notice) notice.remove();
+        if (all) all.remove();
+      }
+      return true;
+    };
+
+    // Claim All: scroll to each unclaimed achievement in turn and claim it, CLAIM_ALL_GAP ms apart
+    const claimAll = async () => {
+      if (claiming) return;
+      claiming = true;
+      const allBtn = body.querySelector('.tc-claim-all-btn');
+      if (allBtn) allBtn.disabled = true;
+      const ids = Object.keys(this.defs).filter(id => { const u = this.data && this.data.unlocked && this.data.unlocked[id]; return u && !u.claimed; });
+      for (const id of ids) {
+        if (!body.isConnected) break;   // the Trophy Case was closed: the rest stay unclaimed
+        const card = body.querySelector(`.tc-card[data-id="${id}"]`);
+        if (card) card.scrollIntoView({behavior: 'smooth', block: 'center'});
+        await wait(CLAIM_ALL_GAP * 0.4);
+        if (!body.isConnected) break;
+        claimInPlace(id, card);
+        await wait(CLAIM_ALL_GAP * 0.6);
+      }
+      claiming = false;
+      if (body.isConnected) render();
+    };
+
     const render = () => {
       if (tab === 'spend' && !this.hasClaimed()) {
         tab = 'achievements';
@@ -31488,7 +31981,8 @@ const Achievements = {
           h('div.tc-stats-row',
             h('div.tc-stat', h('span', 'Achievements:'), h('b', `${got} / ${total}`)),
             h('div.tc-stat.tc-star-stat', h('span', 'Stars Claimed:'), h('b', `⭐ ${stars}`)),
-            unclaimed > 0 ? h('div.tc-unclaimed-notice', `${unclaimed} ready to claim!`) : ''
+            unclaimed > 0 ? h('div.tc-unclaimed-notice', `${unclaimed} ready to claim!`) : '',
+            unclaimed > 0 ? h('button.tc-claim-all-btn', {type: 'button', text: `Claim all (${unclaimed})`, onclick: claimAll}) : ''
           )
         )
       );
@@ -31508,6 +32002,7 @@ const Achievements = {
         }
 
         const card = h('div.' + cardClass.replace(/ /g, '.'));
+        card.dataset.id = id;
 
         if (isUnlocked) {
           const iconEl = h('div.tc-ico', {text: def.icon});
@@ -31516,6 +32011,7 @@ const Achievements = {
             actionEl = h('button.tc-claim-btn', {type: 'button', text: 'Claim'});
             actionEl.addEventListener('click', (e) => {
               e.stopPropagation();
+              if (claiming) return;
               const r = actionEl.getBoundingClientRect();
               this.claim(id);
               UI.float('⭐ +1 Star', r.left + r.width / 2, r.top - 10, '#ffd700');
@@ -31569,6 +32065,7 @@ const Achievements = {
     render();
 
     m = UI.modal({title: 'Trophy Case', body, cls: 'trophym'});
+    setTimeout(scrollToFirstUnclaimed, 60);   // opens on the first achievement waiting to be claimed
     m.done.then(() => {
       if (Music.name === 'trophy') {
         let next = (typeof Director !== 'undefined' && Director.stageSong)
@@ -31900,7 +32397,7 @@ const SaveGame = {
       v: 1, at: Date.now(), S: s,
       boards: Boards.list.map(b => ({answer: b.answer, len: b.len, rows: b.rows, guesses: b.guesses, solved: b.solved, failed: b.failed, reported: !!b.reported})),
       keys: {state: Keys.state, disabled: Keys.disabled, layout: Keys.layout},
-      shopLost: Shop.lost, bank: {balance: Bank.balance, earned: Bank.earned},
+      shopLost: Shop.lost, bank: Bank.snapshot(),
       narr: Narr.on, keysAtMusic: Director.keysAtMusic || 0,
     }));
   },
@@ -32004,7 +32501,7 @@ const SaveGame = {
     Keys.state = d.keys.state || {}; Keys.disabled = d.keys.disabled || {}; Keys.paint();
     if (S.flags && S.flags.jailedLetter) Keys.disable(S.flags.jailedLetter, 'jailed');
     if (S.flags && S.flags.stabbed && typeof Director !== 'undefined' && Director.mountDamagePulse) Director.mountDamagePulse();
-    Shop.lost = d.shopLost || []; Bank.balance = (d.bank && d.bank.balance) || 0; Bank.earned = (d.bank && d.bank.earned) || 0;
+    Shop.lost = d.shopLost || []; Bank.restore(d.bank);
     if (S.flags.rich) UI.legend();
     UI.hud(); Boards.layout(); Boards.renderInput();
     Narr.eyes(!!d.narr);
@@ -32596,8 +33093,8 @@ Events.register({
       b.addEventListener('pointerdown', e => {
         e.stopPropagation();
         if (ev.stuck || ev.bought >= 2) { sfx('deny'); return; }
-        if (!free && S.shells < price) { sfx('deny'); ev.screen.textContent = 'INSUFFICIENT SHELLS'; return; }
-        if (!free) { S.shells -= price; S.stats.spent += price; UI.hud(); }
+        if (!free && !Bank.canPay(price)) { sfx('deny'); ev.screen.textContent = 'INSUFFICIENT SHELLS'; return; }
+        if (!free) { if (!Bank.pay(price)) S.shells -= price; S.stats.spent += price; UI.hud(); }
         ev.stuck = {fn, shakes: 0, b}; b.classList.add('stuck'); sfx('stamp');
         ev.screen.textContent = 'ITEM STUCK. SHAKE MACHINE.';
       });
@@ -39792,8 +40289,9 @@ Events.register({
       const b = h('button.btn.ghost.yard-item', {type: 'button', html: `${icon} ${name} <b>${price}🐚</b>`});
       b.addEventListener('click', () => {
         if (b.disabled) return;
-        if (S.shells < price) { sfx('deny'); return; }
-        S.shells -= price; S.stats.spent += price; UI.hud(); sfx('coin'); b.disabled = true; b.classList.add('sold'); evWin('yardsale'); fn();
+        if (!Bank.canPay(price)) { sfx('deny'); return; }
+        if (!Bank.pay(price)) S.shells -= price;
+        S.stats.spent += price; UI.hud(); sfx('coin'); b.disabled = true; b.classList.add('sold'); evWin('yardsale'); fn();
       });
       list.append(b);
     });
@@ -45860,7 +46358,7 @@ SFX.cackle = () => {
 
 const Hard = {
   on() { return !!(S.flags && S.flags.hard); },
-  owes() { return this.on() && S.shells < 0; },
+  owes() { return this.on() && (S.shells < 0 || Bank.checking < 0); },   // an overdrawn checking account is a debt too
   // do word sizes grow right now? Not for the first board (chapter 0), the burrows (4) or the finale and endings (6).
   sizes() { return this.on() && S.chapter !== 0 && S.chapter !== 4 && S.chapter !== 6; },
   len(n) { return this.sizes() && n > 0 ? n + 1 : n; },
@@ -45926,7 +46424,7 @@ const Loser = {
     Codex.log('scenes', 'loser');
     Music.stop(0.6); await wait(700);
     Snd.silent = false; Music.play('snails', {fade: 0.3});
-    const debt = -S.shells;
+    const debt = Bank.debt();
     const cast = this.cast();
     const row = h('div.ls-row', cast.map((c, i) => h('div.ls-char', {style: {'--i': i}},
       h('div.ls-bubble', c.say), h('div.ls-art', {html: c.art}), h('div.ls-name', c.name))));
@@ -56172,9 +56670,10 @@ const Splash = {
       if (SaveGame.get()) {
         if (!confirm('Start a new game? Your saved game will be lost.')) return;
         const saved = SaveGame.get();
-        if (saved && saved.bank && saved.bank.balance > 0) {
-          const rate = (typeof Bank !== 'undefined' && Bank.getCarryRate) ? Bank.getCarryRate() : 0.35;
-          store.set('bank_carryover', Math.max(0, Math.floor(saved.bank.balance * rate)));
+        if (saved && saved.bank && typeof Bank !== 'undefined') {
+          const sv = Bank.settled(saved.bank), c = Bank.carryOf(sv.balance, sv.checking);
+          if (sv.balance > 0) store.set('bank_carryover', c.savings);
+          if (Bank.hasCard() && sv.checking !== 0) store.set('bank_checking', c.checking);
         }
         SaveGame.clear();
       }

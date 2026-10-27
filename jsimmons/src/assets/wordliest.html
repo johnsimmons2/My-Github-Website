@@ -8341,7 +8341,7 @@ html.crt body::after {
 // Tiny helpers shared by every module. Everything is a global on purpose:
 // the build concatenates files into one <script>, so top-level names are shared.
 
-const GAME_VERSION = '1.2.4';
+const GAME_VERSION = '1.2.5';
 
 const $ = (sel, root = document) => root.querySelector(sel);
 const $$ = (sel, root = document) => [...root.querySelectorAll(sel)];
@@ -10125,7 +10125,7 @@ const UI = {
     $('#shells').classList.toggle('debt', S.shells < 0 || (typeof Bank !== 'undefined' && Bank.checking < 0));   // hard mode: failed minigames can put you in debt; an overdrawn checking account does too
     $('#shells').title = typeof Bank !== 'undefined' && Bank.hasCard() ? `Wallet ${S.shells} · Checking ${Bank.checking}` : '';
     if (typeof Achievements !== 'undefined' && S.shells >= 10000) Achievements.sub('shells_10k');
-    if (S.shells >= 500 && typeof store !== 'undefined' && !store.get('cardShopUnlocked', false)) {
+    if ((typeof Bank !== 'undefined' ? Bank.holdings() : S.shells) >= 500 && typeof store !== 'undefined' && !store.get('cardShopUnlocked', false)) {   // the card shop opens at 500 held, in the wallet or the checking account
       store.set('cardShopUnlocked', true);
     }
     $('#shelf').classList.toggle('hidden', !S.flags.shelf);
@@ -19483,7 +19483,7 @@ const Shop = {
     const view = () => (page === 1 ? this.items().map(it => {
         const p = this.price(it);
         const hasBought = this.hasBought(it.id) || !!it.soldOut;
-        const isRevealed = hasBought || Bank.funds() >= Math.floor(p * 2 / 3);
+        const isRevealed = hasBought || Bank.holdings() >= Math.floor(p * 2 / 3);
         const lim = isRevealed ? this.getItemLimit(it) : null;
         return [it.id, !it.soldOut && Bank.canPay(p), lim ? lim.bought : null];
       })
@@ -19491,14 +19491,14 @@ const Shop = {
       ? Tank.page2Items().map(it => {
           const d = (typeof S !== 'undefined' && S.inc) || {};
           if (it.id === 'third_tank') {
-            const isRevealed = (d.tanks >= 3) || this.hasBought('third_tank') || Tank.everOwned('third_tank') || (d.tanks >= 2 && (Bank.funds() >= 200 || (S.flags && S.flags.thirdTankRevealed)));
+            const isRevealed = (d.tanks >= 3) || this.hasBought('third_tank') || Tank.everOwned('third_tank') || (d.tanks >= 2 && (Bank.holdings() >= 200 || (S.flags && S.flags.thirdTankRevealed)));
             if (!isRevealed) return null;
             const lim = this.getItemLimit(it);
             return [it.id, it.maxed, it.price, true, Bank.canPay(it.price), lim ? lim.bought : null];
           }
           const isSecret = it.id !== 'food' && it.id !== 'puzzle';
           const hasBought = this.hasBought(it.id) || !!it.maxed || Tank.everOwned(it.id);
-          const isRevealed = hasBought || !isSecret || Bank.funds() >= Math.floor(it.price * 2 / 3);
+          const isRevealed = hasBought || !isSecret || Bank.holdings() >= Math.floor(it.price * 2 / 3);
           if (it.id === 'takeover_offer' && !isRevealed) return null;
           const lim = isRevealed ? this.getItemLimit(it) : null;
           return [it.id, it.maxed, it.price, isRevealed, isRevealed && Bank.canPay(it.price), lim ? lim.bought : null];
@@ -19550,7 +19550,7 @@ const Shop = {
         for (const it of this.items()) {
           const p = this.price(it);
           const hasBought = this.hasBought(it.id) || !!it.soldOut;
-          const isRevealed = hasBought || Bank.funds() >= Math.floor(p * 2 / 3);
+          const isRevealed = hasBought || Bank.holdings() >= Math.floor(p * 2 / 3);
           const lim = isRevealed ? this.getItemLimit(it) : null;
           const limBadge = lim ? h('span.shop-item-limit', {text: ` (${lim.bought}/${lim.max})`}) : null;
           const btn = h('button.btn.buy', {html: it.soldOut ? 'Sold out' : `${p} ${SPR.shellIcon()}`, disabled: it.soldOut || !Bank.canPay(p), type: 'button'});
@@ -19573,9 +19573,9 @@ const Shop = {
         for (const it of items) {
           const d = (typeof S !== 'undefined' && S.inc) || {};
           if (it.id === 'third_tank') {
-            const isRevealed = (d.tanks >= 3) || this.hasBought('third_tank') || Tank.everOwned('third_tank') || (d.tanks >= 2 && (Bank.funds() >= 200 || (S.flags && S.flags.thirdTankRevealed)));
+            const isRevealed = (d.tanks >= 3) || this.hasBought('third_tank') || Tank.everOwned('third_tank') || (d.tanks >= 2 && (Bank.holdings() >= 200 || (S.flags && S.flags.thirdTankRevealed)));
             if (!isRevealed) continue;
-            if (d.tanks >= 2 && Bank.funds() >= 200) {
+            if (d.tanks >= 2 && Bank.holdings() >= 200) {
               if (!S.flags) S.flags = {};
               S.flags.thirdTankRevealed = true;
             }
@@ -19583,7 +19583,7 @@ const Shop = {
           const p = it.price;
           const isSecret = it.id !== 'food' && it.id !== 'puzzle';
           const hasBought = this.hasBought(it.id) || !!it.maxed || Tank.everOwned(it.id);
-          const isRevealed = it.id === 'third_tank' ? true : (hasBought || !isSecret || Bank.funds() >= Math.floor(p * 2 / 3));
+          const isRevealed = it.id === 'third_tank' ? true : (hasBought || !isSecret || Bank.holdings() >= Math.floor(p * 2 / 3));
           if (it.id === 'takeover_offer' && !isRevealed) continue;
           const isHidden = isSecret && !isRevealed;
           const canAfford = !isHidden && Bank.canPay(p);
@@ -21469,7 +21469,7 @@ const Cards = {
 
   init() {
     this.buildCatalog();
-    if (typeof S !== 'undefined' && S && S.shells >= 500) {
+    if (typeof S !== 'undefined' && S && (typeof Bank !== 'undefined' ? Bank.holdings() : S.shells) >= 500) {
       store.set('cardShopUnlocked', true);
     }
     this.checkAchievements();
@@ -21507,7 +21507,7 @@ const Cards = {
 
   isShopUnlocked() {
     if (typeof store !== 'undefined' && store.get('cardShopUnlocked', false)) return true;
-    if (typeof S !== 'undefined' && S && S.shells >= 500) {
+    if (typeof S !== 'undefined' && S && (typeof Bank !== 'undefined' ? Bank.holdings() : S.shells) >= 500) {
       if (typeof store !== 'undefined') store.set('cardShopUnlocked', true);
       return true;
     }
@@ -30271,6 +30271,9 @@ const Bank = {
   // overdrawn, or with the switch off, purchases come out of the wallet alone.
   usingChecking() { return this.hasCard() && store.get('checkingOn', true) !== false && this.checking >= 0; },
   funds() { return Math.max(0, S.shells) + (this.usingChecking() ? this.checking : 0); },
+  // what you hold, for checks that decide whether something shows up (a shop item, the card shop): the wallet plus the checking
+  // account, 10,000 in checking is 10,000 in the wallet, whether or not you are paying with it right now
+  holdings() { return Math.max(0, S.shells) + Math.max(0, this.checking); },
   overdraftOk(short) { return short + (S.flags && S.flags.overdraftFee ? 0 : OVERDRAFT_FEE) <= OVERDRAFT_LIMIT; },
   canPay(p) {
     if (!(p > 0)) return true;

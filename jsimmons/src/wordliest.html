@@ -8341,7 +8341,7 @@ html.crt body::after {
 // Tiny helpers shared by every module. Everything is a global on purpose:
 // the build concatenates files into one <script>, so top-level names are shared.
 
-const GAME_VERSION = '1.2.3';
+const GAME_VERSION = '1.2.4';
 
 const $ = (sel, root = document) => root.querySelector(sel);
 const $$ = (sel, root = document) => [...root.querySelectorAll(sel)];
@@ -44908,8 +44908,8 @@ const Lexicon = {
     if (typeof Takeover !== 'undefined') Takeover.leaveMath();
     Codex.log('scenes', 'committee');
     Music.play('court', {fade: 0.6});
-    const input = h('input.sl-title', {type: 'text', maxlength: 8, placeholder: 'Your word…', autocomplete: 'off'});
-    const note = h('p.fine', 'Two to eight letters, A to Z.');
+    const input = h('input.sl-title', {type: 'text', maxlength: 8, placeholder: 'Your word…', autocomplete: 'off', autocapitalize: 'characters', autocorrect: 'off', spellcheck: false, style: {textTransform: 'uppercase'}});
+    const note = h('p.fine', 'Two to eight letters, A to Z. The E has not been found yet, so the Committee will not take a word with one.');
     const body = h('div.museum',
       h('div.curator', h('div', {html: PORTRAIT.word ? PORTRAIT.word('DICT', 'happy') : ''}),
         h('p', {html: `“Order, order. The Committee is in session. First: congratulations. You made it all the way here <b>without the letter E</b>, the most common letter in the language. We have voted that this is impressive. The vote was unanimous; we are one letter.”<br><br>“Second: your word. Whatever you put here goes into the dictionary, and into the game, forever. Choose carefully. Or don’t. We once admitted ‘YEET’.”`})),
@@ -44919,8 +44919,18 @@ const Lexicon = {
     body.append(done);
     setTimeout(() => input.focus(), 300);
     const word = await new Promise(res => {
+      // only the 26 English letters, capitalised as they are typed: digits, symbols, spaces and accents are dropped, and a
+      // word with an E is refused (a typed E never lands; a paste that contains one is rejected whole)
+      let last = '';
+      input.addEventListener('input', () => {
+        const raw = input.value || '', clean = raw.toUpperCase().replace(/[^A-Z]/g, '');
+        if (clean.includes('E')) { input.value = last; note.textContent = 'No E. The E has not been found yet, and the Committee will not take a word with one.'; sfx('deny'); return; }
+        input.value = last = clean;
+        if (clean.length !== raw.length) { note.textContent = 'Letters only, A to Z. No numbers, no symbols.'; sfx('deny'); }
+      });
       const go = () => {
         const w = (input.value || '').toUpperCase().replace(/[^A-Z]/g, '');
+        if (w.includes('E')) { note.textContent = 'No E. The E has not been found yet, and the Committee will not take a word with one.'; sfx('deny'); return; }
         if (w.length < 2 || w.length > 8) { note.textContent = 'Two to eight letters, A to Z, please. The Committee is strict about that.'; sfx('deny'); return; }
         m.close(); res(w);
       };

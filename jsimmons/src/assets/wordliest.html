@@ -8336,6 +8336,126 @@ html.crt body::after {
   color: #f87171;
 }
 
+/* ---- css/94-patch-notes.css ---- */
+/* The patch notes window (src/js/23b-patch-notes.js). Sits above the debug panel (z-index 10000). */
+.pn-win {
+  position: fixed;
+  inset: 0;
+  z-index: 10050;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  background: var(--overlay);
+}
+
+.pn-card {
+  background: var(--modal-bg);
+  color: var(--text);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  box-shadow: 0 4px 23px rgba(0, 0, 0, 0.2);
+  width: 100%;
+  max-width: 560px;
+  max-height: 100%;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  outline: none;
+  user-select: text;
+}
+
+.pn-top {
+  flex: none;
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  padding: 14px 16px 10px 20px;
+  border-bottom: 1px solid var(--line);
+}
+
+.pn-top h2 {
+  font-family: var(--title-font);
+  font-size: 26px;
+  font-weight: 700;
+  margin: 0;
+}
+
+.pn-top small { color: var(--muted); font-size: 13px; }
+
+.pn-x {
+  all: unset;
+  margin-left: auto;
+  align-self: center;
+  cursor: pointer;
+  padding: 4px;
+  line-height: 0;
+}
+
+.pn-x svg { width: 24px; height: 24px; fill: currentColor; }
+.pn-x:focus-visible { outline: 2px solid var(--blue); border-radius: 4px; }
+
+.pn { overflow-y: auto; padding: 10px 16px 18px; }
+
+.pn-ver {
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  margin-bottom: 6px;
+}
+
+.pn-head {
+  all: unset;
+  box-sizing: border-box;
+  width: 100%;
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  padding: 9px 12px;
+  cursor: pointer;
+}
+
+.pn-head:hover { background: rgba(128, 128, 128, 0.12); }
+.pn-head:focus-visible { outline: 2px solid var(--blue); outline-offset: -2px; }
+.pn-head::before { content: '▸'; color: var(--muted); font-size: 12px; }
+.pn-ver.open > .pn-head::before { content: '▾'; }
+.pn-head b { font-size: 17px; }
+.pn-head small { margin-left: auto; font-size: 12px; color: var(--muted); }
+
+.pn-now {
+  font-size: 10px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: #000;
+  background: var(--gold);
+  border-radius: 3px;
+  padding: 1px 6px;
+}
+
+.pn-body {
+  display: none;
+  padding: 0 14px 10px;
+  font-size: 14px;
+  line-height: 1.45;
+}
+
+.pn-ver.open > .pn-body { display: block; }
+.pn-lead { margin: 2px 0 6px; color: var(--muted); }
+
+.pn-group-name {
+  font-size: 11px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--muted);
+  margin: 10px 0 4px;
+}
+
+.pn-body ul { margin: 0; padding-left: 18px; }
+.pn-body li { margin-bottom: 4px; }
+.pn-body code { font-size: 12px; background: rgba(128, 128, 128, 0.2); border-radius: 3px; padding: 0 3px; }
+.pn-empty { color: var(--muted); }
+
 </style>
 </head>
 <body>
@@ -8383,7 +8503,7 @@ html.crt body::after {
 // Tiny helpers shared by every module. Everything is a global on purpose:
 // the build concatenates files into one <script>, so top-level names are shared.
 
-const GAME_VERSION = '1.2.7';
+const GAME_VERSION = '1.2.8';
 
 const $ = (sel, root = document) => root.querySelector(sel);
 const $$ = (sel, root = document) => [...root.querySelectorAll(sel)];
@@ -8744,7 +8864,7 @@ const WORDS_VALID_EXTRA = {
 };
 
 // words the game itself reacts to, so they are valid guesses but never answers
-const NEVER_ANSWERS = new Set(['RAVEN', 'PENIS', 'WORLD', 'SNAIL']);
+const NEVER_ANSWERS = new Set(['RAVEN', 'PENIS', 'WORLD', 'SNAIL', 'PATCH']);
 
 const Words = {
   byLen: {}, answers: {}, dict: {}, dictLoaded: false, dictReady: null,
@@ -10813,6 +10933,7 @@ const Game = {
     if (S.len < 0) return Director.negSubmit();
     if (S.input.length < S.len) return this.invalid(this.shortMsg());
     let word = S.input.join('');
+    if (word === 'PATCH') return PatchNotes.fromGuess();   // not a guess: opens the patch notes and clears the row
     if (S.chapter === 6 && word === 'NEVERMORE' && S.flags.ravenDone && !S.busy) { const un = lock(); return Secrets.nevermore().finally(un); }
     if (word === 'RAVEN' && S.len === 5 && !S.flags.ravenDone && !S.busy) {
       const unlockManual = lock();
@@ -25707,6 +25828,7 @@ const Debug = {
         h('span.dbg-answer-badge', 'Answer: ', h('b.ans-val', answers))
       ),
       h('div.dbg-head-btns',
+        h('button.dbg-icon-btn', {type: 'button', text: '📜', title: 'Patch notes', onclick: e => { e.stopPropagation(); PatchNotes.open(); }}),
         h('button.dbg-icon-btn', {type: 'button', text: 'Fill', title: 'Fill row with answer', onclick: e => { e.stopPropagation(); this.typeAnswer(); }}),
         h('button.dbg-icon-btn.primary', {type: 'button', text: 'Solve', title: 'Solve board', onclick: e => { e.stopPropagation(); this.solveBoard(); }}),
         h('button.dbg-icon-btn.min-btn', {
@@ -26879,6 +27001,111 @@ const Debug = {
     );
     return wrap;
   },
+};
+
+/* ---- js/23b-patch-notes.js ---- */
+// ============================================================ 23b-patch-notes
+// The patch notes (PATCH-NOTES.md, next to wordliest.html) rendered inside the game.
+// build.mjs swaps the placeholder below for the file's text, so the notes ship in the single page.
+// PatchNotes.open() is a window of its own (not part of the debug panel), so any menu or button can
+// call it. For now it is reached from the debug panel's 📜 button and by submitting PATCH (Game.enter).
+
+const PATCH_NOTES_MD = "# Wordliest Patch Notes\n\nWhat changed in each released version, newest first, with commentary. Versions are the `GAME_VERSION` in `src/js/00-util.js`; dates are the day the release was committed. The in-game viewer (its own window, opened by the 📜 button in the debug panel, or by submitting the word PATCH) is built from this file by `node build.mjs`, so edit this file and rebuild to update it. Keep to the subset it renders: `##`/`###` headings, `-` bullets, `**bold**`, `*italic*`, `` `code` `` and `---`. Lines before the first `##` are not shown in the game.\n\n---\n\n## 1.2.8 — 2026-10-27\n\nCongratulations on finding the patch notes. Nobody asked for them, and here we are. Reading patch notes inside a game about guessing words is the most on-brand thing you could possibly do.\n\n### Added (unprompted, as usual)\n- **This window.** Yes, the one you are reading. The game now has patch notes, and they have opinions. Every version since 1.0.0 is in here, newest first, and each one can be folded up like a lawn chair.\n- **A secret word.** Type **PATCH** and press Enter. The patch notes open, no guess is spent, and the word erases itself from the row like it was never there. It is the only word in the game with a sense of shame.\n- **A second entrance, for the developer.** The debug panel has a 📜 button now. Players are not meant to know about it. You do now. Act natural.\n- The game holds still while you read, so the snails cannot get you. This is the only time in the entire game that this is true.\n\n### Changed (for your own good)\n- PATCH is never an answer. It is a perfectly respectable five-letter word, and it has been stripped of its right to be guessed *at* you. It joins RAVEN, PENIS, WORLD and SNAIL in the exclusive club of words that have a job.\n- Escape closes the window. So does the X. Clicking the empty space around it does not, because we have all been burned by that before.\n\n### Fixed\n- Nothing was broken this time, which is suspicious. Please do not look too closely.\n\n---\n\n## 1.2.7 — 2026-10-27\n\nTwo bug fixes, one switched-on feature, and a fresh coat of passive-aggression for anyone who gets turned down for a loan.\n\n### Added\n- The business loan session is switched on. At the session beat it now joins the draw for anyone with the credit card and no loan owed (therapy 50 / loan 50, or 75 / 25 for the affectionate). Everyone else still gets therapy, which, given the alternatives, is probably what they needed anyway.\n\n### Changed\n- An approved business loan is held until the Business Loan tab in the bank is opened, and the transfer then starts so the whole bar is seen. You earned that progress bar. It waits for any transfer already in flight, because even money queues politely.\n- After a refused loan the Grid now says three lines: disappointed, what the refusal costs, and that you will try again next run. It has never been so supportive, or so tired. Session after-lines can be a list.\n- The debug loan toggle also clears a held loan.\n\n### Fixed\n- Dordl's purple \"appears twice or more\" ring was overridden by the vapor theme's tile glow, so it never showed. For several versions it was a ring in theory only. It is drawn now.\n\n---\n\n## 1.2.6 — 2026-10-27\n\nThe big one for the E thief, the Grid's manners, and the answer list. Also a loan officer arrived, but we will get to that.\n\n### Added\n- **Sessions are a pool.** The session beat draws from a registry of scenes. Each can be switched on or off, can carry an availability condition and a lean (leaners split 75% of the odds, the rest split 25%), has its own intro and after lines, and is covered by bad-luck protection. Therapy no longer gets to be the only one.\n- **The business loan session**, built but switched off in this version. Gustave asks four questions and offers 100 to 5,000 shells, or refuses. An approved loan arrives through the checking transfer bar and gets its own tab in the bank. A loan owed blocks the Lake Mortgage and a second loan, costs 1 love at the start of each run, is mentioned by the Grid once a chapter and warned about at the casino. A refusal means no Emporium purchases and no interest for the run. Debt: now with consequences.\n- The Developer's Desk (a late Lake Property purchase) reveals the debug password. It costs 100,000 shells, so the developer is, in effect, charging you for a thing they already own.\n- Debug: a jump for every non-therapy session, plus loan and credit-refused toggles.\n\n### Changed\n- **Answers come from the online dictionary.** The generated inflections (-S, -ES, -ED, -IES, -IED) are gone from the answer pool, so the longer words are no longer mostly plurals and past tenses, and the odd non-word is gone. BADLIED has been escorted off the premises. Inflected forms are still accepted as guesses.\n- **The E thief arrives in a crowd.** One snail per letter key (except E) files in over 10 to 15 seconds, and the thief shows up a random moment into it, like a pickpocket in a parade. The thief is slightly faster and a click slows it a little less. Snails now enter only from the left, right or top; the bottom was behind the keyboard anyway, and nobody was watching.\n- The Grid goes quiet whenever you are off the main grid (menus, scenes, minigames, the lake property): its idle taps, whispers, sleep and free hints are frozen, a sleeping Grid wakes quietly, and its dream lines wait for you. Scripted events that come due while you are away wait too. It finally learned not to talk over people.\n- The Grid is absent from the shovel scene. On the E Chase route it now introduces itself on the way down instead, if it never had the chance earlier. Better late than never; not much better, but better.\n- The bad-guess fish also comes for gibberish: three rejected full-length words in a row roll 80%. It still appears at most once per run, and it says \"hell\" instead of the stronger word. It has standards. Low ones.\n\n---\n\n## 1.2.5 — 2026-10-27\n\nOne of the shortest releases in the history of the game, and it still managed to be about money.\n\n### Fixed\n- The checking account now counts as money for the Emporium's reveal checks: wallet plus checking (an overdrawn account counts as 0). The thresholds that use it are the two-thirds-of-price reveal, the third tank at 200 and the card shop's 500. Turns out \"you cannot afford this\" and \"you have the money, it is just in the other pocket\" were different statements.\n\n---\n\n## 1.2.4 — 2026-10-27\n\nA very small patch about a very small committee.\n\n### Fixed\n- The Dictionary Committee word entry is sanitised: only the 26 English letters are kept, capitalised as typed. Digits, symbols, spaces and accents are dropped. The Committee is thorough, not cultured.\n- Words containing an E are refused (the E has not been found yet): a typed E never lands, a paste containing one is rejected whole, and submitting checks again. Nice try, though.\n\n---\n\n## 1.2.3 — 2026-10-27\n\nThe bank got a checking account, the snails got a pension plan, and the Trophy Case finally stopped making you do everything by hand.\n\n### Added\n- **Checking account.** A bank upgrade at 600 shells on deposit moves the 600 into a no-interest checking account and hands out a credit card that is kept across runs. Checking carries between runs by the savings rule (35%, or 100% with Full Vault Protection); a debt carries in full. Adulthood is a pyramid scheme with a PIN.\n- Keypad transfers between savings, wallet and checking, with a 5 to 15 second \"Transferring...\" bar. Money in flight settles at run end, on save and on a new game. It is not stuck; it is *processing*.\n- Purchases (shop pages 1 to 3, the vending machine, the yard sale, the takeover offer) come out of checking first, then the wallet. You can switch this in the bank and at the top of the shop.\n- Overdraft up to 500 with a one-time 50 fee per run. An overdrawn account pays for nothing and counts as hard-mode debt. Freedom has a limit, and the limit is 500.\n- **Snail Savings**, a tank upgrade that banks 20% of the tank's shells per level. Even the snails are saving for retirement now.\n- Trophy Case: **Claim all** (scrolls to each unclaimed achievement and claims it, 0.75 s apart) and the case now opens on the first unclaimed achievement. No more clicking dozens of things one at a time.\n- Debug: an Achievements tab with every achievement, its state, id and description, Unlock / Lock / Claim per card, filters and search. The achievement controls moved there from Cheats & Unlocks and Mods & Map, where they were getting lonely.\n\n### Changed\n- **The snail tank persists across runs.** Once bought it sits on the shelf for a flat 5 shells from the first shop visit of every later run. Upgrades reached in an earlier run cost half price up to that level (off after a Salt Shaker so it cannot loop), and upgrades you have ever owned stay visible on shop page 2. It remembers you. Be flattered.\n- Tank drops come every 10 to 30 seconds (was 20 to 60). The tank survives chapters 4 and 5, hides for the finale and returns in endless mode, like a houseguest.\n- Saves gain checking and pending-transfer fields; older saves load with an empty checking account, so nobody is retroactively wealthy.\n- The debug panel keeps a tab's scroll position when a button re-renders it.\n\n### Fixed\n- Withdrawing from the bank now adds to the wallet. It used to subtract, which deepened debts. Taking money *out* of the bank made you poorer. Remarkable.\n\n---\n\n## 1.2.2 — 2026-10-25\n\nWe admitted the pacing release had a few rough edges, then sanded them. Also a table. Also a frog.\n\n### Added\n- **Nevermore hint.** A few seconds into the final board, \"Quoth the Raven...\" appears and a ghostly NEVERMORE drifts across the screen, once per run. The extra letters are now real tiles in the row beside the grid and match the grid under the invert effect. It was a secret before; now it is a *heavily telegraphed* secret.\n- Two new one-run word reactions: **TABLE** (a table crashes onto the keyboard and shoves the keys aside) and **FROG** (a frog steals F, R, O and G for two guesses, and any word is accepted meanwhile). One of those is a jump scare, the other is a frog with a drinking problem for letters.\n\n### Changed\n- The first two guesses are chapter 0: silent, with no quirks or micro-events. The \"ding\" after guess 1 and the \"End of the line.\" toast on guess 2 are gone. Beat 2 (after the second guess) starts chapter 1 and plays the first note. The game now gets a proper minute to pretend it is normal.\n- Chapter 1's quirk chance is capped at 52%. It had no cap and climbed to 94%, which is not a \"chance\", it is a \"schedule\".\n- **The E thief is softer.** A click slows it to 35% (rising a little each click) for under a second instead of freezing it, its speed climbs as it runs, and the pip bar and \"HIT n / 8\" counter are gone. It was too easy to stop, and a thief you can just pause is a stalled errand.\n- Nevermore only needs the Raven to have happened this run, not for you to have heard all 18 stanzas, so skipping it no longer forfeits the secret. Nobody should be punished for not wanting to hear all of that.\n\n### Fixed\n- The unfinished stand-in for the therapy session could trigger in 1.2.1. It is switched off, so every run is on therapy again and the pity count is left alone (the love ceiling was lower in about half of 1.2.1 runs). That was a placeholder, doing a real job, badly.\n- \"New game\" from the menu no longer un-mutes chapter 0. Peace and quiet, restored.\n\n---\n\n## 1.2.1 — 2026-10-24\n\nThe pacing release. A run is now about 42 story guesses (it was about 26), with about half the per-guess density of events, quirks and micro-events. In other words: the game finally learned to breathe, mostly out of the nose.\n\n### Added\n- **Pacing queue.** The major beats are followed by 1 to 2 plain guesses (never two 2s in a row). The casino or space zone and the circus each get a guess of their own, and 35% of plain guesses are completely calm. Imagine: a guess where nothing happens.\n- **Bad-luck protection across runs** for scene variants, the Raven (up to 20%), events and wildcard minigames: the longer something goes unseen, the likelier it becomes. The game now feels guilty.\n- Four new mutations: Tape Delay, Zero Gravity, Spotlight and Window Blinds. Five chapter-1 micro-events got promoted to mutations, taking the pool from 14 to 23. Everyone loves a promotion.\n- **Hats**: one per tile, up to 64, sold only until chapter 4 and gone from chapter 4 on. New achievement: Milliner's Dream. Sixty-four hats is a lot of hats. Well done.\n- **Word Coinage Licence**, a 30-shell Emporium item that allows made-up words. The rules list mentions the made-up-words rule once owned. Words, but legal.\n- A **Chaos Ledger** in the credits (random events, micro-events, quirks, mutations, gates played and skipped, plain guesses, per-chapter report). It is a receipt for the mayhem.\n- A scaffold for a second session at the session beat, switched off. Foreshadowing, but free.\n- Pacing documentation and a simulator (`docs/specs/measure/pacing-sim.mjs`), plus a version change log in the odds spec. Yes, there is a spreadsheet for how rarely things happen.\n\n### Changed\n- Quirks roll every 4 / 3 / 1 / 1 keystrokes in chapters 1 / 2 / 3 / 4 (they rolled on every one). Micro-events get one check per guess, a 20 to 40 second ambient timer, a 15 second lock and a per-chapter cap. Random-event gaps are tripled (chapter 2: 120 to 150 seconds).\n- The mutation phase is 8 guesses with 5 to 8 non-overlapping mutations, and plain guesses are allowed in it.\n- The four wildcard gate slots are 50/50 coin flips. Letter 2048 is a 33% roll with a one-run lockout. Fartware is no longer forced, which is a sentence nobody wanted to write and nobody will miss.\n- The Burrow swarm no longer skips story beats, and Words with Friends replaces only the Dordl split instead of skipping five guesses.\n- Love pays more: eyes 3, hats 3, roses 3 at 1.5 each. Romance is an economy now.\n- **Real words only through chapter 4.** The non-word fish was replaced by a **bad-guess fish**: back-to-back bad guesses in chapters 0 to 2, 50% after two blank guesses and 20% when the second has one yellow and no greens, each outcome rolling once per run.\n- **Bigger dictionary.** The 20k common-word list is replaced by a roughly 270k-word dictionary that validates guesses and widens the Role Reversal and Overhang pools. Answers became every known word (8,928) minus the secret words. The game has now read a lot more books.\n- The answer filter drops its sensitivity ban list. Only the words the game itself reacts to (RAVEN, PENIS, WORLD, SNAIL) are excluded. Adults, presumably.\n\n### Fixed\n- Guesses typed while the dictionary is still downloading now wait briefly for it, rather than being judged by a game that had not finished reading.\n\n---\n\n## 1.2.0 — 2026-10-23\n\nThe content expansion. The game grew from 59 to 95 random events, 25 to 36 minigames and 136 to 152 achievements, and gained a micro-event registry of 81 entries (30 ambient micro-events, 36 quirks and 15 board mutations). It was a lot of game before. It is now a lot more game.\n\n### Added\n- **36 new random events** (3 set pieces, 17 available from the first run, 16 locked behind prerequisites) and **30 ambient micro-events**. The Journal gained an Events & Oddities page and also tracks the 36 quirks and 15 board mutations. It shows as soon as it has any entry, so it can stop being modest.\n- **Three new places:** the Snail Circus & Carnival, the Sunken Library and the 8-Bit Wordcade, each with an achievement. Yes, the snails have a circus. They were always going to.\n- **11 new minigames:** Word Flow, Q*Word, Letterpede, Wordle Bobble, The News-Snail, Lexical Defense Command, Nano-Word Gauntlet, Snail Express, Depth Charge, Snail Ace 1944 and Rhythm of Rhymes. If you were bored, that is now your fault.\n- **Minigame kinds:** scripted, random pool and exclusive. Venue slots host their featured game 80% of the time (another pool game 20%), featured games can replace a wildcard gate 20% of the time, and Snail Express is exclusive to the Wordcade. Some games are picky about where they live.\n- **The Wordcade:** a lounge soundtrack with audio phasing in and out, cabinets, standard and hard cartridges (+100 / +300), minigame hard-mode and shorter-timer options behind them, arcade play limits and badges, and a Marquee Badge that persists across runs. A Golden Arcade Token needs a vaulted letter and appears on the next bank visit; while held, blackout events are 25% likelier. Great power, great lighting problems.\n- **The Conspiracy Corkboard**, a collectible at the Lakefront Estate. You climb inside a taped cardboard box and a flashlight follows the cursor over a corkboard of ending routes. Steps found in any run stay pinned in red string, and the current run's steps are joined in green. A lone \"???\" card appears when an ending-directing action is possible. It is exactly as unhinged as it sounds, and it is *helpful*.\n- **Story Map rebuilt** (now 20 stars in the Trophy Case): pan and zoom instead of scrollbars, boxes sized to their text, compiled from a Flow model with chapter containers and a true progression spine. Every minigame, place and micro-event is included, first-encounter details show at close range, and far zoom shows chapter labels. The Journal records the chapter, guess and run of each first encounter. A map, finally, that admits where you have been.\n- **CRT display filter**: a curved-tube TV look with scanlines and retrace, with a toggle in Settings. Nostalgia, now with a refresh rate.\n- Screen Idle & Sleep readouts in Settings, the menu and Statistics, live-updating, shown only after chapter 0 and once the Grid has napped. Snitching, but cute.\n- 53 new sound effects, 6 new songs, and 6 achievements for the new venues and set pieces. A \"same ending three times\" achievement (Déjà Fin) brings the total to 152. The achievement is named after the thing you will be feeling.\n- Inventory cards were expanded.\n- Debug: grouped Events and Micro-events tabs with a Journal audit, a resizable panel, expansion cheats, a Flow audit under Mods & Map, a Minigames tab grouped by kind, and a new Wordoom 3D section.\n\n### Changed\n- Run modifier prices were rebalanced (x1.5). Everything costs more, and it is balanced.\n- Chapter 0 hides the Journal, Inventory and Trophy Case. A clean slate is a slate with fewer buttons.\n- High Tide was reworked: the drain plug sits bottom-right and takes 3 clicks, water rises to half the screen, the Grid panics as it climbs, and the water drains on its own when time runs out. The Grid, as always, is brave under pressure.\n- Wordoom: the salt shaker is automatically equipped on floors 3 and up, and the cracked wall appears on floors 3 and 4 in every run. Circus tent, Freak Show trial reaction and Corkboard visuals were updated.\n- The Grid boss accepts real anagrams. Role Reversal's speech bubble has a fixed height, its choices vanish once a word is picked, and you can type any legal word or a word you coined.\n- No text can be highlighted anywhere except inside inputs and textareas. You cannot copy the jokes. They are the game's.\n\n### Fixed\n- **Wordoom 3D:** cameras now sit in front of the meshes and culling uses face normals (keys, hearts, snails and the shovel were invisible, which is a bold choice for a shovel). The secret chasm drops into a generated Subterranean Warren whose vault wins. The Breach is drawn, each snail gets its own canvas, the throne door is back, and close sprites are clamped. The Wordoom tax keeps hard-mode debt. The cracked wall uses each floor's masonry.\n- **Words with Friends:** the Grid-wins dialog crash, the no-end soft lock (pass limit, empty bag), strict word checks, beat 15 running twice, and turn guarding. Friendships, preserved.\n- Every achievement now has an unlock path. Some of them did not before, which is a type of achievement in itself.\n- The online 20k word list only widens valid guesses. It had put unvetted words, including slurs and the banned WORLD, into the answer pools. Oops.\n- Emergency saves no longer land mid-beat, where a reload could resume past beat 21 with nothing left to run. Fun for exactly zero people.\n- Debug menu: seven broken controls fixed and god mode applies at launch.\n- A red aura on every key on a fresh save. Nobody was that evil yet.\n- Speech bubbles wrap and stay inside the viewport (including the key snail on the Statistics page).\n- Header buttons keep a fixed order: the icon-shuffle quirk only slides two icons visually, and an enforcer puts any moved button back. We hired muscle.\n- Literal `\u003cb>` tags showing in the bank's mortgage wallet and the loan shark's offer.\n- Flapple: ground collision is now fatal. Snail Express: letters get a bouncy wave and the drop-off bays line up with the road lanes. Flapple has always been a bit of a bird-brained idea.\n- Story Map branch fixes.\n\n---\n\n## 1.0.0 — 2026-10-23\n\nThe initial release: a sprawling, single-file, branch-heavy narrative Wordle-like roguelite. Open `wordliest.html` and play; there are no dependencies and no network needed to run. (Internal design docs call this baseline \"1.1\", but the game reported itself as 1.0.0 until 1.2.0. Numbers are hard.)\n\n- **24 endings** across several branches, and a run of roughly 20 to 25 minutes. Plenty of ways to end badly, and some ways to end well.\n- **59 random events**, **25 minigames** and **136 achievements**.\n- A story told through chapters from a plain Wordle in chapter 0 to a very different game by the end, with a Journal, a Trophy Case with run modifiers bought with achievement stars, a Story Map, the Emporium, the Snail Bank, a casino and a space zone. It begins as Wordle. It does not stay Wordle.\n- Wordoom, a 3D first-person dungeon of up to five floors, plus the E Chase and Snail King routes.\n- A single self-contained file of about 1.4 MB, built from 70 JavaScript modules and the CSS in `src/` by `node build.mjs`. It fits in an email, in theory.\n";
+
+const PatchNotes = {
+  win: null,
+
+
+  // the markdown subset PATCH-NOTES.md uses: ## version, ### group, - bullet, paragraph, **bold**, *italic*, `code`
+  inline(s) {
+    return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+      .replace(/`([^`]+)`/g, '<code>$1</code>')
+      .replace(/\*\*([^*]+)\*\*/g, '<b>$1</b>')
+      .replace(/\*([^*]+)\*/g, '<i>$1</i>');
+  },
+
+  // -> [{title, date, lead: [paragraph], groups: [{name, items: [bullet]}]}], newest first as written
+  parse(md) {
+    const versions = [];
+    let ver = null, group = null, list = null;
+    for (const raw of md.split('\n')) {
+      const line = raw.trimEnd();
+      let m;
+      if ((m = line.match(/^##\s+(.+)$/))) {
+        const [title, date = ''] = m[1].split(/\s+—\s+/);
+        ver = {title, date, lead: [], groups: []}; group = null; list = null;
+        versions.push(ver);
+      } else if (!ver) {
+        continue;
+      } else if ((m = line.match(/^###\s+(.+)$/))) {
+        group = {name: m[1], items: []}; ver.groups.push(group); list = null;
+      } else if ((m = line.match(/^-\s+(.+)$/))) {
+        if (!group) { group = {name: '', items: []}; ver.groups.push(group); }
+        group.items.push(m[1]); list = group;
+      } else if (line.trim() === '---' || line.trim() === '') {
+        list = null;
+      } else if (list) {
+        list.items[list.items.length - 1] += ' ' + line.trim();      // a wrapped bullet
+      } else if (!group) {
+        ver.lead.push(line.trim());
+      }
+    }
+    return versions;
+  },
+
+  build() {
+    const wrap = h('div.pn');
+    if (PATCH_NOTES_MD.startsWith('__PATCH_')) {
+      wrap.append(h('p.pn-empty', 'The patch notes were not built into this page. Run node build.mjs.'));
+      return wrap;
+    }
+    const versions = this.parse(PATCH_NOTES_MD);
+    versions.forEach((v, i) => {
+      const body = h('div.pn-body', v.lead.map(p => h('p.pn-lead', {html: this.inline(p)})),
+        v.groups.map(g => h('div.pn-group', g.name ? h('div.pn-group-name', g.name) : '',
+          h('ul', g.items.map(t => h('li', {html: this.inline(t)}))))));
+      const sec = h('section.pn-ver' + (i === 0 ? '.open' : ''));
+      const head = h('button.pn-head', {type: 'button', 'aria-expanded': String(i === 0), onclick: () => {
+        head.setAttribute('aria-expanded', String(sec.classList.toggle('open')));
+      }}, h('b', 'v' + v.title), v.title === GAME_VERSION ? h('span.pn-now', 'this build') : '', h('small', v.date));
+      sec.append(head, body);
+      wrap.append(sec);
+    });
+    return wrap;
+  },
+
+  // PATCH submitted as a guess (Game.enter): the notes open, the word leaves the row, and no guess is spent or evaluated
+  fromGuess() {
+    S.input = []; Boards.renderInput();
+    this.open();
+  },
+
+  // a standalone window above everything (the debug panel included); the run is held while it is open
+  open() {
+    if (this.win) return this.win.focus();
+    const unpause = pause();
+    const onKey = e => {
+      e.stopPropagation();
+      if (e.key === 'Escape') { e.preventDefault(); this.close(); }
+    };
+    const x = h('button.pn-x', {type: 'button', 'aria-label': 'Close', html: ICONS.close, onclick: () => this.close()});
+    const card = h('div.pn-card', {role: 'dialog', 'aria-label': 'Patch Notes', tabindex: '-1'},
+      h('div.pn-top', h('h2', 'Patch Notes'), h('small', 'v' + GAME_VERSION), x), this.build());
+    const wrap = h('div.pn-win', card);
+    document.body.append(wrap);
+    document.addEventListener('keydown', onKey, true);
+    this.win = {el: wrap, focus: () => card.focus(), unpause, onKey};
+    card.focus();
+  },
+
+  close() {
+    const w = this.win;
+    if (!w) return;
+    this.win = null;
+    document.removeEventListener('keydown', w.onKey, true);
+    w.unpause();
+    w.el.remove();
+  }
 };
 
 /* ---- js/24-vn.js ---- */

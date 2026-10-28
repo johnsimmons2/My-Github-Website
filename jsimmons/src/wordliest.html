@@ -32331,8 +32331,7 @@ const Achievements = {
 //
 // Beat 13 used to be Dr. Escarlette's therapy every run. Now it draws one scene from the SESSIONS registry (below):
 //   'therapy'   - Dr. Escarlette, the Grid's feelings, up to +6 affection (25-scenes.js THERAPY_SCRIPT). Always in the pool.
-//   'loan'      - the business loan at the First National Bank of Slime (39e-loan.js). Finished, but SWITCHED OFF for 1.2.6 (debug jump only).
-//                 When on, it needs the credit card and no loan still owed.
+//   'loan'      - the business loan at the First National Bank of Slime (39e-loan.js). ON from 1.2.7; it needs the credit card and no loan still owed.
 //   'bootcamp'  - tentatively "Assertiveness Training with Sergeant Serif". A STUB and SWITCHED OFF (ready: false).
 //   ...any more you add with Sessions.add().
 //
@@ -32709,7 +32708,7 @@ Flow.at('scene:frog', 0, 'beat:0', 'Submit FROG once per run, on a 4-letter boar
 //      * every new run starts with LOAN_START_LOVE less affection (Bank.initRun),
 //      * the Grid brings it up once a chapter (Loan.tease, called after each guess from Game.submit),
 //      * and if the casino opens, the Grid says so before its usual monologue (Loan.casinoLines, Monologue.start).
-//  The session is SWITCHED OFF for 1.2.6 (`ready: false` at the bottom): nobody is offered it until that is set to true.
+//  The session is ON from 1.2.7 (`ready: true` at the bottom; it was built switched off in 1.2.6). Set it to false to take it out of the draw.
 //  The loan never charges interest. It is not in S (it outlives the run): read it only through Loan.owed().
 
 const LOAN_MIN = 100, LOAN_MAX = 5000, LOAN_MAX_PTS = 12;
@@ -32902,7 +32901,7 @@ Sessions.add({
       'No Emporium, no interest, for the rest of this run. It is going to be a long one.',
       'But a letter is not forever. Next run, with a fresh form and better answers about the pyramid, we try again. Together.']
     : 'Look at that. We are a business now. Do not tell the snails.',
-  ready: false,                             // THE SWITCH (39c-session.js): OFF for 1.2.6, so only the debug jump "Beat 13: The Business Loan" reaches it. Set true to put it in the draw
+  ready: true,                              // THE SWITCH (39c-session.js): ON from 1.2.7. false takes it out of the draw (the debug jump "Beat 13: The Business Loan" still runs it)
   available: () => Bank.hasCard() && Loan.owed() === 0,   // the credit card, and no loan still open
   via: 'The credit card, and no loan still open. Refusal: no Emporium and no interest for the run.',
   run: () => Scenes.loan(),

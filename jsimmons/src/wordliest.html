@@ -341,6 +341,7 @@ html.theme-vapor #app::before{content:"";position:absolute;left:-50%;right:-50%;
 html.theme-vapor #hdr{background:transparent}
 html.theme-vapor #title{background:linear-gradient(180deg,#fff,#b967ff 50%,#01cdfe);-webkit-background-clip:text;background-clip:text;color:transparent;font-style:italic;letter-spacing:.06em}
 html.theme-vapor .face{box-shadow:0 0 12px rgba(255,113,206,.25)}
+html.theme-vapor .face.ring{box-shadow:inset 0 0 0 3px var(--purple),0 0 0 2px var(--purple),0 0 12px rgba(255,113,206,.25)}   /* the vapor glow above is more specific than .face.ring: without this Dordl never shows the appears-twice+ ring */
 html.theme-burrow{--bg:#1c140c;--text:#f1e6d2;--muted:#a8916f;--tb:#4a3a26;--tbf:#7a6340;--green:#5f8f3e;--yellow:#b8892c;--gray:#3e3225;--key-bg:#5a4630;--key-text:#f1e6d2;
   --line:#3a2c1c;--toast-bg:#f1e6d2;--toast-text:#1c140c;--modal-bg:#241a10;--overlay:rgba(0,0,0,.6)}
 html.theme-burrow body{background:radial-gradient(ellipse at 50% 30%,#2d2114 0%,#120c06 80%)}
@@ -8382,7 +8383,7 @@ html.crt body::after {
 // Tiny helpers shared by every module. Everything is a global on purpose:
 // the build concatenates files into one <script>, so top-level names are shared.
 
-const GAME_VERSION = '1.2.6';
+const GAME_VERSION = '1.2.7';
 
 const $ = (sel, root = document) => root.querySelector(sel);
 const $$ = (sel, root = document) => [...root.querySelectorAll(sel)];
@@ -23848,7 +23849,7 @@ Director.BEATS = {
   // 13: the Grid goes to therapy, and brings you. (A big source of affection.)
   13: async function() {
     await Scenes.session();   // the Grid's invitation, then therapy or one of its alternatives (39c-session.js)
-    Narr.say(Sessions.afterLine(), {wait: false});
+    for (const line of Sessions.afterLine()) Narr.say(line, {wait: false});
     this.armCasino();         // schedules the casino or the space zone a few plain guesses from now, or just a breather
   },
   // 14: The Vowels v. Y or Word Crime Division Investigation
@@ -26270,7 +26271,7 @@ const Debug = {
           btn('Set −50🐚 (Debt)', () => { S.shells = -50; UI.hud(); this.render(); }, 'danger'),
           btn('🏦 Bank +100🐚', () => { if (!S.flags.bank) this.toggleBank(); Bank.balance = (Bank.balance || 0) + 100; UI.hud(); UI.toast(`Bank: ${Bank.balance}🐚`); this.render(); }),
           btn('🏦 Clear Bank (0)', () => { Bank.balance = 0; UI.hud(); this.render(); }),
-          btn(`💼 Loan: ${Loan.owed() ? 'owe ' + Loan.owed() + '🐚 (clear)' : 'none (owe 1,500🐚)'}`, () => { const n = Loan.owed() ? 0 : 1500; store.set('bank_loan', n); store.set('bank_loan_total', n); UI.hud(); this.render(); }),
+          btn(`💼 Loan: ${Loan.owed() ? 'owe ' + Loan.owed() + '🐚 (clear)' : 'none (owe 1,500🐚)'}`, () => { const n = Loan.owed() ? 0 : 1500; store.set('bank_loan', n); store.set('bank_loan_total', n); store.set('bank_loan_undelivered', 0); UI.hud(); this.render(); }),
           btn(`💼 Credit refused: ${S.flags.creditDenied ? 'ON (clear)' : 'off (set)'}`, () => { S.flags.creditDenied = !S.flags.creditDenied; this.render(); }),
           btn(`🏦 Rollover: ${Math.round((typeof Bank !== 'undefined' && Bank.getCarryRate ? Bank.getCarryRate() : 0.35) * 100)}% (${store.get('bank_carryover', 0)}🐚 saved)`, () => {
             if (typeof Mods !== 'undefined') {
@@ -30739,8 +30740,10 @@ const Bank = {
         })));
       }
 
+      if (tab === 'loan') Loan.deliver();   // an approved loan's transfer starts when this tab is shown (39e-loan.js)
       const defaultQuote = tab === 'loan'
-        ? (loanOwed > 0 ? pick(['Your business loan: no interest, no rush. Only no mortgage, no new loan, and one Grid who will not stop bringing it up.', 'The bank is paid first. That is the order of things.']) : 'Paid in full. A pleasure doing business. Do come back, if the bank has anything to offer you.')
+        ? (this.pending && this.pending.from === 'loan' ? 'Your loan is on its way to the checking account. Watch the bar. Transfers take time. This is a bank.'
+          : loanOwed > 0 ? pick(['Your business loan: no interest, no rush. Only no mortgage, no new loan, and one Grid who will not stop bringing it up.', 'The bank is paid first. That is the order of things.']) : 'Paid in full. A pleasure doing business. Do come back, if the bank has anything to offer you.')
         : tab === 'mortgage' && loanOwed > 0 ? 'The bank is paid first. Your business loan is still open, so the lake will have to wait.'
         : tab === 'mortgage'
         ? (((typeof store !== 'undefined' && store.get('lakeHouseOwned', false)) || ((typeof store !== 'undefined' && store.get('lakeHousePaid', 0)) >= HOUSE_COST))
@@ -30761,7 +30764,9 @@ const Bank = {
       if (tabRow) body.append(tabRow);
 
       if (tab === 'loan') {
-        // Business Loan Tab View
+        // Business Loan Tab View. An approved loan waits here: opening this tab starts the transfer, so the whole bar is seen
+        // (if another transfer is still in flight it starts as soon as that one lands: onChange re-renders this tab)
+        const waiting = Loan.undelivered() > 0;
         const owed = loanOwed, total = Math.max(Loan.borrowed(), owed);
         const funds = Loan.funds(), p = this.pending && this.pending.from === 'loan' ? this.pending : null;
         body.append(
@@ -30773,6 +30778,7 @@ const Bank = {
               : 'Paid in full. The books are clean.')
           ),
           p ? h('div.bank-box.bank-xfer', h('small', 'The loan is on its way to your checking account'), progressEl(p)) : '',
+          waiting ? h('div.bank-box', h('small', 'Your loan will be sent as soon as the transfer already under way has landed. One at a time. This is a bank.')) : '',
           owed > 0 ? h('div.bank-mortgage-actions',
             h('div.bank-mortgage-wallet', {html: `Available to pay with: <b>${funds.toLocaleString()}</b> 🐚 <small>(${this.usingChecking() ? 'wallet and checking' : 'wallet only'})</small>`}),
             h('div.bank-row.bank-mortgage-buttons',
@@ -32405,7 +32411,7 @@ const Sessions = {
   //   phrase     lower-case noun used mid-sentence ("therapy", "the bank"): "Gone to ___ for you."
   //   ref        optional "the ..." form for a sentence of its own ("the therapy"); default 'the ' + phrase
   //   intro      optional lines the Grid says before the scene (strings or () => string), played in order after the draw
-  //   afterLine  what the Grid says once it is over (a string, or () => string when it depends on how the scene went)
+  //   afterLine  what the Grid says once it is over: a string, a list of lines, or a () => either when it depends on how the scene went
   //   run        async () => the scene; the beat carries on when it returns
   //   ready      THE FEATURE TOGGLE. false = never drawn by Sessions.pick (only the debug jump can run it). Therapy is always true.
   //   available  optional () => bool: a condition the player must meet for it to be drawn (the bank loan needs the credit card).
@@ -32429,7 +32435,7 @@ const Sessions = {
   current() { return this.get(S.flags && S.flags.session); },                    // the session this run had (therapy before beat 13)
   phrase() { return this.current().phrase; },
   ref() { const r = this.current().ref; return r[0].toUpperCase() + r.slice(1); },   // "The therapy", for the start of a sentence
-  afterLine() { const l = this.current().afterLine; return typeof l === 'function' ? l() : l; },
+  afterLine() { const l = this.current().afterLine; return [].concat(typeof l === 'function' ? l() : l); },   // always a list of lines
   pool() { return Object.values(SESSIONS).filter(s => s.id === 'therapy' || (s.ready && (!s.available || s.available()))); },
   // the odds for a pool of sessions: {id: probability}. See THE ODDS above.
   weights(pool = this.pool()) {
@@ -32691,8 +32697,10 @@ Flow.at('scene:frog', 0, 'beat:0', 'Submit FROG once per run, on a 4-letter boar
 //  - Four questions decide the loan. Each answer is worth points (-2 to +3) in `pts`; 0 points is the floor, LOAN_MIN, and 12 is the
 //    ceiling, LOAN_MAX. Below 0 (two or three bad answers) the application is REFUSED. Two answers pay in affection instead of points,
 //    so the best love route and the best loan are not the same route (docs/specs/04 and 39c-session.js decision 5).
-//  - Approved: the amount goes into the store (bank_loan, persists between runs) and arrives in the checking account through the
-//    bank's transfer bar (Bank.depositLoan, 38-bank.js). Nothing is added to the run's shells until the bar fills.
+//  - Approved: the amount goes into the store (bank_loan, persists between runs) and is HELD (bank_loan_undelivered) until the player opens the
+//    Business Loan tab in the bank. Opening it starts the transfer into the checking account through the bank's transfer bar
+//    (Loan.deliver, Bank.depositLoan), so the player watches the whole bar. Nothing is added to the shells until the bar fills.
+//    A held loan survives a closed game or a new run: it is delivered the next time the tab is opened.
 //  - Refused: after the scene a snail delivers a letter of adverse action. For the rest of THAT run (S.flags.creditDenied) the Emporium
 //    sells nothing (Shop.frozen, 20-shop.js) and the bank pays no interest and no ending dividend (Bank.interest, Bank.onEnding).
 //  - While a loan is owed (the Loan tab in the bank pays it down):
@@ -32710,6 +32718,7 @@ const LOAN_START_LOVE = 1;     // affection taken off at the start of every run 
 const Loan = {
   owed() { return Math.max(0, store.get('bank_loan', 0) || 0); },
   borrowed() { return store.get('bank_loan_total', 0) || 0; },
+  undelivered() { return Math.max(0, store.get('bank_loan_undelivered', 0) || 0); },   // approved, but the transfer has not been started yet
   // 0 points is the floor, LOAN_MAX_PTS the ceiling, in steps of 100
   amountFor(pts) { return clamp(Math.round(pts * (LOAN_MAX - LOAN_MIN) / LOAN_MAX_PTS / 100) * 100 + LOAN_MIN, LOAN_MIN, LOAN_MAX); },
   // what repayments can come out of: the wallet, and the checking account when you pay with it (never an overdraft)
@@ -32728,10 +32737,19 @@ const Loan = {
     store.set('bank_loan', amt); store.set('bank_loan_total', amt);
     S.flags.loanTaken = amt;
     this.noteTeased();   // the scene itself was this chapter's mention
-    Bank.depositLoan(amt);
+    store.set('bank_loan_undelivered', amt);   // the transfer starts when the player opens the bank's Business Loan tab
     sfx('coin');
-    UI.toast(`🏦 A ${amt.toLocaleString()} 🐚 business loan is on its way to your checking account. Open the bank to watch it arrive.`, 4800, 'wrap');
+    UI.toast(`🏦 Your ${amt.toLocaleString()} 🐚 business loan has been approved. Open the Business Loan tab at the bank to start the transfer.`, 5200, 'wrap');
     if (typeof SaveGame !== 'undefined') SaveGame.autoSave();
+  },
+  // called by the bank when its Business Loan tab is showing: starts the held transfer, unless another one is still in flight
+  deliver() {
+    const amt = this.undelivered();
+    if (!amt || Bank.pending) return false;
+    store.set('bank_loan_undelivered', 0);
+    Bank.depositLoan(amt);
+    if (typeof SaveGame !== 'undefined') SaveGame.autoSave();
+    return true;
   },
   // the refusal: a snail brings the letter, and the credit score takes the hit for the rest of the run
   async deny(vars) {
@@ -32850,7 +32868,7 @@ const LOAN_SCRIPT = [
   ['label', 'terms'],
   ['gustave', 'The terms: no interest. I am family to everyone here. But it is repaid in full before the bank will lend to you again, and until then I cannot accept a mortgage payment. The bank is paid first.'],
   ['grid', 'And I will remind you. Often. Fondly.'],
-  ['gustave', 'The funds will be transferred to your checking account. Transfers take time. This is a bank.'],
+  ['gustave', 'The funds will go to your checking account. Open the Business Loan tab at the bank when you are ready, and I will begin the transfer. Transfers take time. This is a bank.'],
   ['end', 'approved'],
   ['label', 'denied'],
   ['sfx', 'deny'],
@@ -32880,7 +32898,9 @@ Sessions.add({
   codexScene: 'bank_loan',
   intro: ['Can I ask you something? I made us an appointment. At the bank.', 'Gustave says you might qualify for a business loan. Will you come? Vaults make me nervous.'],
   afterLine: () => S.flags.creditDenied
-    ? 'I am sorry. That was not fair. You are good for it. You are good for everything.'
+    ? ['I am really disappointed. Not in you. In the bank. Okay, a little in you. Mostly the bank.',
+      'No Emporium, no interest, for the rest of this run. It is going to be a long one.',
+      'But a letter is not forever. Next run, with a fresh form and better answers about the pyramid, we try again. Together.']
     : 'Look at that. We are a business now. Do not tell the snails.',
   ready: false,                             // THE SWITCH (39c-session.js): OFF for 1.2.6, so only the debug jump "Beat 13: The Business Loan" reaches it. Set true to put it in the draw
   available: () => Bank.hasCard() && Loan.owed() === 0,   // the credit card, and no loan still open

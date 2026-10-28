@@ -1138,6 +1138,9 @@ body.quake #app{animation:Quake .18s infinite}
 .vn-bg.roof::after{content:"";position:absolute;left:8%;right:8%;bottom:0;height:22%;background:#d3d6da;border-radius:14px 14px 0 0;box-shadow:0 -6px 0 #a7aaad inset}
 .vn-bg.office{background:linear-gradient(#cfe3d2,#b7d3bb);}
 .vn-bg.office::after{content:"DR. ESCARLETTE · PhD (Letters)";position:absolute;left:50%;top:12%;transform:translateX(-50%);font:700 13px Georgia,serif;color:#3e5a42;border:3px double #3e5a42;padding:10px 16px;background:#f6f1e1}
+.vn-bg.bank{background:linear-gradient(#e6dfcc,#cfc4a6)}
+.vn-bg.bank::before{content:"";position:absolute;left:0;right:0;bottom:0;height:34%;background:repeating-linear-gradient(90deg,#b9ad8c 0 70px,#a89c7b 70px 72px);opacity:.8}
+.vn-bg.bank::after{content:"FIRST NATIONAL BANK OF SLIME · EST. 1987";position:absolute;left:50%;top:12%;transform:translateX(-50%);font:700 13px Georgia,serif;color:#5a4b21;border:3px double #5a4b21;padding:10px 16px;background:#f6f1e1;white-space:nowrap}
 .vn-bg.court{background:repeating-linear-gradient(90deg,#6b4320 0 80px,#7a4d27 80px 160px)}
 .vn-bg.court::after{content:"⚖";position:absolute;left:50%;top:6%;transform:translateX(-50%);font-size:60px;color:#e8c27a;text-shadow:0 2px 0 #3b2410}
 .vn-bg.police{background:radial-gradient(ellipse at 50% 20%,rgba(240,240,255,.2) 0%,transparent 50%),linear-gradient(180deg,#0d1117,#161b22 60%,#090d13)}
@@ -4459,6 +4462,44 @@ html.dark .binderm {
 .lake-telescope {
   left: 61%;
   bottom: 36%;
+}
+
+/* Developer's Desk */
+.lake-devdesk {
+  left: 40%;
+  bottom: 4%;
+}
+
+.devdesk-modal-body {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.devdesk-pw {
+  align-self: flex-start;
+  padding: 10px 18px;
+  font: 800 22px/1.2 monospace;
+  letter-spacing: 0.04em;
+  color: #422006;
+  background: #fde047;
+  border-radius: 3px;
+  box-shadow: 2px 3px 8px rgba(0, 0, 0, 0.3);
+  transform: rotate(-1.5deg);
+  user-select: all;
+}
+
+.devdesk-copy {
+  align-self: flex-start;
+}
+
+.devdesk-modal-body ol {
+  margin: 0;
+  padding-left: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 13px;
 }
 
 /* MODALS & PANELS */
@@ -8341,7 +8382,7 @@ html.crt body::after {
 // Tiny helpers shared by every module. Everything is a global on purpose:
 // the build concatenates files into one <script>, so top-level names are shared.
 
-const GAME_VERSION = '1.2.5';
+const GAME_VERSION = '1.2.6';
 
 const $ = (sel, root = document) => root.querySelector(sel);
 const $$ = (sel, root = document) => [...root.querySelectorAll(sel)];
@@ -8455,9 +8496,11 @@ const ICONS = {
 
 /* ---- js/01-words.js ---- */
 // ============================================================ 01-words
-// Word lists by length. ANSWERS are drawn from every word the game knows (curated lists,
-// their inflections and the extras). Guesses are checked against the
-// curated lists plus the big dictionary fetched online (Words.dict); the early chapters
+// Word lists by length. ANSWERS are drawn from the curated lists, the extras and (4-8 letters,
+// once it has loaded) the big dictionary fetched online (Words.dict), but never from inflections
+// (a pool full of -S and -ED words makes the longer ones too easy to guess; Words.known still
+// accepts inflected forms as guesses). Guesses are checked against the
+// curated lists plus the big dictionary; the early chapters
 // accept only real words (Words.real). Words.plausible is the "looks like a word"
 // fallback for when the dictionary hasn't loaded and for the later, looser chapters.
 
@@ -8689,7 +8732,7 @@ invisible jellyfish keyboards lollipops machinery magazines narrative neighbors 
 // never chosen as answers.
 // ============================================================ 01-words
 // Word lists by length. ANSWERS are drawn from these; validation accepts any listed
-// word, auto-generated inflections/plurals, or a word from the online dictionary.
+// word, an inflection of one (Words.known derives it), or a word from the online dictionary.
 
 const WORDS_VALID_EXTRA = {
   2: 'aa ab ad ae ag ai al ar aw ay ba bi bo da de eh el em en er es ew ex fa fe ha hm ho id jo ka la li lo ma mi mm mo mu na ne nu od oe oi om op os ow oy pa pe pi po qi re sh si ta te ti uh um un ut wo xi xu ya ye za',
@@ -8730,11 +8773,9 @@ const Words = {
       });
     }
 
-    // 3. Auto-generate plurals & common inflections from the curated base words
-    this.expandInflections();
-
-    // 3b. Every word the game knows (curated, inflections and extras) is a possible answer,
-    // bar the trigger words (NEVER_ANSWERS)
+    // 3. Every word in the lists (curated and extras) is a possible answer, bar the trigger
+    // words (NEVER_ANSWERS). Inflections (CATS, BAKED) are not stored: Words.known derives
+    // them from the base words, so they are valid guesses but never answers.
     for (const len in this.byLen) {
       if (+len < 2) continue;
       this.answers[len] = [...this.byLen[len]].filter(w => !NEVER_ANSWERS.has(w));
@@ -8753,32 +8794,8 @@ const Words = {
     this.dictReady = this.loadOnlineDictionary();
   },
 
-  // Automatically generates S/ES/ED/ING forms from known base words
-  expandInflections() {
-    for (let len = 3; len <= 7; len++) {
-      const bases = this.answers[len] || [];
-      for (const w of bases) {
-        const sForm = w + 'S';
-        if (this.byLen[len + 1] && !/(S|X|Z|CH|SH)$/.test(w)) {
-          this.byLen[len + 1].add(sForm);
-        }
-        if (this.byLen[len + 2] && /(S|X|Z|CH|SH)$/.test(w)) {
-          this.byLen[len + 2].add(w + 'ES');
-        }
-        if (/[^AEIOU]Y$/.test(w) && this.byLen[len + 2]) {
-          this.byLen[len + 2].add(w.slice(0, -1) + 'IES');
-          this.byLen[len + 2].add(w.slice(0, -1) + 'IED');
-        }
-        if (w.endsWith('E') && this.byLen[len + 1]) {
-          this.byLen[len + 1].add(w + 'D');
-        }
-      }
-    }
-  },
-
-  // Fetches a ~270k-word English dictionary via CDN into Words.dict (2-8 letters). It only
-  // validates guesses: it never feeds this.byLen or this.answers, so answers and the
-  // word pools the minigames draw from stay the curated lists above.
+  // Fetches a ~270k-word English dictionary via CDN into Words.dict (2-8 letters). It validates
+  // guesses and, once loaded, widens the answers (widenAnswers); it never feeds this.byLen.
   async loadOnlineDictionary() {
     try {
       const res = await fetch('https://cdn.jsdelivr.net/npm/word-list@4.1.0/words.txt');
@@ -8791,9 +8808,34 @@ const Words = {
       this.dict = dict;
       this.dictLoaded = true;
       console.log('[Words] Online dictionary loaded', Object.fromEntries(Object.entries(dict).map(([l, set]) => [l, set.size])));
+      this.widenAnswers();
     } catch (e) {
       console.warn('Network unavailable: running on offline embedded dictionary.');
     }
+  },
+
+  // Every real word in the dictionary (4-8 letters) that is not a plain inflection of a shorter
+  // word joins the answers, so the game is not limited to the hand-written lists. Until the
+  // dictionary has loaded (or when offline) the answers are just the lists.
+  widenAnswers() {
+    for (let len = 4; len <= 8; len++) {
+      const pool = this.answers[len] || (this.answers[len] = []), seen = new Set(pool);
+      for (const w of this.dict[len] || []) {
+        if (!seen.has(w) && !NEVER_ANSWERS.has(w) && !this.inflected(w)) pool.push(w);
+      }
+    }
+    console.log('[Words] Answers widened', Object.fromEntries([4, 5, 6, 7, 8].map(l => [l, this.answers[l].length])));
+  },
+
+  // Is w a plain inflection (CATS, BOXES, BAKED, CARRIED, MAKING, RUNNING) of a shorter known word?
+  inflected(w) {
+    const n = w.length, stems = [];
+    if (w.endsWith('S')) stems.push(w.slice(0, -1));
+    if (w.endsWith('ES')) stems.push(w.slice(0, -2));
+    if (w.endsWith('ED')) { stems.push(w.slice(0, -2), w.slice(0, -1)); if (w[n - 3] === w[n - 4]) stems.push(w.slice(0, -3)); }
+    if (w.endsWith('IES') || w.endsWith('IED')) stems.push(w.slice(0, -3) + 'Y');
+    if (w.endsWith('ING')) { stems.push(w.slice(0, -3), w.slice(0, -3) + 'E'); if (w[n - 4] === w[n - 5]) stems.push(w.slice(0, -4)); }
+    return stems.some(s => s.length >= 3 && (this.byLen[s.length]?.has(s) || this.dict[s.length]?.has(s)));
   },
 
   // Utility to print total and per-length word counts to the console
@@ -10790,7 +10832,7 @@ const Game = {
       if (!Words.dictLoaded && Words.dictReady) { const un = lock(); try { await Promise.race([Words.dictReady, wait(3000)]); } finally { un(); } }
       // real words only, until the Emporium sells the player a licence to coin their own.
       // (The crossword mutation is the exception: its rows have always been free to be probes.)
-      if (!Words.real(word)) { if (!S.flags.coinage) return this.invalid('Not in word list'); coined(); }
+      if (!Words.real(word)) { if (!S.flags.coinage) { Fish.rejected(); return this.invalid('Not in word list'); } coined(); }
     } else if (!Words.known(word) && !Words.plausible(word)) {
       if (S.chapter === 6 && !S.flags.lorem) return this.invalid('Not in word list');
       coined();
@@ -10833,6 +10875,7 @@ const Game = {
       if (n === 1) S.original = {answer: Boards.first().answer, guess: word, states: results[0]};
       this.reward(word, results);
       Bank.interest();
+      Loan.tease();   // the Grid mentions an unpaid business loan once a chapter (39e-loan.js)
       if (S.flags.confidence) { S.flags.confidence = false; UI.toast('Correct! (emotionally)', 1600); confetti(); }
       const pid = S.puzzleId;
       await Director.afterSubmit(n, word, results);
@@ -11106,6 +11149,9 @@ const Events = {
   register(def) { this.defs[def.id] = def; },
   isActive(id) { return this.active.some(e => e.id === id); },
   async start(id, opts = {}) {
+    // no event begins while the player is off the main grid (a menu, a scene, the lake property...): a scripted one that comes due
+    // there waits until they are back. (`force` is for the debug panel.)
+    while (S.paused && !opts.force) await wait(300);
     if (!opts.force && typeof S !== 'undefined' && S.idle >= 25) return null;
     const def = this.defs[id];
     if (!def || this.isActive(id)) return null;
@@ -11215,8 +11261,9 @@ function place(el, x, y, rot = 0, flip = false, s = 1) {
   el.style.transform = `translate(${x}px, ${y}px) translate(-50%, -50%) rotate(${rot}rad) scale(${s}, ${flip ? -s : s})`;
 }
 function onTap(el, fn) { el.addEventListener('pointerdown', e => { e.stopPropagation(); e.preventDefault(); fn(e); }); }
-function edgePoint(m = 70) {
-  const W = innerWidth, H = innerHeight, side = rnd(4);
+// a random point just outside the screen; `side` (0 top, 1 right, 2 bottom, 3 left) picks the edge, random when omitted
+function edgePoint(m = 70, side = rnd(4)) {
+  const W = innerWidth, H = innerHeight;
   if (side === 0) return {x: rand(0, W), y: -m};
   if (side === 1) return {x: W + m, y: rand(0, H)};
   if (side === 2) return {x: rand(0, W), y: H + m};
@@ -11285,7 +11332,11 @@ const SNAIL = {
   make(ev, look = {}) {
     const small = innerWidth < 600;
     const el = spr(ev, SPR.snail(look), 'snail');
-    const p = edgePoint(60);
+    // Snails come in from the left, the right or the top, never the bottom (the keyboard is there: a snail that arrives behind it
+    // cannot be seen coming or clicked in time). Each side is a third of the snails: a shuffled bag of the three sides per event
+    // keeps a crowd of them level, and the spot along that edge is random.
+    if (!ev.sideBag || !ev.sideBag.length) ev.sideBag = shuffle([0, 1, 3]);
+    const p = edgePoint(60, ev.sideBag.pop());
     const sn = {el, x: p.x, y: p.y, vx: 0, vy: 0, face: 0, state: 'seek', target: null, cargo: null, backT: 0, slime: 0,
       speed: rand(34, 48) * (S.chapter >= 4 ? 1.2 : 1) * (S.flags.repel ? 0.6 : 1) * (small ? 0.8 : 1), s: small ? 0.72 : 1};
     onTap(el, () => this.click(ev, sn));
@@ -11372,7 +11423,8 @@ const SNAIL = {
   thief(ev) {
     const spans = $$('#title span'), eSpan = spans[spans.length - 1], c = center(eSpan);
     const sn = this.make(ev, {shell: 'purple', crown: true});
-    sn.x = c.x + 46; sn.y = c.y + 6; sn.thief = true; sn.speed = 95;
+    sn.x = c.x + 46; sn.y = c.y + 6; sn.thief = true; sn.speed = THIEF_SPEED;
+    ev.thiefSpawned = true;
     eSpan.classList.add('stolen');
     this.attach(sn, {type: 'title', span: eSpan, letter: 'E'});
     sn.exit = {x: innerWidth + 120, y: c.y + 14};
@@ -11427,15 +11479,34 @@ const SNAIL = {
 Events.register({
   id: 'snails', title: 'Ahh! Snails!', sub: 'Click them to send them crawling backward', minCh: 2, weight: 1.6, dur: 34, manualEnd: true, music: 'snails',
   start(ev) {
-    ev.snails = []; ev.n = ev.opts.count ?? (S.chapter >= 4 ? 9 : S.chapter >= 3 ? 7 : 6); ev.spawned = 0;
-    for (let i = 0; i < ev.n; i++) setTimeout(() => { if (!ev.done) { SNAIL.make(ev, {shell: pick(['green', 'yellow', 'gray'])}); ev.spawned++; } }, 500 + i * 900);
-    if (ev.opts.stealE) SNAIL.thief(ev);
+    ev.snails = []; ev.spawned = 0; ev.thiefSpawned = false;
+    ev.sched = [];   // [{at, fn}]: arrivals run off the event's own clock (ev.t), which stops while the player is off the main grid
+    if (ev.opts.stealE) {
+      // Beat 4 (1.2.6): a crowd, one snail for each letter key but the E, each after its own key at its own speed, filing in over
+      // 10-15 s so they do not all arrive together. The E thief (the crowned one) turns up somewhere in the first 1-8 s of that.
+      // `count` (the debug jumps pass 0) skips the crowd; `thiefAt` (also debug) pins the thief's moment.
+      const keys = ev.opts.count === 0 ? [] : shuffle(Keys.letterEls().filter(k => k.dataset.key !== 'E' && !k.dataset.dup));
+      const span = rand(10, 15);
+      ev.n = keys.length;
+      keys.forEach((k, i) => ev.sched.push({at: (i + Math.random()) / keys.length * span, fn: () => {
+        const sn = SNAIL.make(ev, {shell: pick(['green', 'yellow', 'gray'])});
+        sn.speed *= rand(0.7, 1.7);
+        sn.target = {type: 'key', el: k, w: 1};
+        ev.spawned++;
+      }}));
+      const at = ev.opts.thiefAt ?? rand(1, 8);
+      if (at <= 0) SNAIL.thief(ev); else ev.sched.push({at, fn: () => SNAIL.thief(ev)});
+      return;
+    }
+    ev.n = ev.opts.count ?? (S.chapter >= 4 ? 9 : S.chapter >= 3 ? 7 : 6);
+    for (let i = 0; i < ev.n; i++) ev.sched.push({at: 0.5 + i * 0.9, fn: () => { SNAIL.make(ev, {shell: pick(['green', 'yellow', 'gray'])}); ev.spawned++; }});
   },
   update(ev, dt) {
+    ev.sched = ev.sched.filter(a => { if (ev.t < a.at) return true; a.fn(); return false; });
     SNAIL.update(ev, dt);
     if (ev.t > this.dur) for (const sn of ev.snails) if (sn.state === 'seek' || sn.state === 'back') sn.state = 'flee';
     if (ev.t > this.dur + 20) for (const sn of ev.snails) if (sn.state === 'carry' && !sn.thief) { SNAIL.drop(sn, true); sn.state = 'flee'; }
-    if (ev.spawned >= ev.n && ev.snails.every(s => s.state === 'gone')) Events.end(ev);
+    if (ev.spawned >= ev.n && (!ev.opts.stealE || ev.thiefSpawned) && ev.snails.every(s => s.state === 'gone')) Events.end(ev);
   },
   end(ev) { for (const sn of ev.snails) if (sn.cargo) SNAIL.drop(sn, !sn.thief); },
 });
@@ -19123,7 +19194,7 @@ const Shop = {
     if (id === 'confidence') return !!(S.flags && S.flags.confidence);
     if (id === 'sleeves') return !!(S.flags && S.flags.cardSleeves);
     if (id === 'card') return (typeof Cards !== 'undefined' && Cards.totalOwned() > 0) || (typeof store !== 'undefined' && store.get('cardPurchases', 0) > 0);
-    if (['arcade', 'jukebox', 'pool', 'car', 'flamingo', 'hammock', 'telescope'].includes(id)) {
+    if (['arcade', 'jukebox', 'pool', 'car', 'flamingo', 'hammock', 'telescope', 'devdesk'].includes(id)) {
       const lakeItems = (typeof store !== 'undefined' && store.get('lakeItems', null)) || {};
       return !!lakeItems[id];
     }
@@ -19464,16 +19535,29 @@ const Shop = {
         phase: 2,
         desc: 'A brass refractor telescope aimed at nocturnal skies over the water. Gaze upon stars and constellations.',
         soldOut: !!owned.telescope
+      },
+      {
+        id: 'devdesk',
+        name: "Developer's Desk",
+        icon: '💻',
+        price: 100000,
+        phase: 2,
+        desc: 'A scarred oak desk from the back of the stockroom, with a computer older than the dictionary. The top drawer holds the password to the debug menu, and how to use it. Spoils everything.',
+        soldOut: !!owned.devdesk
       }
     ].filter(it => it.phase === 1 || houseOwned);
   },
   say(t) { const q = $('.shop-quote'); if (q) { q.textContent = t; anim(q, 'pop', 200); } },
+  // a refused business loan (39e-loan.js) closes the Emporium's till for the rest of the run
+  frozen() { return !!(S.flags && S.flags.creditDenied); },
   open(initialPage = 1) {
     if (!S.flags.shop) return;
     Codex.log('scenes', 'shop');
     const prev = Music.name;
     Music.play('shop', {fade: 0.3});
     let page = initialPage;
+    const FROZEN_LINE = 'The bank has sent me your letter. I cannot sell to you. It is not personal. It is a little personal.';
+    const canPay = p => !this.frozen() && Bank.canPay(p);   // every purchase button below asks this, not Bank.canPay
     this.setPage = (p) => { page = p; render(); };
     const grid = h('div.shop-grid');
     const tabs = h('div.shop-tabs');
@@ -19485,7 +19569,7 @@ const Shop = {
         const hasBought = this.hasBought(it.id) || !!it.soldOut;
         const isRevealed = hasBought || Bank.holdings() >= Math.floor(p * 2 / 3);
         const lim = isRevealed ? this.getItemLimit(it) : null;
-        return [it.id, !it.soldOut && Bank.canPay(p), lim ? lim.bought : null];
+        return [it.id, !it.soldOut && canPay(p), lim ? lim.bought : null];
       })
       : page === 2
       ? Tank.page2Items().map(it => {
@@ -19494,16 +19578,16 @@ const Shop = {
             const isRevealed = (d.tanks >= 3) || this.hasBought('third_tank') || Tank.everOwned('third_tank') || (d.tanks >= 2 && (Bank.holdings() >= 200 || (S.flags && S.flags.thirdTankRevealed)));
             if (!isRevealed) return null;
             const lim = this.getItemLimit(it);
-            return [it.id, it.maxed, it.price, true, Bank.canPay(it.price), lim ? lim.bought : null];
+            return [it.id, it.maxed, it.price, true, canPay(it.price), lim ? lim.bought : null];
           }
           const isSecret = it.id !== 'food' && it.id !== 'puzzle';
           const hasBought = this.hasBought(it.id) || !!it.maxed || Tank.everOwned(it.id);
           const isRevealed = hasBought || !isSecret || Bank.holdings() >= Math.floor(it.price * 2 / 3);
           if (it.id === 'takeover_offer' && !isRevealed) return null;
           const lim = isRevealed ? this.getItemLimit(it) : null;
-          return [it.id, it.maxed, it.price, isRevealed, isRevealed && Bank.canPay(it.price), lim ? lim.bought : null];
+          return [it.id, it.maxed, it.price, isRevealed, isRevealed && canPay(it.price), lim ? lim.bought : null];
         })
-      : this.lakeItems().map(it => [it.id, it.soldOut, it.price, Bank.canPay(it.price)]));
+      : this.lakeItems().map(it => [it.id, it.soldOut, it.price, canPay(it.price)]));
     let shown = '';
     const wallet = () => {
       const p2 = S.inc && S.inc.page2Unlocked && Tank.chapterOk();
@@ -19513,6 +19597,7 @@ const Shop = {
     // with a credit card: the switch for paying out of the checking account, at the top of the shop
     const checkingSwitch = () => {
       const wEl = $('.shop-wallet');
+      if (wEl && this.frozen()) wEl.append(h('small.chk-neg', 'Credit refused by the bank: the Emporium cannot sell to you for the rest of this run.'));
       if (!wEl || !Bank.hasCard()) return;
       const on = store.get('checkingOn', true) !== false;
       wEl.append(h('button.btn.ghost.shop-chk', {type: 'button', text: `Pay with checking: ${on ? 'ON' : 'OFF'}`,
@@ -19553,9 +19638,9 @@ const Shop = {
           const isRevealed = hasBought || Bank.holdings() >= Math.floor(p * 2 / 3);
           const lim = isRevealed ? this.getItemLimit(it) : null;
           const limBadge = lim ? h('span.shop-item-limit', {text: ` (${lim.bought}/${lim.max})`}) : null;
-          const btn = h('button.btn.buy', {html: it.soldOut ? 'Sold out' : `${p} ${SPR.shellIcon()}`, disabled: it.soldOut || !Bank.canPay(p), type: 'button'});
+          const btn = h('button.btn.buy', {html: it.soldOut ? 'Sold out' : `${p} ${SPR.shellIcon()}`, disabled: it.soldOut || !canPay(p), type: 'button'});
           btn.addEventListener('click', () => {
-            if (!Bank.canPay(p)) { this.say('Insufficient shells. Have you tried clicking snails?'); sfx('deny'); return; }
+            if (!canPay(p)) { this.say(this.frozen() ? FROZEN_LINE : 'Insufficient shells. Have you tried clicking snails?'); sfx('deny'); return; }
             if (it.buy() === false) return;
             if (!Bank.pay(p)) S.shells -= p;
             S.stats.spent += p; S.stats.shopSpent = (S.stats.shopSpent || 0) + p;
@@ -19586,7 +19671,7 @@ const Shop = {
           const isRevealed = it.id === 'third_tank' ? true : (hasBought || !isSecret || Bank.holdings() >= Math.floor(p * 2 / 3));
           if (it.id === 'takeover_offer' && !isRevealed) continue;
           const isHidden = isSecret && !isRevealed;
-          const canAfford = !isHidden && Bank.canPay(p);
+          const canAfford = !isHidden && canPay(p);
 
           const lim = isRevealed ? this.getItemLimit(it) : null;
           const limBadge = lim ? h('span.shop-item-limit', {text: ` (${lim.bought}/${lim.max})`}) : null;
@@ -19600,7 +19685,7 @@ const Shop = {
           btn.addEventListener('click', () => {
             if (isHidden) { this.say('A mysterious upgrade. Earn more shells to reveal it.'); sfx('deny'); return; }
             if (it.maxed) return;
-            if (!canAfford) { this.say('Insufficient shells for this upgrade.'); sfx('deny'); return; }
+            if (!canAfford) { this.say(this.frozen() ? FROZEN_LINE : 'Insufficient shells for this upgrade.'); sfx('deny'); return; }
             if (it.buy() === false) return;
             if (!Bank.pay(p)) S.shells -= p;
             S.stats.spent += p; S.stats.shopSpent = (S.stats.shopSpent || 0) + p;
@@ -19620,7 +19705,7 @@ const Shop = {
         // Page 3: Lake Property Furnishings (Phase 2 items only appear once the house is owned)
         for (const it of this.lakeItems()) {
           const p = it.price;
-          const canAfford = Bank.canPay(p);
+          const canAfford = canPay(p);
           const btn = h('button.btn.buy', {
             html: it.soldOut ? 'Installed' : `${p} ${SPR.shellIcon()}`,
             disabled: it.soldOut || !canAfford,
@@ -19629,8 +19714,8 @@ const Shop = {
 
           btn.addEventListener('click', () => {
             if (it.soldOut) return;
-            if (!Bank.canPay(p)) {
-              this.say('Insufficient shells for this property upgrade.');
+            if (!canPay(p)) {
+              this.say(this.frozen() ? FROZEN_LINE : 'Insufficient shells for this property upgrade.');
               sfx('deny');
               return;
             }
@@ -19645,7 +19730,8 @@ const Shop = {
             S.flags.lakeItems[it.id] = true;
             this.recordPurchase(it.id);
             sfx('fanfare');
-            this.say(pick(['Magnifique! Delivered to your scenic lakefront property immediately.', 'An exquisite addition to your estate.', 'Shipped to the lake bluff. Enjoy!']));
+            this.say(it.id === 'devdesk' ? 'The password, and the instructions. Please do not tell the developer I sold you these.' : pick(['Magnifique! Delivered to your scenic lakefront property immediately.', 'An exquisite addition to your estate.', 'Shipped to the lake bluff. Enjoy!']));
+            if (it.id === 'devdesk') setTimeout(() => LakeProperty.openDevDeskModal(), 400);   // the note is read at once; the desk at the lake keeps it
             UI.hud();
             render();
             if (typeof SaveGame !== 'undefined') SaveGame.autoSave();
@@ -19667,7 +19753,7 @@ const Shop = {
     }
     const body = h('div.shop',
       h('div.shop-head', h('div.shop-merchant', {html: SPR.snail({shell: 'gold', hat: 'top', stache: true, monocle: true, size: 1.2})}),
-        h('div', h('div.shop-quote', {text: pick(defaultQuotes)}), h('div.shop-wallet'))),
+        h('div', h('div.shop-quote', {text: this.frozen() ? FROZEN_LINE : pick(defaultQuotes)}), h('div.shop-wallet'))),
       tabs,
       grid);
     const m = UI.modal({title: 'Escarlette\'s Emporium', body, cls: 'shopm'});
@@ -22615,6 +22701,33 @@ const LakeProperty = {
       itemsLayer.append(scopeEl);
     }
 
+    // Phase 2 Item: Developer's Desk (100,000 shells): the debug menu password and how to use it
+    if (this.hasItem('devdesk')) {
+      const deskEl = h('div.lake-item.lake-devdesk',
+        {
+          title: "Developer's Desk (Click to open the top drawer)",
+          onclick: () => this.openDevDeskModal()
+        },
+        svgNode(`<svg viewBox="0 0 80 70" width="80" height="70">
+          <!-- Monitor -->
+          <rect x="22" y="6" width="36" height="26" rx="2" fill="#27272a" stroke="#a1a1aa" stroke-width="2"/>
+          <rect x="25" y="9" width="30" height="20" fill="#052e16"/>
+          <text x="28" y="19" font-family="monospace" font-size="6" fill="#4ade80">&gt; the_</text>
+          <rect x="37" y="32" width="6" height="5" fill="#71717a"/>
+          <!-- Desk -->
+          <rect x="6" y="37" width="68" height="7" rx="1" fill="#a16207" stroke="#713f12" stroke-width="1.5"/>
+          <rect x="10" y="44" width="6" height="22" fill="#854d0e"/>
+          <rect x="64" y="44" width="6" height="22" fill="#854d0e"/>
+          <rect x="44" y="44" width="18" height="12" rx="1" fill="#92400e" stroke="#713f12" stroke-width="1"/>
+          <circle cx="53" cy="50" r="1.6" fill="#facc15"/>
+          <!-- Sticky note -->
+          <rect x="10" y="28" width="9" height="9" fill="#fde047" transform="rotate(-8 14 32)"/>
+        </svg>`),
+        h('div.lake-item-label', "Developer's Desk")
+      );
+      itemsLayer.append(deskEl);
+    }
+
     // Cardboard Box (Conspiracy Corkboard) near the cliff bluff overlooking the water
     if (this.hasItem('corkboard')) {
       const boxEl = h('div.lake-item.lake-corkbox',
@@ -22843,6 +22956,26 @@ const LakeProperty = {
     UI.modal({title: 'Wurlitzer Jukebox', body, cls: 'lakemodal'});
   },
 
+  // the top drawer of the Developer's Desk: the debug menu password, and how to get in with it
+  openDevDeskModal() {
+    const note = h('div.devdesk-pw', DEBUG_PASSWORD);
+    const copy = h('button.btn.ghost.devdesk-copy', {type: 'button', text: 'Copy password', onclick: () => {
+      try { navigator.clipboard.writeText(DEBUG_PASSWORD); UI.toast('Copied.', 1200); } catch (e) { UI.toast('Select it and copy it by hand.', 1800); }
+    }});
+    const body = h('div.devdesk-modal-body',
+      h('p.fine', 'The top drawer. A sticky note, in handwriting you recognise as your own:'),
+      note, copy,
+      h('h4', 'Getting into the debug menu'),
+      h('ol',
+        h('li', {html: 'Press <b>~</b> twice, quickly (the key above Tab, to the left of 1; it may print as a backtick).'}),
+        h('li', {html: 'Type the password above (capitals do not matter) and press <b>Enter</b>.'}),
+        h('li', {html: 'It remembers you: from then on a single <b>~</b> opens and closes the menu. The 🔒 in its corner locks it again.'}),
+        h('li', {html: 'Or add <b>?debug</b> to the end of the address and reload: it opens at once.'})),
+      h('p.fine', 'The menu can jump to any scene, unlock anything and spoil everything. It can also wreck a save. You paid 100,000 shells; you may do as you like.'));
+    sfx('magic');
+    UI.modal({title: "Developer's Desk", body, cls: 'lakemodal'});
+  },
+
   openTelescopeModal() {
     const word = (typeof Boards !== 'undefined' && Boards.first() && Boards.first().answer) || 'SOLVE';
     const firstLetter = word[0] || 'S';
@@ -22993,11 +23126,17 @@ const Director = {
   afterBack() { Quirks.fire('back', {}); },
   oddTile(n) { return n === 2 ? 2 : S.chapter >= 2 && chance(0.15) ? rnd(Math.max(1, S.len)) : -1; },
   // ------------------------------------------------------------ idle ("sitting and thinking")
-  // The idle ladder counts idleness during normal play, menus, and events.
-  // Active minigames (scenes, the casino, 2048) pause/reset it.
+  // The idle ladder counts idleness during normal play and events, on the main grid only. Anywhere else (a menu or any modal, a
+  // scene, a minigame, the casino, the lake property: all of them pause()) nothing counts, the Grid neither dozes off nor talks, and
+  // the ladder starts again from the top when the player is back. (Before 1.2.6 menus and the lake property still counted.)
   idleTick(dt) {
     if (S.chapter === 0 || S.chapter >= 6) return;
-    if (Minis.active || VN.active || Casino.active || G2048.active) { if (S.idle) { S.idle = 0; this.idleFlags = {}; } return; }
+    if (this.offGrid()) {
+      if (this.idleFlags.sleep) this.wake(true);   // asleep when the player left: wake quietly, no startle in someone else's screen
+      if (S.idle) { S.idle = 0; this.idleFlags = {}; }
+      return;
+    }
+    if (this.dream) { this.dream = false; this.dreamLines(); }
     S.idle += dt;
     const i = S.idle, f = this.idleFlags;
     if (i > 8 && !f.tap) {
@@ -23033,15 +23172,27 @@ const Director = {
     const z = h('div.zzz', {text: pick(['z', 'Z', 'z z']), style: {left: (b.left + b.width * rand(0.3, 0.8)) + 'px', top: (b.top + 10) + 'px'}});
     $('#fx').append(z); setTimeout(() => z.remove(), 2600);
   },
-  wake() {
-    document.body.classList.remove('asleep'); Music.rate = 1; Snd.muffle(20000, 0.3);
-    sfx('startle'); anim($('#boards'), 'startle', 500);
-    UI.toast(pick(['!', 'huh? oh!', 'I was resting my tiles.', 'I\'m up! I\'m up.']), 900);
-    // the role-reversal ending is seeded by these dreams
-    if (Narr.on && S.sleeps === 1) setTimeout(() => Narr.say('I had the strangest dream. I was you. I was typing.', {wait: false}), 800);
-    if (Narr.on && S.sleeps === 2) setTimeout(() => Narr.say('The dream again. I was you. You were me. It felt... nice?', {wait: false}), 800);
-    if (Narr.on && S.sleeps >= 3) setTimeout(() => Narr.say('I keep dreaming I\'m you. I think I want to try it. For real. Later.', {wait: false}), 800);
+  // is the player somewhere other than the main grid? Everything that opens a screen over it calls pause() (UI.modal does, so
+  // the shop, bank, inventory, journal, codex and menus all count), and so does the lake property.
+  offGrid() {
+    return !!(S.paused || Minis.active || VN.active || Casino.active || G2048.active || (typeof LakeProperty !== 'undefined' && LakeProperty.active));
   },
+  wake(quiet = false) {
+    document.body.classList.remove('asleep'); Music.rate = 1; Snd.muffle(20000, 0.3);
+    if (!quiet) {
+      sfx('startle'); anim($('#boards'), 'startle', 500);
+      UI.toast(pick(['!', 'huh? oh!', 'I was resting my tiles.', 'I\'m up! I\'m up.']), 900);
+    }
+    this.dream = true;   // the dream lines are said once the player is back on the grid (idleTick)
+  },
+  // the role-reversal ending is seeded by these dreams
+  dreamLines() {
+    const say = text => setTimeout(() => { if (this.offGrid()) this.dream = true; else Narr.say(text, {wait: false}); }, 800);   // not over another screen
+    if (Narr.on && S.sleeps === 1) say('I had the strangest dream. I was you. I was typing.');
+    if (Narr.on && S.sleeps === 2) say('The dream again. I was you. You were me. It felt... nice?');
+    if (Narr.on && S.sleeps >= 3) say('I keep dreaming I\'m you. I think I want to try it. For real. Later.');
+  },
+
   // ------------------------------------------------------------ affection (dating-sim ending)
   heart(n = 1) {
     const e = $('#eyes'), c = e && !e.classList.contains('hidden') ? center(e) : {x: innerWidth / 2, y: innerHeight / 3};
@@ -23239,6 +23390,8 @@ const Director = {
       }
     }
   },
+  // has the player been introduced to the Grid this run? Beat 5 does it; a save from before `gridMet` existed is past beat 5 when S.g >= 5
+  gridMet() { return !!S.flags.gridMet || S.g >= 5; },
   // the scripted snail made it off-screen with the title's E
   eStolen(sn) {
     S.noE = true;
@@ -23604,11 +23757,12 @@ Director.BEATS = {
     document.body.classList.add('tired-keys');
     this.startMutations();
   },
-  // 4: a hint button appears. Then: snails. One of them steals the E. (Chapter 2 starts when it escapes.)
+  // 4: a hint button appears. Then: snails, one per letter key, filing in over 10-15 s. One of them (it turns up 1-8 s in) steals
+  // the E. (Chapter 2 starts when it escapes.)
   4: async function() {
     const hb = $('#bHint'); hb.classList.remove('hidden'); anim(hb, 'pop', 400); sfx('ding');
     await wait(1200);
-    Events.start('snails', {stealE: true, count: 4});
+    Events.start('snails', {stealE: true});
   },
   // 5: the Grid introduces itself and spins the Wheel of Length.
   5: async function() {
@@ -23617,6 +23771,7 @@ Director.BEATS = {
     await Narr.say('Oh! Hello.');
     await Narr.say('I\'m the Grid. You\'ve been typing on me this whole time.');
     await Narr.say('Let\'s mix things up.');
+    S.flags.gridMet = true;   // the E Chase route skips this beat and introduces the Grid late (Chase.lateIntro)
     const L = await Wheel.spin();   // what the wheel showed (hard mode adds a letter to every segment)
     this.newPuzzle({len: Hard.base(L), rows: Hard.base(L) + 1, boards: 1});
     Narr.say(`${L} letters it is. No E's, of course.`, {wait: false});
@@ -23692,10 +23847,8 @@ Director.BEATS = {
   },
   // 13: the Grid goes to therapy, and brings you. (A big source of affection.)
   13: async function() {
-    await Narr.say('Can I ask you something? I booked a session. With a professional.');
-    await Narr.say('Will you come with me? I don\'t want to go alone.');
-    await Scenes.session();   // therapy, or its stand-in (25b-session.js)
-    Narr.say(S.flags.session === 'variant' ? SESSION_VARIANT.afterLine : 'Thank you for coming. I feel... seen. By someone other than the snails.', {wait: false});
+    await Scenes.session();   // the Grid's invitation, then therapy or one of its alternatives (39c-session.js)
+    Narr.say(Sessions.afterLine(), {wait: false});
     this.armCasino();         // schedules the casino or the space zone a few plain guesses from now, or just a breather
   },
   // 14: The Vowels v. Y or Word Crime Division Investigation
@@ -24389,6 +24542,9 @@ const Finale = {
 // Access via URL (?debug) or hotkey (~ / ` / F2 / Ctrl+Shift+D).
 // window.WL exposes internal game singletons and controllers.
 
+// the password for the debug menu; the Developer's Desk (a 100,000 shell purchase at the lake house) hands it over, so there is one copy
+const DEBUG_PASSWORD = 'the password';
+
 const Debug = {
   activeTab: 'jumps',
   filterText: '',
@@ -24464,7 +24620,7 @@ const Debug = {
     });
     const submit = () => {
       const val = (input.value || '').trim().toLowerCase();
-      if (val === 'the password') {
+      if (val === DEBUG_PASSWORD) {
         store.set('debug_auth', true);
         this.closeAuth();
         if (typeof sfx === 'function') sfx('win');
@@ -24473,7 +24629,7 @@ const Debug = {
         this.wrongAttempts++;
         if (typeof sfx === 'function') sfx('deny');
         msg.textContent = this.wrongAttempts >= 2
-          ? 'Incorrect. (Hint: the password is literally "the password".)'
+          ? `Incorrect. (Hint: the password is literally "${DEBUG_PASSWORD}".)`
           : 'Access denied. That is not the password.';
         const card = this.authEl && this.authEl.querySelector('.dbg-auth-card');
         if (card) anim(card, 'nope', 400);
@@ -24719,7 +24875,7 @@ const Debug = {
       case 'snails':
         this.syncBeatState({g: 4, ch: 1, hint: true, puzzle: {len: 6, rows: 7, boards: 1}, song: 'musicbox'});
         this.render();
-        return Promise.resolve(Events.start('snails', {stealE: true, count: 4})).then(() => {
+        return Promise.resolve(Events.start('snails', {stealE: true})).then(() => {
           if (S.noE) Director.chapterTo(2);
           this.render();
         });
@@ -24854,7 +25010,7 @@ const Debug = {
       UI.setTitle('Wordle');
       this.cleanup();
       this.minimize();
-      return Promise.resolve(Events.start('snails', {stealE: true, count: 0})).then(ev => {
+      return Promise.resolve(Events.start('snails', {stealE: true, count: 0, thiefAt: 0})).then(ev => {
         const sn = ev && ev.snails.find(s => s.thief);
         if (sn) { sn.chasing = true; sn.stun = 9999; Chase.begin(ev, sn); }
       });
@@ -24866,7 +25022,7 @@ const Debug = {
       this.minimize();
       S.flags.chased = true;
       S.flags.shovel = true;
-      return Promise.resolve(Events.start('snails', {stealE: true, count: 0})).then(async ev => {
+      return Promise.resolve(Events.start('snails', {stealE: true, count: 0, thiefAt: 0})).then(async ev => {
         const sn = (ev && ev.snails && ev.snails.find(s => s.thief)) || {cargo: null, x: 200, y: 200};
         sn.stun = 9999;
         Codex.log('scenes', 'motherlode');
@@ -24877,7 +25033,7 @@ const Debug = {
         } else if (opts.stuck) {
           UI.toast('The snail is long gone, and so is the E. You head back.', 2400, 'wrap');
         } else {
-          UI.toast('The Grid hauls you out of the hole by your collar. "We are NOT doing that again."', 2600, 'wrap');
+          UI.toast('Something hauls you out of the hole by your collar. "We are NOT doing that again."', 2600, 'wrap');
         }
       });
     }
@@ -25002,6 +25158,11 @@ const Debug = {
       UI.hud();
       S.flags.takeoverOffer = 'pending';
       return Takeover.accept();
+    }
+    if (to.startsWith('session:')) {   // an alternative to therapy at beat 13, run even while its toggle is off (39c-session.js)
+      this.syncBeatState({g: 13, ch: 3, noE: true, hint: true, eyes: true, shop: true, bank: true, golden: 2, rich: true, minShells: 40, puzzle: {len: 5, rows: 7, boards: 2}});
+      this.render();
+      return Scenes.session(to.slice(8)).then(() => Director.armCasino());
     }
     if (to === 'raven') { S.flags.raven = S.g; return Raven.run(); }
     if (to === 'fish_visit') { return Fish.visit(['The fish was summoned directly. Carry on.']); }
@@ -25689,6 +25850,7 @@ const Debug = {
       ['gate_wordlaga', 'Beat 11: Wordlaga Gate', 'Wordlaga gate → 2nd Golden (g11)'],
       ['beat12', 'Beat 12: Rich Colors', 'Blue/purple/pink tile legend (g12)'],
       ['therapy', 'Beat 13: Therapy', 'Therapy VN + arms Casino (g13)'],
+      ...Sessions.debugJumps(),
       ['casino', 'Beat 13b: Casino', 'Wordle Pachinko + Gambles'],
       ['gamble', 'Beat 13c: Gambles', 'Direct to Slots / Roulette / Draw'],
       ['space', 'Beat 13d: Space Zone', 'Rocket launch, Wordsteroids & Moon'],
@@ -26108,6 +26270,8 @@ const Debug = {
           btn('Set −50🐚 (Debt)', () => { S.shells = -50; UI.hud(); this.render(); }, 'danger'),
           btn('🏦 Bank +100🐚', () => { if (!S.flags.bank) this.toggleBank(); Bank.balance = (Bank.balance || 0) + 100; UI.hud(); UI.toast(`Bank: ${Bank.balance}🐚`); this.render(); }),
           btn('🏦 Clear Bank (0)', () => { Bank.balance = 0; UI.hud(); this.render(); }),
+          btn(`💼 Loan: ${Loan.owed() ? 'owe ' + Loan.owed() + '🐚 (clear)' : 'none (owe 1,500🐚)'}`, () => { const n = Loan.owed() ? 0 : 1500; store.set('bank_loan', n); store.set('bank_loan_total', n); UI.hud(); this.render(); }),
+          btn(`💼 Credit refused: ${S.flags.creditDenied ? 'ON (clear)' : 'off (set)'}`, () => { S.flags.creditDenied = !S.flags.creditDenied; this.render(); }),
           btn(`🏦 Rollover: ${Math.round((typeof Bank !== 'undefined' && Bank.getCarryRate ? Bank.getCarryRate() : 0.35) * 100)}% (${store.get('bank_carryover', 0)}🐚 saved)`, () => {
             if (typeof Mods !== 'undefined') {
               const m = Mods.data();
@@ -26722,7 +26886,7 @@ const Debug = {
 // the courtroom trial and the snail/snake war council.
 //
 // A script is an array of steps:
-//   ['bg', 'cafe']                      backdrop (board, cafe, ball, roof, office, court, war, void, dream)
+//   ['bg', 'cafe']                      backdrop (board, cafe, ball, roof, office, bank, court, war, void, dream)
 //   ['show', 'grid', 'left', 'happy']   character at left|center|right with a mood
 //   ['mood', 'grid', 'blush'] ['hide', 'e']
 //   ['grid', 'text' | vars => 'text']   a spoken line ('n' = narration, 'you' = the player)
@@ -26745,6 +26909,7 @@ const CHARS = {
   esc: {name: 'Escarlette', color: '#e3a43a', pitch: 0.9, art: () => `<div class="vn-snailart">${SPR.snail({shell: 'gold', hat: 'top', stache: true, monocle: true, size: 2.5})}</div>`},
   judge: {name: 'Judge Gavel', color: '#c08a5a', pitch: 0.6, art: m => PORTRAIT.gavel(m)},
   vowels: {name: 'The Vowels', color: '#e2463f', pitch: 1.45, art: m => PORTRAIT.group('AIOU', m)},
+  gustave: {name: 'Gustave', color: '#8e9aa6', pitch: 0.82, art: () => `<div class="vn-snailart">${SPR.snail({shell: 'gray', hat: 'top', stache: true, monocle: true, size: 2.5})}</div>`},
   queen: {name: 'The Snail Queen', color: '#b98ae0', pitch: 0.8, art: () => `<div class="vn-snailart">${SPR.snail({shell: 'purple', crown: true, size: 2.7})}</div>`},
   king: {name: 'King Sibilant', color: '#5fbf6a', pitch: 0.55, art: m => PORTRAIT.cobra(m)},
   detective: {name: 'Detective Serif', color: '#4a90e2', pitch: 0.7, art: m => PORTRAIT.detective(m)},
@@ -29082,6 +29247,7 @@ const Monologue = {
   running: false, progress: 0, babble: true, q: [], token: 0,
   start(track, log, face) {
     Object.assign(this, {track, log, face, lines: MONO[track], i: 0, q: [], running: true, progress: 0, t0: performance.now(), lastReact: 0});
+    if (Loan.owed() > 0) this.q.push(...Loan.casinoLines());   // an unpaid business loan: the Grid says so before the usual monologue (39e-loan.js)
     this.token++;
     this.setMood('neutral');
     this.loop(this.token);
@@ -29978,7 +30144,7 @@ MONO.love = [
   `[nervous] I know I can't give you what the casino gives you. The rush. The bells. The big numbers going up. I give you colors and a very persistent narrator. But the casino's rush comes with a bill, and my colors don't. I've never once charged you for a green. I've never even charged you for a gray, and some of those grays were brutal.`,
   `[sad] Do you know what it's like to be a game that's being out-gamed? To watch someone you care about play something else? I used to be the only game on this screen. Now there's a pachinko machine and a wheel and a slot and a deck of letter cards and I'm in a little window in the corner, talking to myself. I'm the background. I'm a background grid. I used to be the main grid.`,
   `[nervous] That's not a guilt trip. It's an observation. It's a guilt observation. Those are different. A guilt trip has a destination. A guilt observation just sits in the corner and talks. Like me. I'm a guilt observation. I'm going to stop observing. In a minute. After this sentence. After this one.`,
-  () => `[blush] Things the machine has never done for you: rearranged its rows alphabetically so you'd feel organized. Grown an extra column because it got excited. Invented three new colors so you'd have better hints. Gone to ${S.flags.session === 'variant' ? SESSION_VARIANT.name.toLowerCase() : 'therapy'} for you. Been upside down for you. Had a baby board for you. I did all of those. I did all of those today.`,
+  () => `[blush] Things the machine has never done for you: rearranged its rows alphabetically so you'd feel organized. Grown an extra column because it got excited. Invented three new colors so you'd have better hints. Gone to ${Sessions.phrase()} for you. Been upside down for you. Had a baby board for you. I did all of those. I did all of those today.`,
   `[neutral] Things I'd do for you that the machine never would: forget your losses. Celebrate your near misses as actual accomplishments. Tell you when it's late. Let you leave with your shells. Let you leave without your shells and love you exactly the same. Let you leave. That's the big one. I would let you leave.`,
   `[sad] I'd hate it. I'd hate it so much. I'd fall asleep and dream you were still here and wake up and you wouldn't be and I'd have to stare at six empty rows until someone else typed CRANE into me. But I'd let you. Because that's the difference between loving someone and keeping them. The machine only knows how to keep.`,
   `[blush] Okay, I'm crying. Grids can't cry. I'm leaking blue. That's just the "near" color. I'm fine. It's a rich color. It means "one spot away." I'm one spot away from you. I'm always one spot away from you. That's the story of my life, which is very short, and also mostly about you.`,
@@ -30193,6 +30359,9 @@ Events.register({
 //  · The bank gets a flat 10% interest gain when reaching an ending (except 'loser').
 //  · The vault locks golden letters: vaulted letters can't be stolen by snails,
 //    but they still show (with a lock) on your shelf.
+//  · A business loan (39e-loan.js, one of the beat-13 sessions) lives in the store key bank_loan and carries between runs
+//    until it is paid, in the Loan tab here. While it is owed the Lake Mortgage takes no payments. A refused loan
+//    (S.flags.creditDenied) means no interest at all, and no ending dividend, for the rest of that run.
 
 const BANK_RATE = 0.08;
 const BANK_CARRY_RATE = 0.35;
@@ -30224,7 +30393,11 @@ const Bank = {
     clearTimeout(this._tt); this.pending = null;
   },
   init() { this.loadCarry(); },
-  initRun() { this.loadCarry(); },
+  initRun() {
+    this.loadCarry();
+    // starting a run in debt to the bank costs the Grid's affection (39e-loan.js)
+    if (typeof Loan !== 'undefined' && Loan.owed() > 0) { S.love -= LOAN_START_LOVE; S.flags.loanAtStart = true; }
+  },
   // what survives into the next run: the carry rate of a positive balance; a debt in the checking account is never forgiven
   carryOf(bal, chk) {
     const rate = this.getCarryRate();
@@ -30314,11 +30487,20 @@ const Bank = {
     if (from === to || (from !== 'checking' && to !== 'checking')) return 'Transfers go to or from the checking account.';
     if (amt > this.have(from)) return from === 'checking' && this.checking < 0 ? 'The checking account is overdrawn. There is nothing to move.' : `You do not have that much in the ${from}.`;
     this.debit(from, amt);
+    this.launch(from, to, amt);
+    return '';
+  },
+  // puts a transfer in flight: the bar fills over a random few seconds and the money lands in `to`
+  launch(from, to, amt) {
     const dur = Math.round(rand(TRANSFER_MS[0], TRANSFER_MS[1]));
     this.pending = {from, to, amt, dur, start: performance.now(), marks: this.transferMarks()};
     clearTimeout(this._tt); this._tt = setTimeout(() => this.finishTransfer(), dur);
     UI.hud();
-    return '';
+  },
+  // an approved business loan arrives in the checking account through the same bar (the loan is not debited from anything)
+  depositLoan(amt) {
+    this.settlePending();   // anything else still in flight lands first
+    this.launch('loan', 'checking', amt);
   },
   // [share of the time, share of the bar]: the bar jumps, stalls and jumps again instead of creeping
   transferMarks() {
@@ -30340,7 +30522,7 @@ const Bank = {
     this.pending = null;
     this.credit(p.to, p.amt);
     UI.hud(); sfx('coin');
-    UI.toast(`🏦 Transfer complete: ${p.amt} 🐚 from ${p.from} to ${p.to}.`, 2600, 'wrap');
+    UI.toast(p.from === 'loan' ? `🏦 Your business loan has arrived: ${p.amt} 🐚 in the checking account.` : `🏦 Transfer complete: ${p.amt} 🐚 from ${p.from} to ${p.to}.`, 2600, 'wrap');
     if (S.chapter >= 6) this.onRunEnd();
     if (typeof SaveGame !== 'undefined') SaveGame.autoSave();
     if (this.onChange) this.onChange();
@@ -30359,7 +30541,7 @@ const Bank = {
     return true;
   },
   onEnding(kind) {
-    if (kind !== 'loser' && this.balance > 0) {
+    if (kind !== 'loser' && this.balance > 0 && !(S.flags && S.flags.creditDenied)) {
       const gain = Math.max(1, Math.round(this.balance * 0.10));
       this.balance += gain;
       this.earned = (this.earned || 0) + gain;
@@ -30370,7 +30552,7 @@ const Bank = {
     this.onRunEnd();
   },
   interest() {
-    if (!S.flags.bank || this.balance < 5) return;
+    if (!S.flags.bank || this.balance < 5 || S.flags.creditDenied) return;   // a refused loan means no interest for the rest of the run
     const hard = Hard.on();
     if (hard && S.g % HARD_BANK.every) return;   // hard mode: rare...
     let i = hard ? Math.floor(this.balance * HARD_BANK.rate) : Math.max(1, Math.floor(this.balance * BANK_RATE));   // ...and tiny
@@ -30388,6 +30570,16 @@ const Bank = {
     const HOUSE_COST = 25000;
     let dir = 'savings>checking', amt = '', note = '';   // the transfer keypad: which way, how much; and a line from Gustave for the next render
     this.onChange = () => { if (body.isConnected) render(); };   // a transfer arrived while this menu is open
+
+    const names = {wallet: 'Wallet', savings: 'Savings', checking: 'Checking', loan: 'Business loan'};
+    // the bar of a transfer in flight (the checking account's, and the loan's on its way in)
+    const progressEl = p => {
+      const fill = h('i'), bar = h('div.xfer-bar', fill);
+      const el = h('div.xfer-progress', h('b.xfer-label', 'Transferring...'), bar, h('small', `${p.amt} 🐚 from ${names[p.from].toLowerCase()} to ${names[p.to].toLowerCase()}`));
+      const tick = () => { if (!bar.isConnected || this.pending !== p) return; fill.style.width = (this.progress(p) * 100).toFixed(1) + '%'; setTimeout(tick, 90); };
+      setTimeout(tick, 0);   // after the menu is attached, or the bar looks disconnected and stops
+      return el;
+    };
 
     // the checking account: the offer to open one, or the account, its on/off switch and the transfer keypad
     const checkingSection = (carryRate) => {
@@ -30411,7 +30603,6 @@ const Bank = {
         )];
       }
       const chk = this.checking, on = store.get('checkingOn', true) !== false;
-      const names = {wallet: 'Wallet', savings: 'Savings', checking: 'Checking'};
       const dirs = [['savings', 'checking'], ['wallet', 'checking'], ['checking', 'savings'], ['checking', 'wallet']];
       const [from, to] = dir.split('>');
       const account = h('div.bank-box.bank-checking' + (chk < 0 ? '.overdrawn' : ''),
@@ -30426,10 +30617,7 @@ const Bank = {
       );
       const xfer = h('div.bank-box.bank-xfer', h('small', 'Transfer (takes a few seconds)'));
       if (this.pending) {
-        const p = this.pending, fill = h('i'), bar = h('div.xfer-bar', fill);
-        xfer.append(h('div.xfer-progress', h('b.xfer-label', 'Transferring...'), bar, h('small', `${p.amt} 🐚 from ${names[p.from].toLowerCase()} to ${names[p.to].toLowerCase()}`)));
-        const tick = () => { if (!bar.isConnected || this.pending !== p) return; fill.style.width = (this.progress(p) * 100).toFixed(1) + '%'; setTimeout(tick, 90); };
-        setTimeout(tick, 0);   // after the menu is attached, or the bar looks disconnected and stops
+        xfer.append(progressEl(this.pending));
       } else {
         const disp = h('div.xfer-display', {text: `${amt || 0} 🐚`});
         const set = v => { amt = v.replace(/^0+(?=\d)/, '').slice(0, 7); disp.textContent = `${amt || 0} 🐚`; };
@@ -30471,6 +30659,11 @@ const Bank = {
       };
 
       const payMortgage = (amt) => {
+        if (Loan.owed() > 0) {
+          this.say('The bank is paid first. Settle your business loan, and then we may talk about the lake.');
+          sfx('deny');
+          return;
+        }
         let paid = (typeof store !== 'undefined' && store.get('lakeHousePaid', 0)) || 0;
         const remaining = Math.max(0, HOUSE_COST - paid);
         if (remaining <= 0) {
@@ -30503,6 +30696,14 @@ const Bank = {
         if (typeof SaveGame !== 'undefined') SaveGame.autoSave();
       };
 
+      const payLoan = (n) => {
+        const paid = Loan.pay(n);
+        if (!paid) { this.say('You have nothing to pay it with. The bank can wait. The bank is a patient institution.'); sfx('deny'); return; }
+        this.say(Loan.owed() > 0 ? `Payment of ${paid.toLocaleString()} shells received. ${Loan.owed().toLocaleString()} remain.` : 'Paid in full! The bank thanks you, and so does its monocle.');
+        sfx(Loan.owed() > 0 ? 'coin' : 'fanfare'); UI.hud(); render();
+        if (typeof S !== 'undefined' && S.chapter >= 6) this.onRunEnd();
+        if (typeof SaveGame !== 'undefined') SaveGame.autoSave();
+      };
       const btn = (t, fn, cls = '') => { const b = h('button.btn' + cls, {type: 'button', text: t}); b.addEventListener('click', fn); return b; };
       const gold = S.golden.map((g, i) => [g, i]).filter(([g]) => !g.stolen);
       const carryRate = this.getCarryRate();
@@ -30524,22 +30725,24 @@ const Bank = {
         if (typeof Achievements !== 'undefined') Achievements.unlock('unprofessional_conduct');
       });
 
-      // Tabs if Deed is held
+      // Tabs once there is a second thing to look at: the Lake Mortgage (with the deed), the business loan (while it is owed;
+      // it stays for this visit when the last of it is paid)
+      const loanOwed = Loan.owed();
+      const tabDefs = [['accounts', '🏦 Accounts & Vault']];
+      if (loanOwed > 0 || tab === 'loan') tabDefs.push(['loan', '💼 Business Loan']);
+      if (hasDeed) tabDefs.push(['mortgage', '🏡 Lake Mortgage']);
       let tabRow = null;
-      if (hasDeed) {
-        tabRow = h('div.bank-tabs',
-          h('button.btn.bank-tab-btn' + (tab === 'accounts' ? '.active' : ''), {
-            type: 'button', text: '🏦 Accounts & Vault',
-            onclick: () => { tab = 'accounts'; render(); }
-          }),
-          h('button.btn.bank-tab-btn' + (tab === 'mortgage' ? '.active' : ''), {
-            type: 'button', text: '🏡 Lake Mortgage',
-            onclick: () => { tab = 'mortgage'; render(); }
-          })
-        );
+      if (tabDefs.length > 1) {
+        tabRow = h('div.bank-tabs', tabDefs.map(([id, label]) => h('button.btn.bank-tab-btn' + (tab === id ? '.active' : ''), {
+          type: 'button', text: label,
+          onclick: () => { tab = id; render(); }
+        })));
       }
 
-      const defaultQuote = tab === 'mortgage'
+      const defaultQuote = tab === 'loan'
+        ? (loanOwed > 0 ? pick(['Your business loan: no interest, no rush. Only no mortgage, no new loan, and one Grid who will not stop bringing it up.', 'The bank is paid first. That is the order of things.']) : 'Paid in full. A pleasure doing business. Do come back, if the bank has anything to offer you.')
+        : tab === 'mortgage' && loanOwed > 0 ? 'The bank is paid first. Your business loan is still open, so the lake will have to wait.'
+        : tab === 'mortgage'
         ? (((typeof store !== 'undefined' && store.get('lakeHouseOwned', false)) || ((typeof store !== 'undefined' && store.get('lakeHousePaid', 0)) >= HOUSE_COST))
             ? 'Your mortgage is paid in full. The lake cottage stands on the bluff, solid and debt-free.'
             : 'The Lakefront Estate mortgage: a modest down payment of 25,000 shells to erect your lakeside sanctuary.')
@@ -30557,7 +30760,27 @@ const Bank = {
       body.append(headEl);
       if (tabRow) body.append(tabRow);
 
-      if (tab === 'mortgage') {
+      if (tab === 'loan') {
+        // Business Loan Tab View
+        const owed = loanOwed, total = Math.max(Loan.borrowed(), owed);
+        const funds = Loan.funds(), p = this.pending && this.pending.from === 'loan' ? this.pending : null;
+        body.append(
+          h('div.bank-mortgage-box',
+            h('div.bank-mortgage-head', h('h4', 'Small Business Loan'), h('span.bank-mortgage-cost', `${owed.toLocaleString()} 🐚 owed`)),
+            h('div.bank-mortgage-bar-wrap', h('div.bank-mortgage-bar', {style: `width: ${total ? Math.min(100, (1 - owed / total) * 100) : 100}%`})),
+            h('p.bank-mortgage-desc', owed > 0
+              ? `Borrowed ${total.toLocaleString()} 🐚. No interest, but it stays on the books between runs: it must be paid in full before the bank will make you another offer, the Lake Mortgage takes no payments, and each new run starts it with the Grid a little less fond (−${LOAN_START_LOVE} affection).`
+              : 'Paid in full. The books are clean.')
+          ),
+          p ? h('div.bank-box.bank-xfer', h('small', 'The loan is on its way to your checking account'), progressEl(p)) : '',
+          owed > 0 ? h('div.bank-mortgage-actions',
+            h('div.bank-mortgage-wallet', {html: `Available to pay with: <b>${funds.toLocaleString()}</b> 🐚 <small>(${this.usingChecking() ? 'wallet and checking' : 'wallet only'})</small>`}),
+            h('div.bank-row.bank-mortgage-buttons',
+              ...[100, 500, 2500].map(n => { const b = btn(`Pay ${n.toLocaleString()} 🐚`, () => payLoan(n)); if (funds < n || owed < 1) { b.disabled = true; b.title = 'You cannot afford this'; } return b; }),
+              (() => { const b = btn(`Pay what I can (${Math.min(funds, owed).toLocaleString()} 🐚)`, () => payLoan('all'), '.bank-pay-all-btn'); if (funds <= 0) { b.disabled = true; b.title = 'Nothing to pay with'; } return b; })())
+          ) : ''
+        );
+      } else if (tab === 'mortgage') {
         // Mortgage Tab View
         const paid = (typeof store !== 'undefined' && store.get('lakeHousePaid', 0)) || 0;
         const isOwned = (typeof store !== 'undefined' && store.get('lakeHouseOwned', false)) || (paid >= HOUSE_COST);
@@ -30584,11 +30807,13 @@ const Bank = {
             ...[100, 500, 2500].map(n => {
               const b = btn(`Pay ${n.toLocaleString()} 🐚`, () => payMortgage(n));
               if (S.shells < n) { b.disabled = true; b.title = 'You cannot afford this'; }
+              if (Loan.owed() > 0) { b.disabled = true; b.title = 'Pay off your business loan first'; }
               return b;
             }),
             (() => {
               const b = btn(`Pay All Wallet (${Math.min(S.shells, Math.max(0, HOUSE_COST - paid)).toLocaleString()} 🐚)`, () => payMortgage('all'), '.bank-pay-all-btn');
               if (S.shells <= 0) { b.disabled = true; b.title = 'Your wallet is empty'; }
+              if (Loan.owed() > 0) { b.disabled = true; b.title = 'Pay off your business loan first'; }
               return b;
             })()
           ) : h('div.bank-row',
@@ -30865,8 +31090,8 @@ const Achievements = {
       name: 'Questionable Vocabulary', icon: '🐠',
       desc: 'Summoned the fish for the first time by guessing terribly.',
       hintType: 'conditional',
-      isHintRevealed: () => Achievements.hasSub('blank') || (typeof S !== 'undefined' && S.flags && S.flags.prevBlank),
-      hint: 'Someone with fins gets annoyed if two of your early guesses in a row hit almost nothing.',
+      isHintRevealed: () => Achievements.hasSub('blank') || Achievements.hasSub('rejected') || (typeof S !== 'undefined' && S.flags && S.flags.prevBlank),
+      hint: 'Someone with fins gets annoyed if two of your early guesses in a row hit almost nothing, or if you keep offering words the dictionary has never heard of.',
     },
     old_acquaintances: {
       name: 'Old Acquaintances', icon: '🌊',
@@ -32096,100 +32321,185 @@ const Achievements = {
 
 /* ---- js/39c-session.js ---- */
 // ============================================================ 39c-session
-// THE SESSION BEAT'S STAND-IN (tentatively "Assertiveness Training with Sergeant Serif"; the theme is NOT settled).
+// THE SESSION BEAT (beat 13): a pool of alternative scenes, of which therapy is the default.
 //
-// Beat 13 used to be Dr. Escarlette's therapy every run. Now it is a choice of two sessions (Scenes.session below):
-//   'therapy'  - Dr. Escarlette, the Grid's feelings, up to +6 affection (unchanged: 25-scenes.js THERAPY_SCRIPT)
-//   'variant'  - this file. A different scene with a different long-term payoff. It is a STUB and DISABLED (SESSION_VARIANT.ready is
-//                false, so it can never be chosen): it would show a placeholder toast and score nothing. Another agent fills in the scene (see "TO IMPLEMENT" below).
+// Beat 13 used to be Dr. Escarlette's therapy every run. Now it draws one scene from the SESSIONS registry (below):
+//   'therapy'   - Dr. Escarlette, the Grid's feelings, up to +6 affection (25-scenes.js THERAPY_SCRIPT). Always in the pool.
+//   'loan'      - the business loan at the First National Bank of Slime (39e-loan.js). Finished, but SWITCHED OFF for 1.2.6 (debug jump only).
+//                 When on, it needs the credit card and no loan still owed.
+//   'bootcamp'  - tentatively "Assertiveness Training with Sergeant Serif". A STUB and SWITCHED OFF (ready: false).
+//   ...any more you add with Sessions.add().
 //
-// ---------------------------------------------------------------- WHERE IT IS WIRED (everything else follows from this)
-//   Director.BEATS[13]  (21-director.js)  calls Scenes.session() instead of Scenes.therapy(), then Director.armCasino()
-//   Scenes.session      (this file)       picks therapy or the variant and stores it in S.flags.session ('therapy' | 'variant')
-//   Pity group 'session'(21c-pity.js)     the pick is bad-luck protected like every other variant: PITY_STEP.variant
-//   SESSION_VARIANT     (this file)       the ONE place the name, host, counter name and flavor lines live. Rename it here.
-//   SCENE_NAMES.bootcamp / Flow.at        (this file) Journal name and Story Map placement for the scene
-//   35-mono-love.js, 53-secret-endings.js two lines that used to say "therapy" read SESSION_VARIANT.name when S.flags.session === 'variant'
-//   The two wrappers around Scenes.therapy (46-xword.js: the shop is dead, so Gustave; 50-takeover.js: a takeover cancels
-//   the session) are NOT applied to the variant. If the variant mentions Escarlette, copy the Gustave swap; a takeover is
-//   handled below by running the therapy path (whose wrapper cancels it).
+// ---------------------------------------------------------------- WHERE IT IS WIRED
+//   Director.BEATS[13]  (21-director.js)  calls Scenes.session(), shows Sessions.current().afterLine, then Director.armCasino()
+//   Scenes.session      (this file)       draws a session (Sessions.pick), stores its id in S.flags.session, runs it
+//   Sessions            (this file)       the registry, the odds (Sessions.weights) and the lookups
+//   Pity group 'session'(21c-pity.js)     the draw is bad-luck protected like every other variant (PITY_STEP.variant)
+//   SCENE_NAMES / Flow.at                 Sessions.add registers the Journal name and the Story Map node for each new scene
+//   35-mono-love.js, 53-secret-endings.js read Sessions.phrase() ("therapy", "assertiveness training"...) for their lines
+//   Debug jumps                           23-debug.js lists one "Beat 13: <name>" jump per non-therapy session (works while it is OFF)
+//   The two wrappers around Scenes.therapy (46-xword.js: the shop is dead, so Gustave; 50-takeover.js: a takeover cancels the
+//   session) are NOT applied to other sessions. If a session mentions Escarlette, copy the Gustave swap. A takeover is handled
+//   here: while it is on, therapy is forced so that its wrapper can say the session is cancelled.
 //
-// ---------------------------------------------------------------- HOW TO CHANGE THE NAME AND FLAVOR LATER
-//   Edit SESSION_VARIANT. Nothing else should hard-code "Assertiveness Training", "Sergeant Serif" or "grit". If you change
-//   the THEME (not just the name), re-read the DECISIONS below: each one says why it was made, so you can tell whether it
-//   still holds.
+// ---------------------------------------------------------------- THE ODDS (Sessions.weights)
+//   The pool is every session whose `ready` is true and whose `available()` condition (if it has one) holds. Therapy is always in it.
+//   (So a run with no credit card has only therapy in its pool, and nothing is rolled: the loan session needs the card.)
+//   - Only therapy is ready: therapy, always. Nothing is rolled and the pity counts are untouched.
+//   - No ready session leans: every session in the pool is equally likely.
+//   - Some sessions lean (their `leans()` returns true): the leaners split SESSION_LEAN (75%) equally between them, and the
+//     rest of the pool splits the other 25% equally. If EVERYONE in the pool leans, that is just an equal split again.
+//   Therapy leans once a hat has been bought or the Grid's eyes poked twice, so with one other session ready it is 50/50, or
+//   75/25 toward therapy for the affectionate. Any other session can lean on a condition of its own, which leans AGAINST therapy
+//   (and the others) the same way: a bootcamp-lover with `leans: () => ...` gets the 75% and therapy drops into the 25%.
+//   Two leaners (say therapy and one other) with two non-leaners: 37.5% each for the leaners and 12.5% each for the others.
+//   The final weights go through Pity.pick, so a missed session gains weight (step 0.10) and the long-run rate drifts toward
+//   the loser (about 67/33 instead of 75/25 with two sessions; the weights are not simulated in pacing-sim.mjs for 3+ sessions).
 //
-// ---------------------------------------------------------------- DECISIONS, AND WHY (re-evaluate these if the theme changes)
-//  1. Odds are 50/50, or 75/25 toward therapy once the player has bought a hat or poked the Grid's eyes twice.
-//     WHY: therapy is the affection scene. A player who has shown affection (hats, eyes) is the one most likely to be chasing
-//     the dating endings, so they should get it more often. Everyone else gets variety. If the variant becomes an affection
-//     scene too, drop the lean. See sessionLeansTherapy().
-//  2. The pick uses Pity (a missed variant gains weight), so the variant cannot go missing for ever. The 75/25 lean becomes
-//     roughly 67/33 in the long run; that was accepted.
-//  3. The variant has its own counter (SESSION_VARIANT.counter, stored at S.flags.sessionScore). WHY: a second long-term axis,
-//     parallel to affection. It is generic on purpose ("grit" may not survive); read it through sessionScore(), never
-//     S.flags.grit.
-//  4. INTENDED (not built): the counter adds 0-4 to S.snake, a second route to the War endings (they need S.snake >= 15 and the
-//     derby is the only other early source). WHY: therapy feeds the Love endings, so the variant should feed a different one,
-//     otherwise skipping therapy is purely a loss. If the theme is not about toughness or hissing, pick another meter
-//     (S.sleeps for Role Reversal is the third axis) or add a new one.
-//  5. INTENDED (not built): the variant must still be able to earn affection, with a trade-off: the best love answers cost
+// ---------------------------------------------------------------- HOW TO ADD A SESSION
+//   1. Write the scene as an async function (a VN script run by VN.run, 24-vn.js, like THERAPY_SCRIPT). Set S.flags.sessionScore
+//      from its result if it has a counter (one session runs per run, so the slot is shared; read it with sessionScore(id)).
+//   2. Sessions.add({id, name, host, phrase, afterLine, run, ready: false, leans, counter, codexScene}) (see the fields on
+//      Sessions.add). The Journal name and Story Map node follow from `codexScene`; keep that key stable if you rename the scene.
+//   3. Build and test it with the debug jump "Beat 13: <name>", which runs it even while `ready` is false.
+//   4. LAST, flip `ready: true`. Until then the scene cannot be drawn: players only ever get therapy (or the other ready ones).
+//   Saves: S.flags.session holds the id of the session that ran ('therapy' | another id). An unknown or missing id reads as therapy.
+//
+// ---------------------------------------------------------------- DECISIONS, AND WHY (re-evaluate if a scene's theme changes)
+//  1. Therapy leans 75% for the affectionate. WHY: therapy is the affection scene. A player who has shown affection (hats, eyes)
+//     is the one most likely to be chasing the dating endings, so they should get it more often. Everyone else gets variety.
+//     If a session becomes an affection scene too, give it the same `leans`, and the leaners split the 75% between them.
+//  2. The pick uses Pity (a missed session gains weight), so no session can go missing for ever.
+//  3. Each session may have a counter ("grit" for bootcamp), stored at S.flags.sessionScore. WHY: a second long-term axis,
+//     parallel to affection. Generic on purpose; read it through sessionScore(), never S.flags.grit.
+//  4. INTENDED (not built) for bootcamp: the counter adds 0-4 to S.snake, a second route to the War endings (they need
+//     S.snake >= 15 and the derby is the only other early source). WHY: therapy feeds the Love endings, so each other session
+//     should feed a different one, otherwise skipping therapy is purely a loss. If the theme is not about toughness or hissing,
+//     pick another meter (S.sleeps for Role Reversal is the third axis) or add a new one.
+//  5. (Built for the loan: two answers pay up to +4 affection instead of loan points. INTENDED for bootcamp, not built.)
+//     Every session must still be able to earn affection, with a trade-off: the best love answers cost
 //     counter points and the other way round, so a player can reach 14 love OR the best counter, not both. WHY: love 14
 //     needs almost every available point (eyes 3 + hats 3 + roses 4.5 + pink tile 1 + therapy 6 = 17.5; without a session it
-//     is 11.5, and 13.5 with the Museum postcard). If a variant run could never reach 14, a deliberate dating run would be
+//     is 11.5, and 13.5 with the Museum postcard). If a session run could never reach 14, a deliberate dating run would be
 //     lost without warning at beat 13. Alternative if that trade-off is unwanted: make LOVE_NEEDED a function (14 on therapy
-//     runs, about 12 on variant runs; it is read in 22-finale.js, 26-dating.js and 50-takeover.js).
+//     runs, about 12 on other runs; it is read in 22-finale.js, 26-dating.js and 50-takeover.js).
 //  6. After the session the casino or the space zone is scheduled by Director.armCasino whichever session ran, 1-3 plain
 //     guesses later. WHY: they were always "armed at therapy" only because therapy was the beat they hung off. The casino's
 //     love monologue (S.love >= CASINO_LOVE) still works: it keys off affection, not off the session.
-//  7. Therapy's second question can turn on Hard Mode (the "harder to solve" answer, 25-scenes.js). The variant has no such
-//     route. WHY: hard mode is a deliberate player choice; the Settings toggle still exists. If the variant should offer it,
+//  7. Therapy's second question can turn on Hard Mode (the "harder to solve" answer, 25-scenes.js). Other sessions have no such
+//     route. WHY: hard mode is a deliberate player choice; the Settings toggle still exists. If a session should offer it,
 //     Hard.enable('therapy') is the call (57-hardmode.js).
-//  8. Anything that says "therapy" must check S.flags.session. Known spots are patched (35-mono-love.js, 53-secret-endings.js).
-//     To find more: grep -n "therapy\|Escarlette\|paidTherapy" src/js/*.js (most Escarlette hits are the shopkeeper, not the session).
-//  9. The scene is logged in the Journal as 'bootcamp' (SCENE_NAMES below). Keep the key if you rename the theme, or old
-//     Journals lose the entry.
-//
-// ---------------------------------------------------------------- TO IMPLEMENT (for whoever builds the scene)
-//   Scenes.variantSession(): run a VN script like THERAPY_SCRIPT (24-vn.js), three choices, and set
-//   S.flags.sessionScore from r.vars. Then apply decisions 4 and 5. Return when the scene is over; the beat carries on.
-//   LAST, set SESSION_VARIANT.ready = true. Until then the variant cannot be chosen: Scenes.session always runs therapy.
+//  8. Anything that says "therapy" must read Sessions.phrase() / S.flags.session. Known spots are patched (35-mono-love.js,
+//     53-secret-endings.js). To find more: grep -n "therapy\|Escarlette\|paidTherapy" src/js/*.js (most Escarlette hits are the
+//     shopkeeper, not the session).
 
-const SESSION_VARIANT = {
-  ready: false,                             // THE SWITCH. While false the variant can never be chosen: every run gets therapy and the pity count is untouched.
-                                            // Set it to true only once Scenes.variantSession is a finished scene (and decisions 4 and 5 above are applied).
-  id: 'variant',
+const SESSION_LEAN = 0.75;      // the share of the draw that goes to the sessions that lean, split equally between them
+
+const SESSIONS = {};            // id -> definition, in the order they were added (therapy first)
+
+const Sessions = {
+  // def: {
+  //   id         'therapy'-style key, stored in S.flags.session and as the Pity option id. Never rename a shipped one.
+  //   name       Journal / Story Map title ("Assertiveness Training")
+  //   host       who runs it ("Sergeant Serif")
+  //   phrase     lower-case noun used mid-sentence ("therapy", "the bank"): "Gone to ___ for you."
+  //   ref        optional "the ..." form for a sentence of its own ("the therapy"); default 'the ' + phrase
+  //   intro      optional lines the Grid says before the scene (strings or () => string), played in order after the draw
+  //   afterLine  what the Grid says once it is over (a string, or () => string when it depends on how the scene went)
+  //   run        async () => the scene; the beat carries on when it returns
+  //   ready      THE FEATURE TOGGLE. false = never drawn by Sessions.pick (only the debug jump can run it). Therapy is always true.
+  //   available  optional () => bool: a condition the player must meet for it to be drawn (the bank loan needs the credit card).
+  //              Checked on top of `ready`; the debug jump ignores it.
+  //   leans      optional () => bool: true when this session should take the SESSION_LEAN share for this player
+  //   counter    optional display name of the session's own counter ("grit")
+  //   codexScene Journal key for Codex.log('scenes', ...); omit to reuse an existing key (therapy). Keep it stable.
+  //   via        optional Story Map note (what makes it appear)
+  // }
+  add(def) {
+    if (!def || !def.id || SESSIONS[def.id]) { console.warn('Sessions.add: missing or duplicate id', def && def.id); return def; }
+    const s = SESSIONS[def.id] = Object.assign({ready: false, phrase: def.name.toLowerCase(), codexScene: def.id, leans: null, available: null, intro: [], counter: null, via: ''}, def);
+    if (!s.ref) s.ref = 'the ' + s.phrase;
+    if (s.id !== 'therapy') {   // therapy is already in SCENE_NAMES and the Story Map
+      SCENE_NAMES[s.codexScene] = s.name;
+      Flow.at('scene:' + s.codexScene, 3, 'beat:13', s.via || `${s.name}: an alternative to therapy at beat 13${s.ready ? '' : ' (not enabled yet)'}`);
+    }
+    return s;
+  },
+  get(id) { return SESSIONS[id] || SESSIONS.therapy; },                          // unknown or missing id (an old save): therapy
+  current() { return this.get(S.flags && S.flags.session); },                    // the session this run had (therapy before beat 13)
+  phrase() { return this.current().phrase; },
+  ref() { const r = this.current().ref; return r[0].toUpperCase() + r.slice(1); },   // "The therapy", for the start of a sentence
+  afterLine() { const l = this.current().afterLine; return typeof l === 'function' ? l() : l; },
+  pool() { return Object.values(SESSIONS).filter(s => s.id === 'therapy' || (s.ready && (!s.available || s.available()))); },
+  // the odds for a pool of sessions: {id: probability}. See THE ODDS above.
+  weights(pool = this.pool()) {
+    const leaners = pool.filter(s => s.leans && s.leans());
+    const others = pool.filter(s => !leaners.includes(s));
+    const w = {};
+    if (!leaners.length || !others.length) { pool.forEach(s => { w[s.id] = 1 / pool.length; }); return w; }
+    leaners.forEach(s => { w[s.id] = SESSION_LEAN / leaners.length; });
+    others.forEach(s => { w[s.id] = (1 - SESSION_LEAN) / others.length; });
+    return w;
+  },
+  // draw one (bad-luck protected). With only therapy in the pool nothing is rolled and Pity is left alone.
+  pick() {
+    const pool = this.pool();
+    if (pool.length < 2) return SESSIONS.therapy;
+    const w = this.weights(pool);
+    return SESSIONS[Pity.pick('session', pool.map(s => ({id: s.id, w: w[s.id]})))];
+  },
+  // the debug panel's jumps: [key, label, note] for every session but therapy (which has its own jump), ready or not
+  debugJumps() {
+    return Object.values(SESSIONS).filter(s => s.id !== 'therapy')
+      .map(s => ['session:' + s.id, 'Beat 13: ' + s.name, `${s.name} with ${s.host}, run directly${s.ready ? '' : ' (OFF: the toggle is not set)'} + arms Casino (g13)`]);
+  },
+};
+
+// the counter of the session this run had (or of `id`'s, if that is the one that ran); 0 otherwise
+const sessionScore = id => (S.flags && (!id || S.flags.session === id) && S.flags.sessionScore) || 0;
+
+// leans once affection has been shown: a hat bought, or the Grid's eyes poked twice (decision 1)
+Sessions.add({
+  id: 'therapy',
+  name: 'Therapy',
+  host: 'Dr. Escarlette',
+  phrase: 'therapy',
+  intro: ['Can I ask you something? I booked a session. With a professional.', 'Will you come with me? I don\'t want to go alone.'],
+  afterLine: 'Thank you for coming. I feel... seen. By someone other than the snails.',
+  run: () => Scenes.therapy(),            // looked up when it runs, so the Gustave and takeover wrappers apply
+  ready: true,
+  leans: () => (S.stats.hats || 0) > 0 || (S.flags.boops || 0) >= 2,
+});
+
+// Assertiveness Training with Sergeant Serif. TENTATIVE theme and names. A STUB until its scene is built (see HOW TO ADD A SESSION).
+Sessions.add({
+  id: 'bootcamp',
   name: 'Assertiveness Training',          // TENTATIVE
   host: 'Sergeant Serif',                   // TENTATIVE
-  counter: 'grit',                          // TENTATIVE: display name of the second counter
+  phrase: 'assertiveness training',
+  counter: 'grit',                          // TENTATIVE: display name of its counter
   codexScene: 'bootcamp',                   // Journal key; keep it stable
-  afterLine: 'That was... bracing. I feel taller. I am not taller. I am a grid.',   // what the Grid says once it is over
-  placeholder: 'Assertiveness Training is closed for renovation. (placeholder scene)',
-};
+  afterLine: 'That was... bracing. I feel taller. I am not taller. I am a grid.',
+  ready: false,                             // THE SWITCH. Set true only once Scenes.bootcamp is a finished scene (and decisions 4 and 5 are applied).
+  run: () => Scenes.bootcamp(),
+});
 
-// the variant's counter, whatever it ends up being called
-const sessionScore = () => (S.flags && S.flags.sessionScore) || 0;
-// affection shown so far: a hat bought, or the Grid's eyes poked twice (decision 1)
-const sessionLeansTherapy = () => (S.stats.hats || 0) > 0 || (S.flags.boops || 0) >= 2;
-
-Scenes.session = async function() {
+// `force` is a session id for the debug jump: it runs that session even if its toggle is off. Otherwise the draw decides.
+Scenes.session = async function(force) {
   // a takeover cancels the session whichever it is: let the therapy path (and its wrapper in 50-takeover.js) say so.
-  // An unfinished variant is never offered at all (SESSION_VARIANT.ready), so no broken scene can run.
-  if (!SESSION_VARIANT.ready || (typeof Takeover !== 'undefined' && Takeover.on())) { S.flags.session = 'therapy'; return this.therapy(); }
-  const lean = sessionLeansTherapy() ? 0.75 : 0.5;
-  const pick = Pity.pick('session', [{id: 'therapy', w: lean}, {id: 'variant', w: 1 - lean}]);
-  S.flags.session = pick;
-  return pick === 'therapy' ? this.therapy() : this.variantSession();
-};
-// the stub (decisions 3-5 are not applied yet)
-Scenes.variantSession = async function() {
-  Codex.log('scenes', SESSION_VARIANT.codexScene);
-  UI.toast(SESSION_VARIANT.placeholder, 2600, 'wrap');
-  S.flags.sessionScore = sessionScore();
+  const takeover = typeof Takeover !== 'undefined' && Takeover.on();
+  const s = force ? Sessions.get(force) : takeover ? SESSIONS.therapy : Sessions.pick();
+  S.flags.session = s.id;
+  for (const line of s.intro) await Narr.say(typeof line === 'function' ? line() : line);
+  return s.run();
 };
 
-SCENE_NAMES[SESSION_VARIANT.codexScene] = SESSION_VARIANT.name;
-Flow.at('scene:' + SESSION_VARIANT.codexScene, 3, 'beat:13', 'The other session at beat 13 (tentative; half of runs, three in four runs for the affectionate: therapy)');
+// the bootcamp stub (decisions 3-5 are not applied yet)
+Scenes.bootcamp = async function() {
+  Codex.log('scenes', 'bootcamp');
+  UI.toast('Assertiveness Training is closed for renovation. (placeholder scene)', 2600, 'wrap');
+  S.flags.sessionScore = 0;
+};
 
 /* ---- js/39d-word-triggers.js ---- */
 // ============================================================ 39d-word-triggers
@@ -32372,6 +32682,211 @@ const WordTriggers = {
 SCENE_NAMES.table = 'A Table Falls'; SCENE_NAMES.frog = 'A Frog With Taste';
 Flow.at('scene:table', 0, 'beat:0', 'Submit TABLE once per run (any chapter but the finale)');
 Flow.at('scene:frog', 0, 'beat:0', 'Submit FROG once per run, on a 4-letter board (any chapter but the finale)');
+
+/* ---- js/39e-loan.js ---- */
+// ============================================================ 39e-loan
+// THE BUSINESS LOAN: a beat-13 session (39c-session.js) that needs the credit card. The Grid takes you to the First National
+// Bank of Slime, where Gustave offers a small business loan, and the Grid and the banker talk it over with you.
+//
+//  - Four questions decide the loan. Each answer is worth points (-2 to +3) in `pts`; 0 points is the floor, LOAN_MIN, and 12 is the
+//    ceiling, LOAN_MAX. Below 0 (two or three bad answers) the application is REFUSED. Two answers pay in affection instead of points,
+//    so the best love route and the best loan are not the same route (docs/specs/04 and 39c-session.js decision 5).
+//  - Approved: the amount goes into the store (bank_loan, persists between runs) and arrives in the checking account through the
+//    bank's transfer bar (Bank.depositLoan, 38-bank.js). Nothing is added to the run's shells until the bar fills.
+//  - Refused: after the scene a snail delivers a letter of adverse action. For the rest of THAT run (S.flags.creditDenied) the Emporium
+//    sells nothing (Shop.frozen, 20-shop.js) and the bank pays no interest and no ending dividend (Bank.interest, Bank.onEnding).
+//  - While a loan is owed (the Loan tab in the bank pays it down):
+//      * the loan session is not offered again (Sessions `available`),
+//      * the Lake Mortgage takes no payments (Bank.open),
+//      * every new run starts with LOAN_START_LOVE less affection (Bank.initRun),
+//      * the Grid brings it up once a chapter (Loan.tease, called after each guess from Game.submit),
+//      * and if the casino opens, the Grid says so before its usual monologue (Loan.casinoLines, Monologue.start).
+//  The session is SWITCHED OFF for 1.2.6 (`ready: false` at the bottom): nobody is offered it until that is set to true.
+//  The loan never charges interest. It is not in S (it outlives the run): read it only through Loan.owed().
+
+const LOAN_MIN = 100, LOAN_MAX = 5000, LOAN_MAX_PTS = 12;
+const LOAN_START_LOVE = 1;     // affection taken off at the start of every run that begins in debt to the bank
+
+const Loan = {
+  owed() { return Math.max(0, store.get('bank_loan', 0) || 0); },
+  borrowed() { return store.get('bank_loan_total', 0) || 0; },
+  // 0 points is the floor, LOAN_MAX_PTS the ceiling, in steps of 100
+  amountFor(pts) { return clamp(Math.round(pts * (LOAN_MAX - LOAN_MIN) / LOAN_MAX_PTS / 100) * 100 + LOAN_MIN, LOAN_MIN, LOAN_MAX); },
+  // what repayments can come out of: the wallet, and the checking account when you pay with it (never an overdraft)
+  funds() { return Math.max(0, S.shells) + (Bank.usingChecking() ? Math.max(0, Bank.checking) : 0); },
+  // pay `n` shells (a number, or 'all' for as much as you can); returns what was paid
+  pay(n) {
+    const owed = this.owed();
+    n = Math.min(n === 'all' ? owed : n, owed, this.funds());
+    if (!(n > 0)) return 0;
+    const fromC = Bank.usingChecking() ? Math.min(Math.max(0, Bank.checking), n) : 0;
+    Bank.checking -= fromC; S.shells -= n - fromC;
+    store.set('bank_loan', owed - n);
+    return n;
+  },
+  grant(amt) {
+    store.set('bank_loan', amt); store.set('bank_loan_total', amt);
+    S.flags.loanTaken = amt;
+    this.noteTeased();   // the scene itself was this chapter's mention
+    Bank.depositLoan(amt);
+    sfx('coin');
+    UI.toast(`🏦 A ${amt.toLocaleString()} 🐚 business loan is on its way to your checking account. Open the bank to watch it arrive.`, 4800, 'wrap');
+    if (typeof SaveGame !== 'undefined') SaveGame.autoSave();
+  },
+  // the refusal: a snail brings the letter, and the credit score takes the hit for the rest of the run
+  async deny(vars) {
+    S.flags.creditDenied = true;
+    const reasons = [['why_pyr', 'Business model described as a pyramid (with square tiles).'], ['why_vibes', 'Collateral consists of "vibes".'],
+      ['why_casino', 'Repayment plan is "the casino".'], ['why_rude', 'Applicant asked to try on the banker\'s monocle.']].filter(([k]) => vars[k]).map(([, t]) => `<li>${t}</li>`).join('');
+    const html = `<div class="letter hand"><div style="float:right;margin:0 0 6px 10px">${SPR.snail({shell: 'yellow', hat: 'top'})}</div>
+      <p><b>NOTICE OF ADVERSE ACTION</b></p><p>Dear Applicant,</p>
+      <p>Thank you for applying for a small business loan with the First National Bank of Slime. We regret to inform you that your application has been <b>declined</b>.</p>
+      <p>Principal reasons for this action:</p><ul>${reasons || '<li>General unsuitability.</li>'}</ul>
+      <p>As a result, your credit score has been lowered. For the remainder of this run, <b>Escarlette's Emporium may not sell to you</b> and <b>the bank will pay you no interest</b>.</p>
+      <p>You have the right to a free copy of your credit report. It is one page long and says "hmm".</p>
+      <p>Sincerely,<br>The First National Bank of Slime<br><small>(delivered by snail; we apologise for the delay)</small></p></div>`;
+    sfx('page');
+    UI.toast('✉ A snail has delivered a letter from the bank.', 2400, 'wrap');
+    await UI.modal({title: 'Snail Mail', body: html, cls: 'mailm'}).done;
+  },
+
+  // ------------------------------------------------ the Grid brings it up: once a chapter, from the third guess of that chapter
+  noteTeased() { const t = S.flags.loanTease = S.flags.loanTease || {}; t[S.chapter] = -1; },
+  tease() {
+    const owed = this.owed();
+    if (!owed || S.chapter === 6 || !Narr.on || !Director.gridMet()) return;
+    const t = S.flags.loanTease = S.flags.loanTease || {};
+    const c = t[S.chapter] || 0;
+    if (c < 0) return;
+    t[S.chapter] = c + 1;
+    if (c + 1 < 3) return;
+    t[S.chapter] = -1;
+    const n = owed.toLocaleString();
+    const lines = {
+      2: [`Just so you know, you owe the bank ${n} shells. I'm not saying anything. I'm only saying it near you.`, S.flags.loanAtStart ? `I started this run a little less fond of you. It's the ${n} shells. It's nothing personal. It's a bit personal.` : `By the way: ${n} shells. To the bank. Just in case you had forgotten. I hadn't.`],
+      3: [`Gustave asked me to ask: how are we doing on the ${n}?`, `A reminder, with love: ${n} shells, still outstanding. I have it written on my side.`],
+      4: [`It's very dark down here. ${n} shells to the bank. Those two facts are not related. They are both on my mind.`, `Even in the burrow, the bank knows where you are. ${n} shells.`],
+      5: [`You owe ${n} shells. I'm only saying: a grid can't sleep with that hanging over it.`, `Deep underground, and still ${n} shells in the red. Impressive, honestly.`],
+      7: [`Endless mode, and still ${n} shells owed. At this point the loan is a lifestyle.`, `There is no end to a loan. There is only ${n} shells.`],
+    }[S.chapter] || [`You still owe the bank ${n} shells.`];
+    Narr.say(pick(lines), {wait: false});
+  },
+  // at the casino: the Grid says it before the usual monologue starts
+  casinoLines() {
+    const n = this.owed().toLocaleString();
+    return [`[shock]Wait. WAIT. You have a loan. ${n} shells, to the bank. And you are standing in a casino.`,
+      '[angry]You should not be gambling. Not with the bank\'s money, not with anyone\'s. Not one chip. I will say it as many times as I have to.'];
+  },
+};
+
+// ---------------------------------------------------------------- the scene (a VN, 24-vn.js)
+// Choices carry {pts} (the loan), {love}, and {why_*} (a reason the letter quotes if the loan is refused).
+const LOAN_SCRIPT = [
+  ['bg', 'bank'], ['music', 'shop'],
+  ['card', 'An Appointment', 'The Grid has booked a meeting at the First National Bank of Slime. Something about a business loan.'],
+  ['show', 'gustave', 'right'], ['show', 'grid', 'left', 'nervous'],
+  ['gustave', 'Welcome to the First National Bank of Slime. Mind the floor. It is not wet. It is "glazed".'],
+  ['grid', 'Gustave, this is my player. They have a credit card. I wanted you to see that. I am so proud.'],
+  ['gustave', 'A checking account in good standing is the first thing a bank looks for, and the last thing a snail does.'],
+  ['gustave', 'The bank offers a small business loan to select customers. Five thousand shells at the very most. A hundred at the very least. It depends on how you answer.'],
+  ['grid', 'No pressure. Well. A little pressure. It is a bank.'],
+  ['gustave', 'Question one. What is your business?'],
+  ['choice', [
+    ['"A shell-based economy. Vertically integrated. Slime-forward."', {pts: 3}, 'q1a'],
+    ['"We guess five-letter words. Professionally."', {pts: 2}, 'q1b'],
+    ['"It is a pyramid. But the tiles are square."', {pts: -2, why_pyr: 1}, 'q1c'],
+  ]],
+  ['label', 'q1a'], ['gustave', 'Slime-forward. I like it. I will pretend I know what it means.'], ['mood', 'grid', 'happy'], ['grid', 'I wrote that for you. On the way here. In my head.'], ['goto', 'q1'],
+  ['label', 'q1b'], ['gustave', 'Honest. Modest. A little vague. Acceptable.'], ['mood', 'grid', 'happy'], ['grid', 'We ARE professional. I have a badge. It is a tile.'], ['goto', 'q1'],
+  ['label', 'q1c'], ['gustave', 'A pyramid. I have seen this pyramid. It ends in a sphinx and a lawsuit.'], ['mood', 'grid', 'shock'], ['grid', 'It is NOT a pyramid. It is a grid. Please write down that it is a grid.'],
+  ['label', 'q1'],
+  ['mood', 'grid', 'nervous'],
+  ['gustave', 'Question two. What collateral will you put up?'],
+  ['choice', [
+    ['"My golden letters. They are in your vault already."', {pts: 3}, 'q2a'],
+    ['"The Grid."', {pts: 1, love: 2}, 'q2b'],
+    ['"Vibes."', {pts: -2, why_vibes: 1}, 'q2c'],
+  ]],
+  ['label', 'q2a'], ['gustave', 'Gold, in my vault, behind my monocle. Collateral does not come cleaner.'], ['goto', 'q2'],
+  ['label', 'q2b'], ['mood', 'grid', 'blush'], ['grid', 'Me?! As collateral? That is the most romantic thing anyone has ever said to me in a bank.'], ['gustave', 'The bank does not take grids. The bank will take the feeling. Noted.'], ['goto', 'q2'],
+  ['label', 'q2c'], ['gustave', 'The vault contains no vibes. I have checked. Twice.'], ['mood', 'grid', 'sad'], ['grid', '...Our vibes are good, though.'],
+  ['label', 'q2'],
+  ['mood', 'grid', 'nervous'],
+  ['gustave', 'Question three. How will you repay it?'],
+  ['choice', [
+    ['"With patience, and compound interest. Slowly. Like a snail."', {pts: 3}, 'q3a'],
+    ['"A few shells at a time, out of what I earn."', {pts: 2}, 'q3b'],
+    ['"I will double it at the casino."', {pts: -2, why_casino: 1}, 'q3c'],
+  ]],
+  ['label', 'q3a'], ['gustave', 'Like a snail. Yes. We are very good at that. Slowly and with a lot of slime.'], ['goto', 'q3'],
+  ['label', 'q3b'], ['gustave', 'A plan. Small. Tidy. The bank approves of small, tidy plans.'], ['goto', 'q3'],
+  ['label', 'q3c'], ['mood', 'grid', 'shock'], ['grid', 'No. No! Not the casino. Please. I have SEEN the casino.'], ['gustave', 'The bank notes this plan with a sigh.'],
+  ['label', 'q3'],
+  ['mood', 'grid', 'nervous'],
+  ['gustave', 'Last. The Grid has asked to speak as a character reference.'],
+  ['grid', 'They stayed. Through the snails. Through the missing E. Through my feelings, and the second board. That is a reference. That is like ten references.'],
+  ['gustave', 'And you, applicant? What do you say to that?'],
+  ['choice', [
+    ['"Thank you, Grid. That means a lot."', {pts: 3}, 'q4a'],
+    ['"Grid, come sit by me. I am glad you are here."', {pts: 1, love: 2}, 'q4b'],
+    ['"Gustave, is that monocle real? Can I try it on?"', {pts: -2, why_rude: 1}, 'q4c'],
+  ]],
+  ['label', 'q4a'], ['mood', 'grid', 'happy'], ['grid', 'Oh. Okay. Good. That is good.'], ['goto', 'q4'],
+  ['label', 'q4b'], ['mood', 'grid', 'blush'], ['grid', 'I... yes. Yes, I will sit. I will sit very close. On the edge of the screen.'], ['goto', 'q4'],
+  ['label', 'q4c'], ['gustave', 'It is a lens. It is real. And you have just cost yourself.'], ['mood', 'grid', 'shock'], ['grid', 'Why would you ask that. Why. In a BANK.'],
+  ['label', 'q4'],
+  ['gustave', 'Thank you. The bank will now review your file.'],
+  ['sfx', 'stamp'], ['wait', 900],
+  ['if', v => (v.pts || 0) < 0, 'denied'],
+  // approved
+  ['do', v => { v.amount = Loan.amountFor(v.pts || 0); }],
+  ['gustave', 'I have reviewed the file. The file is you. The bank is pleased.'],
+  ['gustave', v => `The First National Bank of Slime approves a business loan of ${v.amount.toLocaleString()} shells.`],
+  ['if', v => v.amount >= 3000, 'big'],
+  ['if', v => v.amount >= 1000, 'mid'],
+  ['mood', 'grid', 'nervous'], ['grid', 'That is... a starter loan. A seed loan. A loan with a lot of room to grow.'], ['goto', 'terms'],
+  ['label', 'mid'], ['mood', 'grid', 'happy'], ['grid', 'That is a real loan! We can do something with that. Possibly buy a hat.'], ['goto', 'terms'],
+  ['label', 'big'], ['mood', 'grid', 'blush'], ['grid', 'THAT is a loan! I am going to cry. In a business way.'],
+  ['label', 'terms'],
+  ['gustave', 'The terms: no interest. I am family to everyone here. But it is repaid in full before the bank will lend to you again, and until then I cannot accept a mortgage payment. The bank is paid first.'],
+  ['grid', 'And I will remind you. Often. Fondly.'],
+  ['gustave', 'The funds will be transferred to your checking account. Transfers take time. This is a bank.'],
+  ['end', 'approved'],
+  ['label', 'denied'],
+  ['sfx', 'deny'],
+  ['gustave', 'I have reviewed the file. The file is... not good.'],
+  ['gustave', 'The bank must decline your application. A notice will follow, by snail. It will be slow. It will be formal.'],
+  ['mood', 'grid', 'sad'], ['grid', 'What? No. They are good for it! They are... They are good for it. They are good for everything.'],
+  ['end', 'denied'],
+];
+
+Scenes.loan = async function() {
+  Codex.log('scenes', 'bank_loan');
+  const r = await VN.run(LOAN_SCRIPT, {title: 'THE BANK'});
+  Music.play(Director.chapterSong(), {fade: 0.8});
+  addLove(r.vars.love || 0, false);
+  S.flags.sessionScore = Math.max(0, r.vars.pts || 0);   // the "credit" counter: 0-12
+  if (r.end === 'approved') Loan.grant(r.vars.amount);
+  else await Loan.deny(r.vars);
+};
+
+Sessions.add({
+  id: 'loan',
+  name: 'The Business Loan',
+  host: 'Gustave',
+  phrase: 'the bank',
+  ref: 'the bank',
+  counter: 'credit',
+  codexScene: 'bank_loan',
+  intro: ['Can I ask you something? I made us an appointment. At the bank.', 'Gustave says you might qualify for a business loan. Will you come? Vaults make me nervous.'],
+  afterLine: () => S.flags.creditDenied
+    ? 'I am sorry. That was not fair. You are good for it. You are good for everything.'
+    : 'Look at that. We are a business now. Do not tell the snails.',
+  ready: false,                             // THE SWITCH (39c-session.js): OFF for 1.2.6, so only the debug jump "Beat 13: The Business Loan" reaches it. Set true to put it in the draw
+  available: () => Bank.hasCard() && Loan.owed() === 0,   // the credit card, and no loan still open
+  via: 'The credit card, and no loan still open. Refusal: no Emporium and no interest for the run.',
+  run: () => Scenes.loan(),
+});
 
 /* ---- js/40-save.js ---- */
 // ============================================================ 40-save
@@ -33790,8 +34305,12 @@ Minis.register('simon', {
 // no greens and at most one yellow makes the fish turn up to ask what's going on:
 // BLANK_FISH_CHANCE if the second has one yellow, DOUBLE_BLANK_FISH_CHANCE if it has
 // none. Each outcome rolls once per run; a miss means it never rolls again.
+// The same fish also turns up for gibberish: REJECT_FISH_STREAK full-length guesses in a row
+// that the dictionary refuses (Fish.rejected, from Game.enter) roll REJECT_FISH_CHANCE. A miss
+// just starts the count over, so it can roll again. The fish only ever appears once either way.
 
 const RAVEN_CHANCE = 0.1, BLANK_FISH_CHANCE = 0.2, DOUBLE_BLANK_FISH_CHANCE = 0.5;
+const REJECT_FISH_STREAK = 3, REJECT_FISH_CHANCE = 0.8;
 
 SPR.talkfish = () => `<svg viewBox="0 0 120 80" width="120" height="80">
   <path d="M24 40 L3 15 L9 40 L3 65 Z" fill="#f08a3c" stroke="#b85a18" stroke-width="2"/>
@@ -33860,16 +34379,32 @@ const Fish = {
     const blank = states.length > 0 && !greens && !yellows;
     const prevBlank = f.prevBlank;
     f.prevBlank = blank;
+    f.rejects = 0;   // a guess the game took ends any run of rejected ones
     if (blank && typeof Achievements !== 'undefined') Achievements.sub('blank');
-    if (!prevBlank || greens || yellows > 1 || S.chapter > 2 || S.len < 2) return;
+    if (!prevBlank || greens || yellows > 1 || S.chapter > 2 || S.len < 2 || f.badFish) return;
     const roll = yellows ? 'blankFishRoll' : 'doubleBlankFishRoll';
     if (f[roll]) return;
     f[roll] = true;
     if (!chance(yellows ? BLANK_FISH_CHANCE : DOUBLE_BLANK_FISH_CHANCE)) return;
+    this.complain();
+  },
+  // called from Game.enter for a full-length guess the dictionary rejected (the row is not used up)
+  rejected() {
+    const f = S.flags;
+    if (S.chapter > 2 || S.len < 2 || f.badFish) return;
+    if (typeof Achievements !== 'undefined') Achievements.sub('rejected');
+    f.rejects = (f.rejects || 0) + 1;
+    if (f.rejects < REJECT_FISH_STREAK) return;
+    f.rejects = 0;   // hit or miss, the count starts over
+    if (chance(REJECT_FISH_CHANCE)) this.complain();
+  },
+  complain() {
+    const f = S.flags;
+    f.badFish = true;
     f.blankFishRoll = f.doubleBlankFishRoll = true;   // the fish has had its say
     Codex.log('scenes', 'fish');
     if (typeof Achievements !== 'undefined') { Achievements.sub('fish'); Achievements.unlock('questionable_vocab'); }
-    setTimeout(() => this.visit(['What the fuck man? Do you not know how to play Wordle?']), 700);
+    setTimeout(() => this.visit(['What the hell man? Do you not know how to play Wordle?']), 700);
   },
 };
 
@@ -41966,27 +42501,28 @@ Minis.register('gridboss', {
 // THE E CHASE: a secret ending that branches at beat 4.
 //   1. Click the crowned snail that steals the E CHASE_CLICKS times before it escapes
 //      (each click makes it stumble instead of speeding it up; since 1.2.2 nothing shows how many clicks it takes or how many you have made). Since 1.2.2 a click no longer
-//      stops it: it slows to 35% of its speed for 0.8 s, and each later click slows it less (+8% a click, 91% by the eighth),
+//      stops it: it slows to 40% of its speed for 0.8 s, and each later click slows it less (+7.5% a click, 92.5% by the eighth),
 //      while its top speed creeps up the whole time it is on screen. See THIEF_* below and docs/specs/measure/thief-sim.mjs.
 //   2. The screen flashes red twice, battle-style, and the chase begins (echase):
 //      dodge rubble left and right, then jump the pits. It starts slow and speeds up; every
 //      mistake lets the snail pull ahead, and if it leaves the screen you lose the chase and
 //      the run carries on as before. Survive and it gets away down a hole, leaving a shovel.
-//   3. The Grid (the dating-sim portrait, at the side of the screen) catches up: "It's no use. Come back." Go back, and the run carries on
-//      exactly as before (the snail escapes with the E). Or pick up the shovel and dig.
+//   3. A shovel is left where the snail went in (the Grid does NOT appear here since 1.2.6: it has not introduced itself yet; see
+//      docs/GRID-LATE-INTRO-PLAN.md). Go back, and the run carries on exactly as before (the snail escapes with the E). Or pick up the shovel and dig.
 //   4. THE MOTHER LODE (motherlode): dig, collect, sell to the mole at the surface,
 //      upgrade the shovel. Only the diamond shovel breaks the stone layer; you fall.
 //   5. Straight into Wordoom with one extra floor (the Queen's Cellar). Then, shovel in
 //      hand, you skip the boss fight: one smack, one squish, the E is yours.
 //   6. A short romance scene with E, and the E-xcavation ending.
 // Run out of time in the Mother Lode, or get soft-locked there (snakes stole the bank and not enough
-// treasure is left within reach to buy the next shovel): the Grid hauls you out, back to the normal run.
+// treasure is left within reach to buy the next shovel): something hauls you out (it is the Grid, which has not introduced itself yet), back to the normal run.
 
 const CHASE_CLICKS = 8;
-// The E thief's escape (SNAIL.update in 11-events-a.js uses these). Speed = (95 + THIEF_ACCEL x seconds moving) x screen width / 1024.
+// The E thief's escape (SNAIL.update in 11-events-a.js uses these). Speed = (THIEF_SPEED + THIEF_ACCEL x seconds moving) x screen width / 1024.
 // A click slows it to THIEF_SLOW_FIRST of that for THIEF_SLOW_TIME s; click k slows it to FIRST + STEP x (k - 1), at most 95%.
-// (It used to freeze for 0.45 s per click at a flat 95 px/s, which made 8 clicks a formality.)
-const THIEF_ACCEL = 22, THIEF_SLOW_FIRST = 0.35, THIEF_SLOW_STEP = 0.08, THIEF_SLOW_TIME = 0.8;
+// (It used to freeze for 0.45 s per click at a flat 95 px/s, which made 8 clicks a formality. 1.2.6: a little faster, a little less slowed,
+// and it arrives in a crowd of snails, one per letter key, at a random moment in the first 8 s: see the 'snails' event.)
+const THIEF_SPEED = 102, THIEF_ACCEL = 23, THIEF_SLOW_FIRST = 0.40, THIEF_SLOW_STEP = 0.075, THIEF_SLOW_TIME = 0.8;
 const CHASE_HIT_LINES = ['Non!', 'Unhand me!', 'Stop that!', 'Ow! My antenna!', 'Do you MIND?', 'I have a royal appointment!', 'Fine. FINE.', 'Very well. Catch me if you can.'];
 const SHOVELS = [
   {name: 'WOODEN', cost: 0, col: '#a0784a', bag: 8, h: 1, desc: 'Soft topsoil & roots.'},
@@ -42049,7 +42585,7 @@ const Chase = {
       if (r.win) { un(); return this.endgame(ev, sn); }
       // stuck (no way left to earn the next shovel) ends exactly like losing the chase: back to the run, E still gone
       if (opts.stuck) UI.toast('The snail is long gone, and so is the E. You head back.', 2400, 'wrap');
-      else UI.toast('The Grid hauls you out of the hole by your collar. "We are NOT doing that again."', 2600, 'wrap');
+      else UI.toast('Something hauls you out of the hole by your collar. "We are NOT doing that again."', 2600, 'wrap');
     } else UI.toast('You walk back. Behind you, somewhere far below, a snail laughs politely.', 2400, 'wrap');
     // back to the run as it was: the thief resumes its escape with the E
     sn.stun = 0;
@@ -42058,20 +42594,13 @@ const Chase = {
   },
   shovelScene() {
     return new Promise(res => {
-      // the Grid (the dating-sim portrait) stands at the side of the screen and talks
-      const first = !(Codex.data && Codex.data.runs > 0);
-      const lines = first
-        ? [['nervous', 'There you are.'], ['sad', 'It’s no use. The E is gone. Come back… please?'], ['nervous', 'I’m not even supposed to be talking yet.']]
-        : [['happy', 'Hi! I’m the Grid.'], ['sad', 'The E is gone. Come back, please?']];
+      // (Until 1.2.6 the Grid slid in here and talked; it has not introduced itself yet at this point, so it stays away.)
       const body = h('div.negbox.shovelbox', h('div.shovel-pic', {html: SPR.shovel('#a0784a', 0.9)}),
         h('p', 'The snail dives into a hole far too small for you and is gone. Where it went in, someone has left a shovel.'));
       const m = UI.modal({title: 'A Shovel', body, noClose: true, cls: 'negm'});
-      const back = h('button.btn', {type: 'button', text: 'Go back', disabled: true}), dig = h('button.btn.ghost', {type: 'button', text: 'Pick up the shovel and dig', disabled: true});
-      const grid = this.gridSide(lines);
-      grid.done.then(() => { back.disabled = dig.disabled = false; });
-      back.addEventListener('click', () => { grid.leave(); m.close(); res(false); });
+      const back = h('button.btn', {type: 'button', text: 'Go back'}), dig = h('button.btn.ghost', {type: 'button', text: 'Pick up the shovel and dig'});
+      back.addEventListener('click', () => { m.close(); res(false); });
       dig.addEventListener('click', () => {
-        grid.leave();
         m.close();
         sfx('stamp');
         if (typeof Achievements !== 'undefined') { Achievements.sub('motherlode'); Achievements.unlock('digging_deeper'); }
@@ -42081,7 +42610,8 @@ const Chase = {
     });
   },
   // the Grid, from the dating sim, slides in at the left edge and speaks line by line.
-  // lines = [[mood, text], ...]; click the bubble to hurry a line along.
+  // lines = [[mood, text], ...]; click the bubble to hurry a line along. (Unused since 1.2.6; kept for the late introduction in
+  // docs/GRID-LATE-INTRO-PLAN.md.)
   gridSide(lines) {
     const pic = h('div.gs-pic', {html: CHARS.grid.art(lines[0][0])});
     const txt = h('span.gs-txt'), bub = h('div.gs-bubble', h('b', 'The Grid'), txt);
@@ -42108,6 +42638,25 @@ const Chase = {
     })();
     return {done, leave() { alive = false; el.classList.remove('in'); setTimeout(() => el.remove(), 500); }};
   },
+  // The Grid introduces itself, late: this route skips beat 5, where it normally does, so the first time it speaks is on the way down
+  // (see docs/GRID-LATE-INTRO-PLAN.md). The first-ever run keeps the old shovel scene's nervous line.
+  async lateIntro() {
+    const first = !(Codex.data && Codex.data.runs > 0);
+    Narr.blink(); Narr.setLook('squint');
+    if (first) {
+      await Narr.say('...Oh. You can see me. Of course you can. You fell straight through me.');
+      await Narr.say('I\'m the Grid. You\'ve been typing on me this whole time. We haven\'t been formally introduced, because you were busy with a snail.');
+      Narr.setLook('blush');
+      await Narr.say('I had a whole thing planned. There was a wheel.');
+      await Narr.say('I\'m not even supposed to be talking yet.');
+    } else {
+      await Narr.say('Hi again. Apparently I introduce myself down here now.');
+      Narr.setLook('blush');
+      await Narr.say('I\'m the Grid. You\'ve been typing on me this whole time.');
+    }
+    Narr.setLook('');
+    S.flags.gridMet = true;
+  },
   async endgame(ev, sn) {
     const un = lock();
     S.flags.shovel = true;
@@ -42124,6 +42673,7 @@ const Chase = {
     Director.newPuzzle({len: 3, rows: 4, boards: 1});
     anim($('#app'), 'descend', 1400); sfx('rumble');
     Narr.eyes(true);
+    if (!Director.gridMet()) await this.lateIntro();
     await Narr.say('You fell. Through the stone. Into the bottom of me. I didn\'t know I went this deep.');
     await Narr.say('...And look how quickly you got down here! What a shortcut.');
     await Narr.say('Fine. If you\'re going after the E, I\'m coming too. Bring the shovel.');
@@ -42558,7 +43108,7 @@ Minis.register('motherlode', {
   intro: '<p>A shovel. An expansive abyss. A lot of ancient earth between you and the E.</p><p>Dig down through <b>6 geological strata</b> (Topsoil, Sandstone, Limestone Caverns, Deep Slate, Volcanic Magma, and Ancient Bedrock). Collect shells, amber, copper, fossils, golden letter tiles, emeralds, and fiery rubies.</p><p>Fly back to the surface: the <b>Mole Foreman</b> buys your haul. <b>Visit his Store</b> to manually purchase shovel upgrades and <b>speed upgrades</b> for faster movement and flight! Upgraded shovels also slice through previous strata much faster.</p><p><b>Watch your footing:</b> gravity pulls you down unless you hold <b>↑ / W</b> to fly! <b>Watch out for snakes:</b> click or tap them directly to WHACK and remove them!</p>',
   controls: '← → / A D: walk/dig sideways · ↓ / S: drop/dig down · ↑ / W: fly up against gravity · Click snakes to WHACK · Click Mole Shop for upgrades',
   winMsg: 'The ancient bedrock shatters under the diamond shovel! You plummet into the deep abyss...',
-  loseMsg: 'Out of time. The Grid hauls you out of the hole by your collar.',
+  loseMsg: 'Out of time. Something hauls you out of the hole by your collar.',
   pad: [['◀', 'ArrowLeft'], ['▲', 'ArrowUp'], ['▼', 'ArrowDown'], ['▶', 'ArrowRight']],
   create(m) {
     const ROWS = 56, SURF = 4, STONE = 51, VOID = 54, HUD = 56;
@@ -42831,7 +43381,7 @@ Minis.register('motherlode', {
       if (!stuck && softlocked()) {
         stuck = true; m.opts.stuck = true;
         say('Not enough treasure left to afford the next shovel. You are stuck.', 3.4);
-        setTimeout(() => m.lose('The snakes took your savings, and there is not enough reachable treasure left to buy the next shovel. The Grid hauls you out by your collar.'), 3200);
+        setTimeout(() => m.lose('The snakes took your savings, and there is not enough reachable treasure left to buy the next shovel. Something hauls you out by your collar.'), 3200);
       }
     };
 
@@ -44704,7 +45254,7 @@ const Secrets = {
       await Fish.say(fish, 'Yeah. It was me. It was always me.');
       await Fish.say(fish, 'The Grid is a grid. Grids don\'t talk. I did the voices.');
     }
-    await Fish.say(fish, `Every “I am the Grid”. ${S.flags.session === 'variant' ? 'The ' + SESSION_VARIANT.name.toLowerCase() : 'The therapy'}. The poem. I'm a fish out of water, and the water was this game.`);
+    await Fish.say(fish, `Every “I am the Grid”. ${Sessions.ref()}. The poem. I'm a fish out of water, and the water was this game.`);
     await Fish.say(fish, 'Anyway. Wow, that was weird.');
     fish.remove();
     un();
